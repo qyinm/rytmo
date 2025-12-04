@@ -8,4 +8,4 @@ Issue:
 | | |
 
 ## Checklist
-- [ ] 빌드 확인
+- [ ] Build Check
