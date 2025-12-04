@@ -35,7 +35,6 @@ struct SettingsView: View {
 
                     // 집중 시간
                     SettingRow(
-                        icon: "🍅",
                         title: "집중 시간",
                         value: $settings.focusDuration,
                         range: 1...60,
@@ -46,7 +45,6 @@ struct SettingsView: View {
 
                     // 짧은 휴식 시간
                     SettingRow(
-                        icon: "☕️",
                         title: "짧은 휴식",
                         value: $settings.shortBreakDuration,
                         range: 1...30,
@@ -57,7 +55,6 @@ struct SettingsView: View {
 
                     // 긴 휴식 시간
                     SettingRow(
-                        icon: "🌟",
                         title: "긴 휴식",
                         value: $settings.longBreakDuration,
                         range: 5...60,
@@ -68,7 +65,6 @@ struct SettingsView: View {
 
                     // 긴 휴식 전 세션 수
                     SettingRow(
-                        icon: "🔢",
                         title: "긴 휴식 전 세션 수",
                         value: $settings.sessionsBeforeLongBreak,
                         range: 2...10,
@@ -100,7 +96,6 @@ struct SettingsView: View {
 /// 설정 항목 행
 struct SettingRow: View {
 
-    let icon: String
     let title: String
     @Binding var value: Int
     let range: ClosedRange<Int>
@@ -109,9 +104,6 @@ struct SettingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(icon)
-                    .font(.title3)
-
                 Text(title)
                     .font(.subheadline)
                     .fontWeight(.medium)

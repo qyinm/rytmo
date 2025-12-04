@@ -43,9 +43,18 @@ struct rytmoApp: App {
                 .environmentObject(timerManager)
                 .environmentObject(settings)
         } label: {
-            // 메뉴바 라벨 (모노스페이스 폰트로 깜빡임 방지)
-            Text(timerManager.menuBarTitle)
-                .font(.system(.body, design: .monospaced))
+            // 메뉴바 라벨 (아이콘 + 타이머)
+            HStack(spacing: 4) {
+                Image("MenuBarIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+
+                if !timerManager.menuBarTitle.isEmpty {
+                    Text(timerManager.menuBarTitle)
+                        .font(.system(.body, design: .monospaced))
+                }
+            }
         }
         .menuBarExtraStyle(.window)
     }

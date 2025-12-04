@@ -42,9 +42,6 @@ struct TimerView: View {
 
                 // 중앙 텍스트
                 VStack(spacing: 8) {
-                    Text(timerManager.session.state.emoji)
-                        .font(.system(size: 40))
-
                     Text(timerManager.session.formattedTime)
                         .font(.system(size: 36, weight: .medium, design: .monospaced))
                         .foregroundColor(.primary)

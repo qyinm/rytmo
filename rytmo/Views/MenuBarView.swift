@@ -164,7 +164,6 @@ struct MenuBarView: View {
 
                     // 집중 시간
                     SettingRow(
-                        icon: "🍅",
                         title: "집중 시간",
                         value: $settings.focusDuration,
                         range: 1...60,
@@ -175,7 +174,6 @@ struct MenuBarView: View {
 
                     // 짧은 휴식 시간
                     SettingRow(
-                        icon: "☕️",
                         title: "짧은 휴식",
                         value: $settings.shortBreakDuration,
                         range: 1...30,
@@ -186,7 +184,6 @@ struct MenuBarView: View {
 
                     // 긴 휴식 시간
                     SettingRow(
-                        icon: "🌟",
                         title: "긴 휴식",
                         value: $settings.longBreakDuration,
                         range: 5...60,
@@ -197,7 +194,6 @@ struct MenuBarView: View {
 
                     // 긴 휴식 전 세션 수
                     SettingRow(
-                        icon: "🔢",
                         title: "긴 휴식 전 세션 수",
                         value: $settings.sessionsBeforeLongBreak,
                         range: 2...10,

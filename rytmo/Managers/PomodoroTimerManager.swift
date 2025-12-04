@@ -16,7 +16,7 @@ class PomodoroTimerManager: ObservableObject {
     // MARK: - Published Properties
 
     @Published var session: PomodoroSession
-    @Published var menuBarTitle: String = "⏸️"
+    @Published var menuBarTitle: String = ""
 
     // MARK: - Private Properties
 
@@ -126,15 +126,14 @@ class PomodoroTimerManager: ObservableObject {
 
     /// 메뉴바 타이틀 업데이트
     private func updateMenuBarTitle() {
-        let emoji = session.state.emoji
         let time = session.formattedTime
 
         if session.isRunning {
-            menuBarTitle = "\(emoji) \(time)"
+            menuBarTitle = time
         } else if session.state == .idle {
-            menuBarTitle = emoji
+            menuBarTitle = ""
         } else {
-            menuBarTitle = "\(emoji) \(time)"
+            menuBarTitle = time
         }
     }
 }

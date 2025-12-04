@@ -29,19 +29,6 @@ enum TimerState {
         }
     }
 
-    var emoji: String {
-        switch self {
-        case .idle:
-            return "⏸️"
-        case .focus:
-            return "🍅"
-        case .shortBreak:
-            return "☕️"
-        case .longBreak:
-            return "🌟"
-        }
-    }
-
     /// 기본 시간 (초)
     var defaultDuration: TimeInterval {
         switch self {
