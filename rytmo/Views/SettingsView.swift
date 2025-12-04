@@ -13,11 +13,20 @@ import SwiftUI
 struct SettingsView: View {
 
     @EnvironmentObject var settings: PomodoroSettings
+    var onDismiss: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             // 헤더
             HStack {
+                if let onDismiss = onDismiss {
+                    Button(action: onDismiss) {
+                        Image(systemName: "chevron.left")
+                            .font(.title3)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 Text("타이머 설정")
                     .font(.title2)
                     .fontWeight(.bold)
@@ -87,7 +96,7 @@ struct SettingsView: View {
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(width: 400, height: 500)
+        .frame(width: 360)
     }
 }
 

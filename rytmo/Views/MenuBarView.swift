@@ -137,85 +137,9 @@ struct MenuBarView: View {
     // MARK: - Settings Content
 
     private var settingsContent: some View {
-        VStack(spacing: 0) {
-            // 헤더
-            HStack {
-                Button(action: {
-                    showingSettings = false
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title3)
-                }
-                .buttonStyle(.plain)
-
-                Text("타이머 설정")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                Spacer()
-            }
-            .padding()
-
-            Divider()
-
-            // 설정 항목
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-
-                    // 집중 시간
-                    SettingRow(
-                        title: "집중 시간",
-                        value: $settings.focusDuration,
-                        range: 1...60,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 짧은 휴식 시간
-                    SettingRow(
-                        title: "짧은 휴식",
-                        value: $settings.shortBreakDuration,
-                        range: 1...30,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 긴 휴식 시간
-                    SettingRow(
-                        title: "긴 휴식",
-                        value: $settings.longBreakDuration,
-                        range: 5...60,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 긴 휴식 전 세션 수
-                    SettingRow(
-                        title: "긴 휴식 전 세션 수",
-                        value: $settings.sessionsBeforeLongBreak,
-                        range: 2...10,
-                        unit: "세트"
-                    )
-                }
-                .padding()
-            }
-
-            Divider()
-
-            // 하단 버튼
-            Button(action: {
-                settings.resetToDefaults()
-            }) {
-                Text("기본값 복원")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-            }
-            .buttonStyle(.bordered)
-            .padding()
-        }
+        SettingsView(onDismiss: {
+            showingSettings = false
+        })
     }
 }
 
