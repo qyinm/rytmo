@@ -54,21 +54,6 @@ struct MusicControllerView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(musicPlayer.selectedPlaylist == nil || musicPlayer.selectedPlaylist?.tracks.isEmpty == true)
-
-                Spacer()
-
-                // Volume slider
-                HStack(spacing: 6) {
-                    Image(systemName: musicPlayer.volume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-
-                    Slider(value: Binding(
-                        get: { musicPlayer.volume },
-                        set: { musicPlayer.setVolume($0) }
-                    ), in: 0...1)
-                    .frame(width: 80)
-                }
             }
         }
     }

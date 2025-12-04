@@ -33,7 +33,6 @@ class MusicPlayerManager: ObservableObject {
     @Published var currentTrack: MusicTrack?
     @Published var selectedPlaylist: Playlist?
     @Published var isPlaying: Bool = false
-    @Published var volume: Double = 0.7
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
@@ -312,12 +311,6 @@ class MusicPlayerManager: ObservableObject {
             // Loop to the last track
             play(track: lastTrack)
         }
-    }
-
-    func setVolume(_ newVolume: Double) {
-        volume = newVolume
-        // Note: YouTubePlayerKit 2.x doesn't expose volume control directly
-        // Volume is controlled by the system
     }
 }
 
