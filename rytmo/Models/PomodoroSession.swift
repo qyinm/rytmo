@@ -64,6 +64,7 @@ struct PomodoroSession {
     var state: TimerState
     var isRunning: Bool
     var remainingTime: TimeInterval
+    var totalDuration: TimeInterval  // 현재 세션의 전체 시간
     var sessionCount: Int  // 완료된 집중 세션 수 (0~3)
     var endDate: Date?     // 타이머 종료 예정 시간 (백그라운드 계산용)
 
@@ -71,15 +72,15 @@ struct PomodoroSession {
         self.state = .idle
         self.isRunning = false
         self.remainingTime = 0
+        self.totalDuration = 0
         self.sessionCount = 0
         self.endDate = nil
     }
 
     /// 진행률 (0.0 ~ 1.0)
     var progress: Double {
-        let total = state.defaultDuration
-        guard total > 0 else { return 0 }
-        return max(0, min(1, (total - remainingTime) / total))
+        guard totalDuration > 0 else { return 0 }
+        return max(0, min(1, (totalDuration - remainingTime) / totalDuration))
     }
 
     /// MM:SS 형식 문자열
@@ -90,15 +91,15 @@ struct PomodoroSession {
     }
 
     /// 다음 상태 결정
-    mutating func moveToNextState() {
+    mutating func moveToNextState(settings: PomodoroSettings) {
         switch state {
         case .idle:
             state = .focus
             sessionCount = 0
         case .focus:
             sessionCount += 1
-            // 4세트 완료 시 긴 휴식, 아니면 짧은 휴식
-            if sessionCount >= 4 {
+            // 설정된 세트 수 완료 시 긴 휴식, 아니면 짧은 휴식
+            if sessionCount >= settings.sessionsBeforeLongBreak {
                 state = .longBreak
                 sessionCount = 0
             } else {
@@ -107,7 +108,22 @@ struct PomodoroSession {
         case .shortBreak, .longBreak:
             state = .focus
         }
-        remainingTime = state.defaultDuration
+
+        // 설정에서 시간 가져오기
+        switch state {
+        case .idle:
+            remainingTime = 0
+            totalDuration = 0
+        case .focus:
+            remainingTime = settings.focusDurationInSeconds()
+            totalDuration = remainingTime
+        case .shortBreak:
+            remainingTime = settings.shortBreakDurationInSeconds()
+            totalDuration = remainingTime
+        case .longBreak:
+            remainingTime = settings.longBreakDurationInSeconds()
+            totalDuration = remainingTime
+        }
     }
 
     /// 타이머 리셋
@@ -115,6 +131,7 @@ struct PomodoroSession {
         state = .idle
         isRunning = false
         remainingTime = 0
+        totalDuration = 0
         sessionCount = 0
         endDate = nil
     }

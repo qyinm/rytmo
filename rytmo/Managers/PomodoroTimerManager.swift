@@ -21,10 +21,12 @@ class PomodoroTimerManager: ObservableObject {
     // MARK: - Private Properties
 
     private var timer: Timer?
+    private var settings: PomodoroSettings
 
     // MARK: - Initialization
 
-    init() {
+    init(settings: PomodoroSettings) {
+        self.settings = settings
         self.session = PomodoroSession()
     }
 
@@ -36,7 +38,7 @@ class PomodoroTimerManager: ObservableObject {
 
         // 첫 시작이면 집중 상태로 전환
         if session.state == .idle {
-            session.moveToNextState()
+            session.moveToNextState(settings: settings)
         }
 
         // 종료 시간 계산 (백그라운드 동작 대비)
@@ -70,7 +72,7 @@ class PomodoroTimerManager: ObservableObject {
         timer = nil
 
         // 다음 상태로 전환
-        session.moveToNextState()
+        session.moveToNextState(settings: settings)
         session.endDate = nil
 
         // 자동 시작하지 않음
@@ -116,7 +118,7 @@ class PomodoroTimerManager: ObservableObject {
         session.endDate = nil
 
         // 다음 상태로 전환
-        session.moveToNextState()
+        session.moveToNextState(settings: settings)
 
         // 자동으로 다음 상태 시작
         start()

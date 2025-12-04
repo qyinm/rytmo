@@ -13,9 +13,27 @@ import SwiftUI
 struct MenuBarView: View {
 
     @EnvironmentObject var timerManager: PomodoroTimerManager
+    @EnvironmentObject var settings: PomodoroSettings
     @Environment(\.openWindow) var openWindow
 
+    @State private var showingSettings: Bool = false
+
     var body: some View {
+        VStack(spacing: 0) {
+            if showingSettings {
+                // 설정 뷰
+                settingsContent
+            } else {
+                // 타이머 뷰
+                timerContent
+            }
+        }
+        .frame(width: 360)
+    }
+
+    // MARK: - Timer Content
+
+    private var timerContent: some View {
         VStack(spacing: 20) {
             // 타이머 디스플레이
             TimerView()
@@ -70,18 +88,32 @@ struct MenuBarView: View {
 
             Divider()
 
-            // 대시보드 열기 버튼
-            Button(action: {
-                openWindow(id: "main")
-            }) {
-                HStack {
-                    Image(systemName: "chart.bar.fill")
-                    Text("대시보드 열기")
+            // 대시보드 및 설정 버튼
+            HStack(spacing: 12) {
+                Button(action: {
+                    openWindow(id: "main")
+                }) {
+                    HStack {
+                        Image(systemName: "chart.bar.fill")
+                        Text("대시보드")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .buttonStyle(.bordered)
+
+                Button(action: {
+                    showingSettings = true
+                }) {
+                    HStack {
+                        Image(systemName: "gearshape.fill")
+                        Text("설정")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.bordered)
 
             Divider()
 
@@ -100,18 +132,107 @@ struct MenuBarView: View {
             .foregroundColor(.red)
         }
         .padding()
-        .frame(width: 360)
+    }
+
+    // MARK: - Settings Content
+
+    private var settingsContent: some View {
+        VStack(spacing: 0) {
+            // 헤더
+            HStack {
+                Button(action: {
+                    showingSettings = false
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+
+                Text("타이머 설정")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Spacer()
+            }
+            .padding()
+
+            Divider()
+
+            // 설정 항목
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+
+                    // 집중 시간
+                    SettingRow(
+                        icon: "🍅",
+                        title: "집중 시간",
+                        value: $settings.focusDuration,
+                        range: 1...60,
+                        unit: "분"
+                    )
+
+                    Divider()
+
+                    // 짧은 휴식 시간
+                    SettingRow(
+                        icon: "☕️",
+                        title: "짧은 휴식",
+                        value: $settings.shortBreakDuration,
+                        range: 1...30,
+                        unit: "분"
+                    )
+
+                    Divider()
+
+                    // 긴 휴식 시간
+                    SettingRow(
+                        icon: "🌟",
+                        title: "긴 휴식",
+                        value: $settings.longBreakDuration,
+                        range: 5...60,
+                        unit: "분"
+                    )
+
+                    Divider()
+
+                    // 긴 휴식 전 세션 수
+                    SettingRow(
+                        icon: "🔢",
+                        title: "긴 휴식 전 세션 수",
+                        value: $settings.sessionsBeforeLongBreak,
+                        range: 2...10,
+                        unit: "세트"
+                    )
+                }
+                .padding()
+            }
+
+            Divider()
+
+            // 하단 버튼
+            Button(action: {
+                settings.resetToDefaults()
+            }) {
+                Text("기본값 복원")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.bordered)
+            .padding()
+        }
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    MenuBarView()
-        .environmentObject({
-            let manager = PomodoroTimerManager()
-            manager.session.state = .focus
-            manager.session.remainingTime = 15 * 60
-            return manager
-        }())
+    let settings = PomodoroSettings()
+    let manager = PomodoroTimerManager(settings: settings)
+    manager.session.state = .focus
+    manager.session.remainingTime = 15 * 60
+    manager.session.totalDuration = 25 * 60
+
+    return MenuBarView()
+        .environmentObject(manager)
+        .environmentObject(settings)
 }

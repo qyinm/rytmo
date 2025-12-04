@@ -89,11 +89,12 @@ struct TimerView: View {
 // MARK: - Preview
 
 #Preview {
-    TimerView()
-        .environmentObject({
-            let manager = PomodoroTimerManager()
-            manager.session.state = .focus
-            manager.session.remainingTime = 25 * 60
-            return manager
-        }())
+    let settings = PomodoroSettings()
+    let manager = PomodoroTimerManager(settings: settings)
+    manager.session.state = .focus
+    manager.session.remainingTime = 25 * 60
+    manager.session.totalDuration = 25 * 60
+
+    return TimerView()
+        .environmentObject(manager)
 }

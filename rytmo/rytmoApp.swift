@@ -12,8 +12,18 @@ struct rytmoApp: App {
 
     // MARK: - State Objects
 
-    @StateObject private var timerManager = PomodoroTimerManager()
+    @StateObject private var settings = PomodoroSettings()
+    @StateObject private var timerManager: PomodoroTimerManager
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    // MARK: - Initialization
+
+    init() {
+        let settings = PomodoroSettings()
+        _settings = StateObject(wrappedValue: settings)
+        _timerManager = StateObject(wrappedValue: PomodoroTimerManager(settings: settings))
+    }
 
     // MARK: - Body
 
@@ -22,14 +32,16 @@ struct rytmoApp: App {
         WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(timerManager)
+                .environmentObject(settings)
         }
         // 윈도우 크기 설정
         .defaultSize(width: 800, height: 600)
 
-        // 2) 메뉴바 Extra (팝오버 UI)
+        // 2) 메뉴바 Extra (팝오버 UI - 설정 포함)
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerManager)
+                .environmentObject(settings)
         } label: {
             // 메뉴바 라벨 (모노스페이스 폰트로 깜빡임 방지)
             Text(timerManager.menuBarTitle)
