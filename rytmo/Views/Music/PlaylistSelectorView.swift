@@ -62,6 +62,7 @@ struct PlaylistSelectorView: View {
                         .stroke(Color.white.opacity(isSelected ? 0.8 : 0), lineWidth: 2)
                 )
                 .shadow(color: isSelected ? Color(hex: playlist.themeColorHex).opacity(0.5) : .clear, radius: 4)
+                .help(playlist.name)
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
