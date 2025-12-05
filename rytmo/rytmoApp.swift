@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct rytmoApp: App {
@@ -14,8 +15,13 @@ struct rytmoApp: App {
 
     @StateObject private var settings = PomodoroSettings()
     @StateObject private var timerManager: PomodoroTimerManager
+    @StateObject private var musicPlayer = MusicPlayerManager()
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    // MARK: - SwiftData Container
+
+    let modelContainer: ModelContainer
 
     // MARK: - Initialization
 
@@ -23,6 +29,15 @@ struct rytmoApp: App {
         let settings = PomodoroSettings()
         _settings = StateObject(wrappedValue: settings)
         _timerManager = StateObject(wrappedValue: PomodoroTimerManager(settings: settings))
+
+        // SwiftData container setup
+        do {
+            let schema = Schema([Playlist.self, MusicTrack.self])
+            let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+            modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
     }
 
     // MARK: - Body
@@ -33,15 +48,22 @@ struct rytmoApp: App {
             ContentView()
                 .environmentObject(timerManager)
                 .environmentObject(settings)
+                .environmentObject(musicPlayer)
         }
         // 윈도우 크기 설정
         .defaultSize(width: 800, height: 600)
+        .modelContainer(modelContainer)
 
         // 2) 메뉴바 Extra (팝오버 UI - 설정 포함)
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerManager)
                 .environmentObject(settings)
+                .environmentObject(musicPlayer)
+                .modelContainer(modelContainer)
+                .onAppear {
+                    musicPlayer.setModelContext(modelContainer.mainContext)
+                }
         } label: {
             // 메뉴바 라벨 (아이콘 + 타이머)
             HStack(spacing: 4) {
