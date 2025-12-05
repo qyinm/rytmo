@@ -30,6 +30,7 @@ struct MenuBarView: View {
             }
         }
         .frame(width: 360)
+        .fixedSize(horizontal: false, vertical: true) // 핵심: 세로 길이를 내용물 크기에 고정
     }
 
     // MARK: - Timer Content
@@ -138,7 +139,6 @@ struct MenuBarView: View {
             }
             .padding()
         }
-        .frame(height: 580)
     }
 
     // MARK: - Settings Content
