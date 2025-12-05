@@ -65,20 +65,38 @@ class MusicPlayerManager: ObservableObject {
         youTubePlayer.playbackStatePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] state in
+                guard let self = self else { return }
+
                 switch state {
                 case .playing:
-                    self?.isPlaying = true
+                    self.isPlaying = true
+
+                    // 이벤트 트래킹 - 음악 재생
+                    if let track = self.currentTrack {
+                        AmplitudeManager.shared.trackMusicPlayed(
+                            trackTitle: track.title,
+                            playlistName: self.selectedPlaylist?.name
+                        )
+                    }
+
                 case .paused, .ended, .unstarted, .cued:
-                    self?.isPlaying = false
+                    let wasPlaying = self.isPlaying
+                    self.isPlaying = false
+
+                    // 이벤트 트래킹 - 음악 일시정지 (재생 중이었을 때만)
+                    if wasPlaying && state == .paused {
+                        AmplitudeManager.shared.trackMusicPaused()
+                    }
+
                     if state == .ended {
-                        self?.playNextTrack()
+                        self.playNextTrack()
                     }
                 default:
                     break
                 }
             }
             .store(in: &cancellables)
-            
+
         // Observe playback metadata
         youTubePlayer.playbackMetadataPublisher
             .receive(on: DispatchQueue.main)

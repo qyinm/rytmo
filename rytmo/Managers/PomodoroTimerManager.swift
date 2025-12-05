@@ -51,11 +51,23 @@ class PomodoroTimerManager: ObservableObject {
         }
 
         updateMenuBarTitle()
+
+        // 이벤트 트래킹
+        AmplitudeManager.shared.trackTimerStarted(
+            sessionType: session.state.displayName,
+            duration: Int(session.totalDuration)
+        )
     }
 
     /// 타이머 일시정지
     func pause() {
         guard session.isRunning else { return }
+
+        // 이벤트 트래킹 (중지 전에 호출)
+        AmplitudeManager.shared.trackTimerPaused(
+            sessionType: session.state.displayName,
+            remainingTime: Int(session.remainingTime)
+        )
 
         session.isRunning = false
         session.endDate = nil
@@ -67,6 +79,12 @@ class PomodoroTimerManager: ObservableObject {
 
     /// 타이머 스킵 (다음 단계로)
     func skip() {
+        // 이벤트 트래킹 (스킵 전에 호출)
+        AmplitudeManager.shared.trackTimerSkipped(
+            sessionType: session.state.displayName,
+            remainingTime: Int(session.remainingTime)
+        )
+
         // 현재 타이머 중지
         timer?.invalidate()
         timer = nil
@@ -111,6 +129,12 @@ class PomodoroTimerManager: ObservableObject {
 
     /// 타이머 종료 처리
     private func timerDidFinish() {
+        // 이벤트 트래킹 (상태 변경 전에 호출)
+        AmplitudeManager.shared.trackTimerCompleted(
+            sessionType: session.state.displayName,
+            duration: Int(session.totalDuration)
+        )
+
         timer?.invalidate()
         timer = nil
 

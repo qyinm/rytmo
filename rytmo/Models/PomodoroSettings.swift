@@ -19,6 +19,10 @@ class PomodoroSettings: ObservableObject {
     @Published var focusDuration: Int {
         didSet {
             UserDefaults.standard.set(focusDuration, forKey: "focusDuration")
+            AmplitudeManager.shared.trackSettingChanged(
+                settingName: "focus_duration",
+                newValue: focusDuration
+            )
         }
     }
 
@@ -26,6 +30,10 @@ class PomodoroSettings: ObservableObject {
     @Published var shortBreakDuration: Int {
         didSet {
             UserDefaults.standard.set(shortBreakDuration, forKey: "shortBreakDuration")
+            AmplitudeManager.shared.trackSettingChanged(
+                settingName: "short_break_duration",
+                newValue: shortBreakDuration
+            )
         }
     }
 
@@ -33,6 +41,10 @@ class PomodoroSettings: ObservableObject {
     @Published var longBreakDuration: Int {
         didSet {
             UserDefaults.standard.set(longBreakDuration, forKey: "longBreakDuration")
+            AmplitudeManager.shared.trackSettingChanged(
+                settingName: "long_break_duration",
+                newValue: longBreakDuration
+            )
         }
     }
 
@@ -40,6 +52,10 @@ class PomodoroSettings: ObservableObject {
     @Published var sessionsBeforeLongBreak: Int {
         didSet {
             UserDefaults.standard.set(sessionsBeforeLongBreak, forKey: "sessionsBeforeLongBreak")
+            AmplitudeManager.shared.trackSettingChanged(
+                settingName: "sessions_before_long_break",
+                newValue: sessionsBeforeLongBreak
+            )
         }
     }
 
@@ -61,6 +77,9 @@ class PomodoroSettings: ObservableObject {
         shortBreakDuration = 5
         longBreakDuration = 15
         sessionsBeforeLongBreak = 4
+
+        // 이벤트 트래킹
+        AmplitudeManager.shared.track(eventName: "settings_reset_to_defaults")
     }
 
     /// TimeInterval로 변환 (초 단위)
