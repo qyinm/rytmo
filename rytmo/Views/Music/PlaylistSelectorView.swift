@@ -32,6 +32,21 @@ struct PlaylistSelectorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Selected Playlist Header
+            HStack {
+                if let selected = musicPlayer.selectedPlaylist {
+                    Text(selected.name)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                } else {
+                    Text("Select a Playlist")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(playlists) { playlist in
@@ -41,9 +56,11 @@ struct PlaylistSelectorView: View {
                     // Add button
                     addPlaylistButton
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8) // Add space for selection rings
             }
         }
+        .padding(.vertical, 4)
     }
 
     // MARK: - Playlist Circle
@@ -52,20 +69,38 @@ struct PlaylistSelectorView: View {
         let isSelected = musicPlayer.selectedPlaylist?.id == playlist.id
 
         return Button(action: {
-            musicPlayer.selectedPlaylist = playlist
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                musicPlayer.selectedPlaylist = playlist
+            }
         }) {
-            Circle()
-                .fill(Color(hex: playlist.themeColorHex))
-                .frame(width: isSelected ? 36 : 28, height: isSelected ? 36 : 28)
-                .overlay(
+            ZStack {
+                // Focus Ring
+                if isSelected {
                     Circle()
-                        .stroke(Color.white.opacity(isSelected ? 0.8 : 0), lineWidth: 2)
-                )
-                .shadow(color: isSelected ? Color(hex: playlist.themeColorHex).opacity(0.5) : .clear, radius: 4)
-                .help(playlist.name)
+                        .stroke(Color(hex: playlist.themeColorHex).opacity(0.3), lineWidth: 4)
+                        .frame(width: 38, height: 38)
+                }
+                
+                // Main Circle
+                Circle()
+                    .fill(Color(hex: playlist.themeColorHex))
+                    .frame(width: 28, height: 28)
+                    .shadow(color: Color(hex: playlist.themeColorHex).opacity(0.3), radius: 3, x: 0, y: 2)
+                    .overlay(
+                        Group {
+                            if isSelected {
+                                Circle()
+                                    .fill(.white)
+                                    .frame(width: 8, height: 8)
+                            }
+                        }
+                    )
+            }
+            .frame(width: 38, height: 38)
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .contentShape(Circle())
+        .help(playlist.name)
         .contextMenu {
             Button(role: .destructive) {
                 musicPlayer.deletePlaylist(playlist)
@@ -81,16 +116,19 @@ struct PlaylistSelectorView: View {
         Button(action: {
             showingAddPlaylist = true
         }) {
-            Circle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 28, height: 28)
-                .overlay(
-                    Image(systemName: "plus")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.gray)
-                )
+            ZStack {
+                Circle()
+                    .fill(Color.secondary.opacity(0.15))
+                    .frame(width: 28, height: 28)
+                
+                Image(systemName: "plus")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 38, height: 38)
         }
         .buttonStyle(.plain)
+        .contentShape(Circle())
         .popover(isPresented: $showingAddPlaylist) {
             addPlaylistPopover
         }
