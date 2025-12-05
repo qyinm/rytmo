@@ -1,0 +1,11 @@
+//
+//  Config.xcconfig
+//  rytmo
+//
+//  Created by hippoo on 12/5/25.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+
+AMPLITUDE_API_KEY = YOUR_AMPLITUDE_API_KEY

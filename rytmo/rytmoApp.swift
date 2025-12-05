@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import AmplitudeUnified
 
 @main
 struct rytmoApp: App {
@@ -89,5 +90,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Dock 아이콘 숨기기 (메뉴바 전용 앱)
         NSApp.setActivationPolicy(.accessory)
+
+        // Amplitude 초기화
+        setupAmplitude()
+    }
+
+    private func setupAmplitude() {
+        let apiKey = Bundle.main.infoDictionary?["AMPLITUDE_API_KEY"] as? String ?? "YOUR_API_KEY_HERE"
+
+        AmplitudeManager.shared.setup(apiKey: apiKey)
     }
 }

@@ -8,10 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		41CF646F2EE192CF00636347 /* YouTubePlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF646E2EE192CF00636347 /* YouTubePlayerKit */; };
+		41CF64E12EE2917400636347 /* AmplitudeUnified in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF64E02EE2917400636347 /* AmplitudeUnified */; };
+		41CF64E52EE2997900636347 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 41CF64E42EE2997900636347 /* Config.xcconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		41CD3D0E2EE06FAE00FF66E0 /* rytmo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rytmo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		41CF64E42EE2997900636347 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -28,6 +31,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				41CF646F2EE192CF00636347 /* YouTubePlayerKit in Frameworks */,
+				41CF64E12EE2917400636347 /* AmplitudeUnified in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -37,6 +41,7 @@
 		41CD3D052EE06FAE00FF66E0 = {
 			isa = PBXGroup;
 			children = (
+				41CF64E42EE2997900636347 /* Config.xcconfig */,
 				41CD3D102EE06FAE00FF66E0 /* rytmo */,
 				41CD3D0F2EE06FAE00FF66E0 /* Products */,
 			);
@@ -71,6 +76,7 @@
 			name = rytmo;
 			packageProductDependencies = (
 				41CF646E2EE192CF00636347 /* YouTubePlayerKit */,
+				41CF64E02EE2917400636347 /* AmplitudeUnified */,
 			);
 			productName = rytmo;
 			productReference = 41CD3D0E2EE06FAE00FF66E0 /* rytmo.app */;
@@ -102,6 +108,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				41CF646D2EE192CF00636347 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */,
+				41CF64DF2EE2917400636347 /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 41CD3D0F2EE06FAE00FF66E0 /* Products */;
@@ -118,6 +125,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				41CF64E52EE2997900636347 /* Config.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,6 +264,7 @@
 		};
 		41CD3D1A2EE06FAF00FF66E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 41CF64E42EE2997900636347 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -372,6 +381,14 @@
 				minimumVersion = 2.0.5;
 			};
 		};
+		41CF64DF2EE2917400636347 /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/amplitude/AmplitudeUnified-Swift";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -379,6 +396,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 41CF646D2EE192CF00636347 /* XCRemoteSwiftPackageReference "YouTubePlayerKit" */;
 			productName = YouTubePlayerKit;
+		};
+		41CF64E02EE2917400636347 /* AmplitudeUnified */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 41CF64DF2EE2917400636347 /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */;
+			productName = AmplitudeUnified;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
