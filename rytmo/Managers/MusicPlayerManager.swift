@@ -244,8 +244,7 @@ class MusicPlayerManager: ObservableObject {
     func play(track: MusicTrack) {
         currentTrack = track
         Task {
-            try? await youTubePlayer.cue(source: .video(id: track.videoId))
-            try? await youTubePlayer.play()
+            try? await youTubePlayer.load(source: .video(id: track.videoId))
         }
     }
 
