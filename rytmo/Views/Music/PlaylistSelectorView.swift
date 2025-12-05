@@ -17,6 +17,7 @@ struct PlaylistSelectorView: View {
 
     @State private var showingAddPlaylist: Bool = false
     @State private var newPlaylistName: String = ""
+    @State private var newPlaylistUrl: String = ""
     @State private var selectedColorHex: String = "FF6B6B"
 
     private let colorOptions = [
@@ -145,6 +146,10 @@ struct PlaylistSelectorView: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 200)
 
+            TextField("YouTube Playlist URL (Optional)", text: $newPlaylistUrl)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+
             // Color picker
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(32)), count: 4), spacing: 8) {
                 ForEach(colorOptions, id: \.self) { colorHex in
@@ -182,13 +187,14 @@ struct PlaylistSelectorView: View {
     // MARK: - Actions
 
     private func createPlaylist() {
-        musicPlayer.createPlaylist(name: newPlaylistName, colorHex: selectedColorHex)
+        musicPlayer.createPlaylist(name: newPlaylistName, colorHex: selectedColorHex, urlString: newPlaylistUrl)
         showingAddPlaylist = false
         resetForm()
     }
 
     private func resetForm() {
         newPlaylistName = ""
+        newPlaylistUrl = ""
         selectedColorHex = "FF6B6B"
     }
 }

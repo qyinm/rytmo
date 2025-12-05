@@ -16,12 +16,15 @@ struct MusicControllerView: View {
     var body: some View {
         VStack(spacing: 12) {
             // Current track title
-            if let track = musicPlayer.currentTrack {
-                Text(track.title)
+            if let title = musicPlayer.playbackTitle ?? musicPlayer.currentTrack?.title {
+                Text(title)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+            } else {
+                Text(" ") // Placeholder to keep height
+                    .font(.caption)
             }
 
             HStack(spacing: 16) {
@@ -33,7 +36,7 @@ struct MusicControllerView: View {
                         .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
-                .disabled(musicPlayer.selectedPlaylist == nil || musicPlayer.selectedPlaylist?.tracks.isEmpty == true)
+                .disabled(shouldDisableControls)
 
                 // Play/Pause button
                 Button(action: {
@@ -43,7 +46,7 @@ struct MusicControllerView: View {
                         .font(.system(size: 32))
                 }
                 .buttonStyle(.plain)
-                .disabled(musicPlayer.selectedPlaylist == nil || musicPlayer.selectedPlaylist?.tracks.isEmpty == true)
+                .disabled(shouldDisableControls)
 
                 // Next button
                 Button(action: {
@@ -53,9 +56,15 @@ struct MusicControllerView: View {
                         .font(.system(size: 16))
                 }
                 .buttonStyle(.plain)
-                .disabled(musicPlayer.selectedPlaylist == nil || musicPlayer.selectedPlaylist?.tracks.isEmpty == true)
+                .disabled(shouldDisableControls)
             }
         }
+    }
+
+    private var shouldDisableControls: Bool {
+        guard let playlist = musicPlayer.selectedPlaylist else { return true }
+        if playlist.youtubePlaylistId != nil { return false }
+        return playlist.tracks.isEmpty
     }
 }
 

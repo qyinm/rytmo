@@ -22,16 +22,22 @@ struct TrackListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if musicPlayer.selectedPlaylist != nil {
-                // Track list
-                if tracks.isEmpty {
-                    emptyState
+            if let playlist = musicPlayer.selectedPlaylist {
+                if playlist.youtubePlaylistId != nil && tracks.isEmpty {
+                    youtubePlaylistState
                 } else {
-                    trackList
-                }
+                    // Track list
+                    if tracks.isEmpty {
+                        emptyState
+                    } else {
+                        trackList
+                    }
 
-                // Add track button
-                addTrackButton
+                    // Add track button (only for non-YT playlists or if we want to allow mixing)
+                    if playlist.youtubePlaylistId == nil {
+                        addTrackButton
+                    }
+                }
             } else {
                 noPlaylistSelected
             }
@@ -39,9 +45,34 @@ struct TrackListView: View {
         .onChange(of: musicPlayer.selectedPlaylist) { _, newPlaylist in
             updateTracks(for: newPlaylist)
         }
+        // Also watch for changes in the tracks array (e.g. after sync)
+        .onChange(of: musicPlayer.selectedPlaylist?.tracks) { _, _ in
+            updateTracks(for: musicPlayer.selectedPlaylist)
+        }
         .onAppear {
             updateTracks(for: musicPlayer.selectedPlaylist)
         }
+    }
+
+    // MARK: - YouTube Playlist State
+
+    private var youtubePlaylistState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "play.tv.fill")
+                .font(.system(size: 32))
+                .foregroundColor(.red.opacity(0.8))
+
+            Text("Playing from YouTube Playlist")
+                .font(.subheadline)
+                .foregroundColor(.primary)
+
+            Text("Tracks are managed by YouTube")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(maxHeight: .infinity)
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
     }
 
     // MARK: - Track List

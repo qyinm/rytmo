@@ -35,6 +35,7 @@ class MusicPlayerManager: ObservableObject {
     @Published var isPlaying: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    @Published var playbackTitle: String?
 
     // MARK: - Private Properties
 
@@ -77,6 +78,14 @@ class MusicPlayerManager: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+            
+        // Observe playback metadata
+        youTubePlayer.playbackMetadataPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] metadata in
+                self?.playbackTitle = metadata.title
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - YouTube URL Parsing
@@ -100,6 +109,19 @@ class MusicPlayerManager: ObservableObject {
             }
         }
 
+        return nil
+    }
+
+    static func extractPlaylistId(from urlString: String) -> String? {
+        // Pattern: list=ID
+        let pattern = #"(?:list=)([a-zA-Z0-9_-]+)"#
+        
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+           let match = regex.firstMatch(in: urlString, options: [], range: NSRange(urlString.startIndex..., in: urlString)),
+           let range = Range(match.range(at: 1), in: urlString) {
+            return String(urlString[range])
+        }
+        
         return nil
     }
 
@@ -128,15 +150,20 @@ class MusicPlayerManager: ObservableObject {
 
     // MARK: - Playlist Management
 
-    func createPlaylist(name: String, colorHex: String) {
+    func createPlaylist(name: String, colorHex: String, urlString: String? = nil) {
         guard let context = modelContext else { return }
 
         // Get current max orderIndex
         let descriptor = FetchDescriptor<Playlist>(sortBy: [SortDescriptor(\.orderIndex, order: .reverse)])
         let playlists = (try? context.fetch(descriptor)) ?? []
         let maxIndex = playlists.first?.orderIndex ?? -1
+        
+        var youtubePlaylistId: String?
+        if let urlString, !urlString.isEmpty {
+            youtubePlaylistId = Self.extractPlaylistId(from: urlString)
+        }
 
-        let playlist = Playlist(name: name, themeColorHex: colorHex, orderIndex: maxIndex + 1)
+        let playlist = Playlist(name: name, themeColorHex: colorHex, orderIndex: maxIndex + 1, youtubePlaylistId: youtubePlaylistId)
         context.insert(playlist)
 
         do {
@@ -254,6 +281,11 @@ class MusicPlayerManager: ObservableObject {
                 try? await youTubePlayer.pause()
             } else {
                 if currentTrack == nil, let playlist = selectedPlaylist {
+                    if let playlistId = playlist.youtubePlaylistId {
+                        try? await youTubePlayer.load(source: .playlist(id: playlistId))
+                        return
+                    }
+                    
                     let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
                     if let firstTrack = sortedTracks.first {
                         play(track: firstTrack)
@@ -271,6 +303,11 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playNextTrack() {
+        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil {
+            Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "nextVideo")) }
+            return
+        }
+        
         guard let playlist = selectedPlaylist,
               let current = currentTrack else {
             return
@@ -292,6 +329,11 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playPreviousTrack() {
+        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil {
+            Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "previousVideo")) }
+            return
+        }
+
         guard let playlist = selectedPlaylist,
               let current = currentTrack else {
             return
