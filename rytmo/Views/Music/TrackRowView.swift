@@ -14,7 +14,11 @@ struct TrackRowView: View {
     let track: MusicTrack
     let isCurrentTrack: Bool
     let isPlaying: Bool
+    let canMoveUp: Bool
+    let canMoveDown: Bool
     let onDelete: () -> Void
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
     let onTap: () -> Void
 
     @State private var rotationAngle: Double = 0
@@ -22,11 +26,6 @@ struct TrackRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Drag handle
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
-
             // LP/Thumbnail
             lpThumbnail
 
@@ -39,14 +38,37 @@ struct TrackRowView: View {
 
             Spacer()
 
-            // Delete button (visible on hover)
+            // Reorder and delete buttons (visible on hover)
             if isHovering {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 12))
-                        .foregroundColor(.red.opacity(0.7))
+                HStack(spacing: 4) {
+                    // Move up button
+                    Button(action: onMoveUp) {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canMoveUp)
+                    .opacity(canMoveUp ? 1.0 : 0.3)
+
+                    // Move down button
+                    Button(action: onMoveDown) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canMoveDown)
+                    .opacity(canMoveDown ? 1.0 : 0.3)
+
+                    // Delete button
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundColor(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 6)
@@ -172,7 +194,11 @@ struct TrackRowView: View {
             }(),
             isCurrentTrack: true,
             isPlaying: true,
+            canMoveUp: false,
+            canMoveDown: true,
             onDelete: {},
+            onMoveUp: {},
+            onMoveDown: {},
             onTap: {}
         )
 
@@ -188,7 +214,11 @@ struct TrackRowView: View {
             }(),
             isCurrentTrack: false,
             isPlaying: false,
+            canMoveUp: true,
+            canMoveDown: false,
             onDelete: {},
+            onMoveUp: {},
+            onMoveDown: {},
             onTap: {}
         )
     }

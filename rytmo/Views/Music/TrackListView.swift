@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 // MARK: - Track List View
 
@@ -46,25 +47,32 @@ struct TrackListView: View {
     // MARK: - Track List
 
     private var trackList: some View {
-        List {
-            ForEach(tracks) { track in
-                TrackRowView(
-                    track: track,
-                    isCurrentTrack: musicPlayer.currentTrack?.id == track.id,
-                    isPlaying: musicPlayer.isPlaying,
-                    onDelete: {
-                        deleteTrack(track)
-                    },
-                    onTap: {
-                        musicPlayer.play(track: track)
-                    }
-                )
-                .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
-                .listRowSeparator(.hidden)
+        ScrollView {
+            VStack(spacing: 4) {
+                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
+                    TrackRowView(
+                        track: track,
+                        isCurrentTrack: musicPlayer.currentTrack?.id == track.id,
+                        isPlaying: musicPlayer.isPlaying,
+                        canMoveUp: index > 0,
+                        canMoveDown: index < tracks.count - 1,
+                        onDelete: {
+                            deleteTrack(track)
+                        },
+                        onMoveUp: {
+                            moveTrack(at: index, direction: -1)
+                        },
+                        onMoveDown: {
+                            moveTrack(at: index, direction: 1)
+                        },
+                        onTap: {
+                            musicPlayer.play(track: track)
+                        }
+                    )
+                }
             }
-            .onMove(perform: moveTrack)
+            .padding(.horizontal, 4)
         }
-        .listStyle(.plain)
         .frame(maxHeight: 200)
     }
 
@@ -202,8 +210,15 @@ struct TrackListView: View {
         updateTracks(for: musicPlayer.selectedPlaylist)
     }
 
-    private func moveTrack(from source: IndexSet, to destination: Int) {
-        tracks.move(fromOffsets: source, toOffset: destination)
+    private func moveTrack(at index: Int, direction: Int) {
+        let newIndex = index + direction
+        guard newIndex >= 0 && newIndex < tracks.count else { return }
+
+        withAnimation {
+            let item = tracks.remove(at: index)
+            tracks.insert(item, at: newIndex)
+        }
+
         musicPlayer.reorderTracks(tracks)
     }
 }
