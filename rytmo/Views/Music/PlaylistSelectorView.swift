@@ -154,3 +154,17 @@ struct PlaylistSelectorView: View {
         selectedColorHex = "FF6B6B"
     }
 }
+
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: Playlist.self, configurations: config)
+
+    // Add some sample playlists
+    container.mainContext.insert(Playlist(name: "Morning Jams", themeColorHex: "FF6B6B", orderIndex: 0))
+    container.mainContext.insert(Playlist(name: "Workout Beats", themeColorHex: "4ECDC4", orderIndex: 1))
+    container.mainContext.insert(Playlist(name: "Chill Vibes", themeColorHex: "FFE66D", orderIndex: 2))
+
+    return PlaylistSelectorView()
+        .environmentObject(MusicPlayerManager())
+        .modelContainer(container)
+}
