@@ -9,3 +9,4 @@
 // https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
 
 AMPLITUDE_API_KEY = YOUR_AMPLITUDE_API_KEY
+REVERSED_CLIENT_ID = YOUR_REVERSED_CLIENT_ID

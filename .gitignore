@@ -108,4 +108,6 @@ iOSInjectionProject/
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,xcode,cocoapods
 
+# API Keys 및 민감 정보
 *.xcconfig
+GoogleService-Info.plist
