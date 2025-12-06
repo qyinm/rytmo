@@ -157,29 +157,31 @@ struct MenuBarView: View {
     // MARK: - Login Content
 
     private var loginContent: some View {
-        VStack(spacing: 20) {
-            // 앱 아이콘
-            Image(systemName: "timer")
-                .font(.system(size: 48))
-                .foregroundStyle(.blue)
-                .padding(.top, 20)
+        VStack(spacing: 0) {
+            // 헤더
+            VStack(spacing: 16) {
+                Image("RytmoIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.1), radius: 6, y: 2)
+                    .padding(.top, 24)
 
-            // 타이틀
-            VStack(spacing: 8) {
-                Text("Rytmo")
-                    .font(.title2)
-                    .fontWeight(.bold)
+                VStack(spacing: 6) {
+                    Text("Rytmo")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.primary)
 
-                Text("로그인이 필요합니다")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text("로그인이 필요합니다")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Divider()
-                .padding(.vertical, 8)
+            .padding(.bottom, 24)
 
             // 로그인 버튼들
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 // Google 로그인 버튼
                 Button(action: {
                     Task {
@@ -187,38 +189,42 @@ struct MenuBarView: View {
                     }
                 }) {
                     HStack(spacing: 8) {
-                        Image(systemName: "g.circle.fill")
-                            .font(.title3)
-                        Text("Google로 계속하기")
-                            .font(.headline)
+                        if authManager.isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                                .scaleEffect(0.7)
+                        } else {
+                            Image(systemName: "g.circle.fill")
+                                .font(.caption)
+                        }
+                        Text(authManager.isLoading ? "로그인 중..." : "Google로 계속하기")
+                            .font(.system(size: 13, weight: .medium))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(.white)
-                    .foregroundStyle(.black)
-                    .cornerRadius(8)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .foregroundStyle(.primary)
+                    .cornerRadius(6)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
                 // 구분선
-                HStack {
+                HStack(spacing: 8) {
                     Rectangle()
-                        .fill(Color.gray.opacity(0.3))
+                        .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
                     Text("또는")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                     Rectangle()
-                        .fill(Color.gray.opacity(0.3))
+                        .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
                 }
-                .padding(.horizontal)
 
                 // 익명 로그인 버튼
                 Button(action: {
@@ -229,59 +235,81 @@ struct MenuBarView: View {
                     HStack(spacing: 8) {
                         if authManager.isLoading {
                             ProgressView()
-                                .scaleEffect(0.8)
-                                .frame(width: 20, height: 20)
+                                .controlSize(.small)
+                                .scaleEffect(0.7)
+                                .tint(.white)
                         } else {
-                            Image(systemName: "person.fill.questionmark")
-                                .font(.title3)
+                            Image(systemName: "arrow.right")
+                                .font(.caption)
                         }
                         Text(authManager.isLoading ? "로그인 중..." : "익명으로 시작하기")
-                            .font(.headline)
+                            .font(.system(size: 13, weight: .medium))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .blue.opacity(0.8)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .background(.black)
                     .foregroundStyle(.white)
-                    .cornerRadius(8)
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
+
+                Text("익명 로그인은 데이터가 저장되지 않습니다")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 4)
             }
+            .padding(.horizontal, 16)
 
             // 에러 메시지
             if let errorMessage = authManager.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .padding(.horizontal)
+                VStack {
+                    Divider()
+                        .padding(.vertical, 12)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption2)
+
+                        Text(errorMessage)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.red.opacity(0.1))
-                    .cornerRadius(8)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .padding(.horizontal, 16)
             }
 
             Spacer()
 
             // 종료 버튼
+            Divider()
+
             Button(action: {
                 NSApplication.shared.terminate(nil)
             }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "power")
+                        .font(.caption2)
                     Text("종료")
+                        .font(.system(size: 12, weight: .medium))
                 }
-                .font(.caption)
-                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .foregroundStyle(.secondary)
             }
-            .buttonStyle(.borderless)
-            .padding(.bottom, 12)
+            .buttonStyle(.plain)
         }
-        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 

@@ -35,41 +35,53 @@ struct LoginView: View {
     @EnvironmentObject var authManager: AuthManager
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 0) {
             Spacer()
 
             // 로고 및 타이틀
-            VStack(spacing: 16) {
-                Image(systemName: "timer.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.blue.gradient)
+            VStack(spacing: 24) {
+                Image("RytmoIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.1), radius: 8, y: 2)
 
-                Text("Rytmo")
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                VStack(spacing: 12) {
+                    Text("Rytmo")
+                        .font(.system(size: 36, weight: .semibold))
+                        .foregroundStyle(.primary)
 
-                Text("리듬감 있는 몰입을 위한 타이머")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    Text("리듬감 있는 몰입을 위한 타이머")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
 
             // 로그인 영역
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 // 에러 메시지
                 if let errorMessage = authManager.errorMessage {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
 
                         Text(errorMessage)
-                            .font(.callout)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .padding()
-                    .frame(maxWidth: 400)
-                    .background(.orange.opacity(0.1))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: 340)
+                    .background(Color(nsColor: .controlBackgroundColor))
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                    )
                 }
 
                 // Google 로그인 버튼
@@ -78,50 +90,46 @@ struct LoginView: View {
                         await authManager.signInWithGoogle()
                     }
                 }) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         if authManager.isLoading {
                             ProgressView()
-                                .progressViewStyle(.circular)
+                                .controlSize(.small)
                                 .scaleEffect(0.8)
                         } else {
-                            // Google 로고 (SF Symbols 사용)
                             Image(systemName: "g.circle.fill")
-                                .font(.title2)
+                                .font(.body)
                         }
 
                         Text(authManager.isLoading ? "로그인 중..." : "Google로 계속하기")
-                            .font(.headline)
+                            .font(.system(size: 15, weight: .medium))
                     }
-                    .frame(width: 280, height: 50)
-                    .background(.white)
-                    .foregroundStyle(.black)
-                    .cornerRadius(12)
+                    .frame(width: 340, height: 44)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .foregroundStyle(.primary)
+                    .cornerRadius(8)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
-                .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
 
                 // 구분선
-                HStack {
+                HStack(spacing: 12) {
                     Rectangle()
-                        .fill(Color.gray.opacity(0.3))
+                        .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
 
                     Text("또는")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
+                        .foregroundStyle(.tertiary)
 
                     Rectangle()
-                        .fill(Color.gray.opacity(0.3))
+                        .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
                 }
-                .frame(width: 280)
-                .padding(.vertical, 8)
+                .frame(width: 340)
 
                 // 익명 로그인 버튼
                 Button(action: {
@@ -129,45 +137,39 @@ struct LoginView: View {
                         await authManager.signInAnonymously()
                     }
                 }) {
-                    HStack {
+                    HStack(spacing: 10) {
                         if authManager.isLoading {
                             ProgressView()
-                                .progressViewStyle(.circular)
+                                .controlSize(.small)
                                 .scaleEffect(0.8)
-                                .tint(.white)
+                                .tint(.primary)
                         } else {
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.title3)
+                            Image(systemName: "arrow.right")
+                                .font(.body)
                         }
 
                         Text(authManager.isLoading ? "로그인 중..." : "익명으로 시작하기")
-                            .font(.headline)
+                            .font(.system(size: 15, weight: .medium))
                     }
-                    .frame(width: 280, height: 44)
-                    .background(.blue.gradient)
+                    .frame(width: 340, height: 44)
+                    .background(.black)
                     .foregroundStyle(.white)
-                    .cornerRadius(12)
+                    .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
-                .shadow(color: .blue.opacity(0.3), radius: 8, y: 4)
 
                 Text("익명 로그인은 데이터가 저장되지 않습니다")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .padding(.top, 4)
             }
 
             Spacer()
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: [.blue.opacity(0.05), .purple.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
@@ -178,12 +180,13 @@ struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 0) {
             // 헤더
             HStack {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("환영합니다!")
-                        .font(.system(size: 32, weight: .bold))
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.primary)
 
                     if let userId = authManager.currentUser?.uid {
                         Text("사용자 ID: \(String(userId.prefix(8)))...")
@@ -198,51 +201,62 @@ struct DashboardView: View {
                 Button(action: {
                     authManager.signOut()
                 }) {
-                    HStack {
+                    HStack(spacing: 6) {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.caption)
                         Text("로그아웃")
+                            .font(.system(size: 13, weight: .medium))
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(.red.opacity(0.1))
-                    .foregroundStyle(.red)
-                    .cornerRadius(8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .foregroundStyle(.primary)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                    )
                 }
                 .buttonStyle(.plain)
             }
-            .padding()
-            .background(.white.opacity(0.5))
-            .cornerRadius(12)
+            .padding(24)
+            .background(Color(nsColor: .controlBackgroundColor))
+            .overlay(
+                Rectangle()
+                    .fill(Color(nsColor: .separatorColor))
+                    .frame(height: 1),
+                alignment: .bottom
+            )
 
             // 메인 컨텐츠
-            VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(.green.gradient)
+            VStack(spacing: 24) {
+                Spacer()
 
-                Text("로그인 성공!")
-                    .font(.title)
-                    .fontWeight(.bold)
+                Image("RytmoIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.1), radius: 8, y: 2)
 
-                Text("Rytmo의 모든 기능을 사용할 수 있습니다.\n메뉴바에서 타이머를 시작해보세요.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(6)
+                VStack(spacing: 12) {
+                    Text("준비 완료")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(.primary)
+
+                    Text("Rytmo의 모든 기능을 사용할 수 있습니다.\n메뉴바에서 타이머를 시작해보세요.")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                }
+
+                Spacer()
             }
             .padding(40)
-
-            Spacer()
         }
-        .padding(30)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: [.green.opacity(0.05), .blue.opacity(0.05)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
