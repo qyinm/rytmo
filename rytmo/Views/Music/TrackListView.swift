@@ -172,44 +172,30 @@ struct TrackListView: View {
 
     // MARK: - Add Track Popover
 
+    // MARK: - Add Track Popover
+
     private var addTrackPopover: some View {
-        VStack(spacing: 16) {
-            Text("Add YouTube Track")
-                .font(.headline)
-
-            TextField("YouTube URL", text: $newTrackUrl)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 280)
-
-            if let error = musicPlayer.errorMessage {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
-            if musicPlayer.isLoading {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .scaleEffect(0.8)
-            }
-
-            HStack(spacing: 12) {
-                Button("Cancel") {
-                    showingAddTrack = false
-                    newTrackUrl = ""
-                    musicPlayer.errorMessage = nil
-                }
-                .buttonStyle(.bordered)
-
-                Button("Add") {
-                    addTrack()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(newTrackUrl.isEmpty || musicPlayer.isLoading)
-            }
+        guard let playlist = musicPlayer.selectedPlaylist else {
+            return AnyView(EmptyView())
         }
-        .padding()
-        .frame(width: 320)
+        
+        return AnyView(
+            AddYoutubeTrack(
+                isPresented: $showingAddTrack,
+                urlString: $newTrackUrl,
+                playlist: playlist,
+                onAdd: {
+                    Task {
+                        await musicPlayer.addTrack(urlString: newTrackUrl, to: playlist)
+                        if musicPlayer.errorMessage == nil {
+                            showingAddTrack = false
+                            newTrackUrl = ""
+                            updateTracks(for: playlist)
+                        }
+                    }
+                }
+            )
+        )
     }
 
     // MARK: - Actions

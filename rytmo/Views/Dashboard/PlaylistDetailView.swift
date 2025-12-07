@@ -125,32 +125,11 @@ struct PlaylistDetailView: View {
                         }
                         .buttonStyle(.plain)
                         .popover(isPresented: $showingAddSong) {
-                            VStack(spacing: 16) {
-                                Text("Add Song from YouTube")
-                                    .font(.headline)
-                                
-                                TextField("Paste YouTube URL", text: $newSongUrl)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 300)
-                                
-                                HStack {
-                                    Button("Cancel") {
-                                        showingAddSong = false
-                                        newSongUrl = ""
-                                    }
-                                    
-                                    Button("Add") {
-                                        Task {
-                                            await musicPlayer.addTrack(urlString: newSongUrl, to: playlist)
-                                            newSongUrl = ""
-                                            showingAddSong = false
-                                        }
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(newSongUrl.isEmpty)
-                                }
-                            }
-                            .padding()
+                            AddYoutubeTrack(
+                                isPresented: $showingAddSong,
+                                urlString: $newSongUrl,
+                                playlist: playlist
+                            )
                         }
                         
                         Spacer()
