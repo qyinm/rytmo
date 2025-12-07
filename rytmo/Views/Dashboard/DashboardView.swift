@@ -6,18 +6,9 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-
-//
-//  DashboardView.swift
-//  rytmo
-//
-//  Created by hippoo on 12/7/25.
-//
-
-import SwiftUI
 import SwiftData
 import FirebaseAuth
+import YouTubePlayerKit
 
 struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
@@ -124,6 +115,12 @@ struct DashboardView: View {
                     .environmentObject(authManager)
             }
         }
+        // Persistent Player Layer
+        .overlay(
+            YouTubePlayerView(musicPlayer.youTubePlayer)
+                .frame(width: 1, height: 1)
+                .opacity(0)
+        )
     }
 }
 
