@@ -13,6 +13,8 @@ struct PlaylistDetailView: View {
     var onBack: (() -> Void)? = nil
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @State private var hoveredTrackId: UUID?
+    @State private var showingAddSong: Bool = false
+    @State private var newSongUrl: String = ""
     
     // Sort tracks by sortIndex
     var sortedTracks: [MusicTrack] {
@@ -66,8 +68,8 @@ struct PlaylistDetailView: View {
                 .padding(.top, 40)
                 .padding(.bottom, 24)
                 
-                // Action Bar (Play Button)
-                HStack {
+                // Action Bar (Play Button & Add Song)
+                HStack(spacing: 24) {
                     Button(action: {
                         musicPlayer.selectedPlaylist = playlist
                         musicPlayer.togglePlayPause()
@@ -78,6 +80,51 @@ struct PlaylistDetailView: View {
                             .shadow(radius: 2)
                     }
                     .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        showingAddSong = true
+                    }) {
+                        HStack {
+                            Image(systemName: "plus")
+                            Text("Add Song")
+                        }
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingAddSong) {
+                        VStack(spacing: 16) {
+                            Text("Add Song from YouTube")
+                                .font(.headline)
+                            
+                            TextField("Paste YouTube URL", text: $newSongUrl)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 300)
+                            
+                            HStack {
+                                Button("Cancel") {
+                                    showingAddSong = false
+                                    newSongUrl = ""
+                                }
+                                
+                                Button("Add") {
+                                    Task {
+                                        await musicPlayer.addTrack(urlString: newSongUrl, to: playlist)
+                                        newSongUrl = ""
+                                        showingAddSong = false
+                                    }
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(newSongUrl.isEmpty)
+                            }
+                        }
+                        .padding()
+                    }
                     
                     Spacer()
                 }
