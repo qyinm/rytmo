@@ -15,6 +15,8 @@ struct SettingsView: View {
     @EnvironmentObject var settings: PomodoroSettings
     var onDismiss: (() -> Void)? = nil
 
+    @State private var selectedTab: Int = 0
+
     var body: some View {
         VStack(spacing: 0) {
             // 헤더
@@ -27,7 +29,7 @@ struct SettingsView: View {
                     .buttonStyle(.plain)
                 }
 
-                Text("타이머 설정")
+                Text("Settings")
                     .font(.title2)
                     .fontWeight(.bold)
 
@@ -38,65 +40,22 @@ struct SettingsView: View {
 
             Divider()
 
-            // 설정 항목
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-
-                    // 집중 시간
-                    SettingRow(
-                        title: "집중 시간",
-                        value: $settings.focusDuration,
-                        range: 1...60,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 짧은 휴식 시간
-                    SettingRow(
-                        title: "짧은 휴식",
-                        value: $settings.shortBreakDuration,
-                        range: 1...30,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 긴 휴식 시간
-                    SettingRow(
-                        title: "긴 휴식",
-                        value: $settings.longBreakDuration,
-                        range: 5...60,
-                        unit: "분"
-                    )
-
-                    Divider()
-
-                    // 긴 휴식 전 세션 수
-                    SettingRow(
-                        title: "긴 휴식 전 세션 수",
-                        value: $settings.sessionsBeforeLongBreak,
-                        range: 2...10,
-                        unit: "세트"
-                    )
-                }
-                .padding()
+            TabView(selection: $selectedTab) {
+                GeneralSettingsView()
+                    .tabItem {
+                        Label("General", systemImage: "gear")
+                    }
+                    .tag(0)
+                
+                FocusTimeSettingsView()
+                    .tabItem {
+                        Label("Focus time", systemImage: "timer")
+                    }
+                    .tag(1)
             }
-
-            Divider()
-
-            // 하단 버튼
-            Button(action: {
-                settings.resetToDefaults()
-            }) {
-                Text("기본값 복원")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .padding()
-            .background(Color(nsColor: .windowBackgroundColor))
         }
-        .frame(width: 360)
+        .frame(width: 380)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
