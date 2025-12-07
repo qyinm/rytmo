@@ -100,44 +100,6 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Setting Row
-
-/// 설정 항목 행
-struct SettingRow: View {
-
-    let title: String
-    @Binding var value: Int
-    let range: ClosedRange<Int>
-    let unit: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-
-                Spacer()
-
-                Text("\(value) \(unit)")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.blue)
-                    .monospacedDigit()
-            }
-
-            Slider(
-                value: Binding(
-                    get: { Double(value) },
-                    set: { value = Int($0) }
-                ),
-                in: Double(range.lowerBound)...Double(range.upperBound),
-                step: 1
-            )
-        }
-    }
-}
-
 // MARK: - Preview
 
 #Preview {
