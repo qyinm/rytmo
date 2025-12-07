@@ -20,13 +20,18 @@ struct SideRailView: View {
                 // Navigate to settings on profile click? or just visual
             } label: {
                 ZStack {
-                    Circle()
-                        .fill(Color.primary.opacity(0.1))
-                        .frame(width: 24, height: 24)
-                    
-                    Text(String(authManager.currentUser?.uid.prefix(1) ?? "U").uppercased())
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.primary)
+                    AsyncImage(url: getUserProfilePictureURL()) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Image(systemName: "person.circle.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .foregroundColor(.gray)
+                    }
+                    .frame(width: 24, height: 24)
+                    .clipShape(Circle())
                 }
             }
             .buttonStyle(.plain)

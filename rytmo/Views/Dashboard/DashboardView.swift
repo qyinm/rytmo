@@ -31,7 +31,7 @@ struct DashboardView: View {
             // MARK: - Side Rail (Visible when Sidebar is hidden)
             if columnVisibility == .detailOnly {
                 SideRailView(selection: $selection)
-                    .transition(.move(edge: .leading))
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
             
             NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -39,9 +39,18 @@ struct DashboardView: View {
                     // Profile Section
                     Section {
                         HStack(spacing: 12) {
-                            Circle()
-                                .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            AsyncImage(url: getUserProfilePictureURL()) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Image(systemName: "person.circle.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .foregroundColor(.gray)
+                            }                                
                                 .frame(width: 32, height: 32)
+                                .clipShape(Circle())
                                 .overlay(
                                     Text(String(authManager.currentUser?.uid.prefix(1) ?? "U").uppercased())
                                         .font(.system(size: 14, weight: .bold))
@@ -53,9 +62,6 @@ struct DashboardView: View {
                                     Text(user.isAnonymous ? "Guest" : (user.email ?? "User"))
                                         .font(.system(size: 13, weight: .medium))
                                         .lineLimit(1)
-                                    Text("Premium")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.secondary)
                                 }
                             } else {
                                 Text("Guest")
@@ -134,6 +140,16 @@ struct DashboardView: View {
     }
 }
 
+func getUserProfilePictureURL() -> URL? {
+    if let user = Auth.auth().currentUser {
+        // The user is signed in.
+        // The photoURL property contains the URL of the user's profile picture.
+        return user.photoURL
+    } else {
+        // No user is signed in.
+        return nil
+    }
+}
 
 
 #Preview {
