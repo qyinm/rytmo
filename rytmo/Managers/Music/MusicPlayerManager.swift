@@ -192,6 +192,17 @@ class MusicPlayerManager: ObservableObject {
         }
     }
 
+    func renamePlaylist(_ playlist: Playlist, newName: String) {
+        guard let context = modelContext else { return }
+        playlist.name = newName
+        
+        do {
+            try context.save()
+        } catch {
+            print("Failed to rename playlist: \(error)")
+        }
+    }
+
     func deletePlaylist(_ playlist: Playlist) {
         guard let context = modelContext else { return }
 
@@ -343,6 +354,25 @@ class MusicPlayerManager: ObservableObject {
         } else if let firstTrack = sortedTracks.first {
             // Loop back to the first track
             play(track: firstTrack)
+        }
+    }
+
+    func playPlaylist(_ playlist: Playlist) {
+        if selectedPlaylist?.id == playlist.id && currentTrack != nil {
+             togglePlayPause() 
+             return
+        }
+
+        selectedPlaylist = playlist
+        
+        if let playlistId = playlist.youtubePlaylistId {
+             Task { try? await youTubePlayer.load(source: .playlist(id: playlistId)) }
+             return
+        }
+
+        let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
+        if let firstTrack = sortedTracks.first {
+             play(track: firstTrack)
         }
     }
 
