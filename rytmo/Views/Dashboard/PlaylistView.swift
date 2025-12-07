@@ -13,6 +13,11 @@ struct PlaylistView: View {
     @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
     @State private var hoveredPlaylistId: UUID?
     
+    @State private var showingRenameAlert = false
+    @State private var showingDeleteAlert = false
+    @State private var playlistToEdit: Playlist?
+    @State private var newPlaylistName = ""
+    
     var onSelect: ((Playlist) -> Void)? = nil
     
     var body: some View {
@@ -86,6 +91,22 @@ struct PlaylistView: View {
                                     }
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    playlistToEdit = playlist
+                                    newPlaylistName = playlist.name
+                                    showingRenameAlert = true
+                                } label: {
+                                    Label("Rename", systemImage: "pencil")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    playlistToEdit = playlist
+                                    showingDeleteAlert = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .padding(.top, 8)
@@ -93,6 +114,25 @@ struct PlaylistView: View {
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .alert("Rename Playlist", isPresented: $showingRenameAlert) {
+            TextField("Name", text: $newPlaylistName)
+            Button("Cancel", role: .cancel) { }
+            Button("Rename") {
+                if let playlist = playlistToEdit {
+                    musicPlayer.renamePlaylist(playlist, newName: newPlaylistName)
+                }
+            }
+        }
+        .alert("Delete Playlist?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let playlist = playlistToEdit {
+                    musicPlayer.deletePlaylist(playlist)
+                }
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
     }
 }
 

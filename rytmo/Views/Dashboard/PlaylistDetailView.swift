@@ -9,12 +9,18 @@ import SwiftUI
 import SwiftData
 
 struct PlaylistDetailView: View {
-    let playlist: Playlist
+    @Bindable var playlist: Playlist
     var onBack: (() -> Void)? = nil
     @EnvironmentObject var musicPlayer: MusicPlayerManager
+    @Environment(\.modelContext) private var modelContext
     @State private var hoveredTrackId: UUID?
     @State private var showingAddSong: Bool = false
     @State private var newSongUrl: String = ""
+    
+    // Playlist Management States
+    @State private var showingRenameAlert = false
+    @State private var showingDeleteAlert = false
+    @State private var newPlaylistName = ""
     
     // Sort tracks by sortIndex
     var sortedTracks: [MusicTrack] {
@@ -22,140 +28,161 @@ struct PlaylistDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // Back Button
-                if let onBack = onBack {
-                    Button(action: onBack) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Playlists")
+        List {
+            // MARK: - Header Section (Non-scrollable relative to list, but part of list content)
+            Group {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Back Button & Menu
+                    HStack {
+                        if let onBack = onBack {
+                            Button(action: onBack) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chevron.left")
+                                    Text("Playlists")
+                                }
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        
+                        Spacer()
+                        
+                        // Playlist Menu
+                        Menu {
+                            Button {
+                                newPlaylistName = playlist.name
+                                showingRenameAlert = true
+                            } label: {
+                                Label("Rename Playlist", systemImage: "pencil")
+                            }
+                            
+                            Button(role: .destructive) {
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete Playlist", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 20))
+                                .foregroundStyle(.secondary)
+                        }
+                        .menuStyle(.borderlessButton)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.leading, 32)
                     .padding(.top, 24)
-                }
-                
-                // Header Section
-                VStack(alignment: .leading, spacing: 16) {
-                    // Type Label
-                    Text("PLAYLIST")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
+                    .padding(.bottom, 16)
                     
-                    // Playlist Title
-                    Text(playlist.name)
-                        .font(.system(size: 60, weight: .bold)) // Large title like reference
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-                    
-                    // Metadata line
-                    HStack(spacing: 6) {
-                        Image(systemName: "music.note")
+                    // Playlist Metadata
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("PLAYLIST")
                             .font(.caption)
-                        Text("•")
-                        Text("\(playlist.tracks.count) songs")
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                        
+                        Text(playlist.name)
+                            .font(.system(size: 60, weight: .bold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: "music.note")
+                                .font(.caption)
+                            Text("•")
+                            Text("\(playlist.tracks.count) songs")
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.subheadline)
+                    .padding(.bottom, 24)
+                    
+                    // Action Buttons
+                    HStack(spacing: 24) {
+                        Button(action: {
+                            musicPlayer.selectedPlaylist = playlist
+                            musicPlayer.togglePlayPause()
+                        }) {
+                            Image(systemName: isPlayingCurrentPlaylist ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 56))
+                                .foregroundStyle(.primary)
+                                .shadow(radius: 2)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            showingAddSong = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("Add Song")
+                            }
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showingAddSong) {
+                            VStack(spacing: 16) {
+                                Text("Add Song from YouTube")
+                                    .font(.headline)
+                                
+                                TextField("Paste YouTube URL", text: $newSongUrl)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 300)
+                                
+                                HStack {
+                                    Button("Cancel") {
+                                        showingAddSong = false
+                                        newSongUrl = ""
+                                    }
+                                    
+                                    Button("Add") {
+                                        Task {
+                                            await musicPlayer.addTrack(urlString: newSongUrl, to: playlist)
+                                            newSongUrl = ""
+                                            showingAddSong = false
+                                        }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .disabled(newSongUrl.isEmpty)
+                                }
+                            }
+                            .padding()
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.bottom, 32)
+                    
+                    // Track List Columns Header
+                    HStack(spacing: 0) {
+                        Text("#")
+                            .frame(width: 40, alignment: .center)
+                        Text("TITLE")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 12)
+                        Spacer()
+                        Text("")
+                            .frame(width: 40)
+                    }
+                    .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.bottom, 8)
+                    
+                    Divider()
                 }
                 .padding(.horizontal, 32)
-                .padding(.top, 40)
-                .padding(.bottom, 24)
-                
-                // Action Bar (Play Button & Add Song)
-                HStack(spacing: 24) {
-                    Button(action: {
-                        musicPlayer.selectedPlaylist = playlist
-                        musicPlayer.togglePlayPause()
-                    }) {
-                        Image(systemName: isPlayingCurrentPlaylist ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 56))
-                            .foregroundStyle(.primary) // Black in light mode, White in dark
-                            .shadow(radius: 2)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Button(action: {
-                        showingAddSong = true
-                    }) {
-                        HStack {
-                            Image(systemName: "plus")
-                            Text("Add Song")
-                        }
-                        .font(.system(size: 14, weight: .medium))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showingAddSong) {
-                        VStack(spacing: 16) {
-                            Text("Add Song from YouTube")
-                                .font(.headline)
-                            
-                            TextField("Paste YouTube URL", text: $newSongUrl)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 300)
-                            
-                            HStack {
-                                Button("Cancel") {
-                                    showingAddSong = false
-                                    newSongUrl = ""
-                                }
-                                
-                                Button("Add") {
-                                    Task {
-                                        await musicPlayer.addTrack(urlString: newSongUrl, to: playlist)
-                                        newSongUrl = ""
-                                        showingAddSong = false
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(newSongUrl.isEmpty)
-                            }
-                        }
-                        .padding()
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 32)
-                
-                // Track List Header
-                HStack(spacing: 0) {
-                    Text("#")
-                        .frame(width: 40, alignment: .center)
-                    Text("TITLE")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 12)
-                    
-                    // Adding a spacer to push Delete button to far right
-                    Spacer() 
-                    
-                    Text("") // Placeholder for delete button column
-                        .frame(width: 40)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 12)
-                
-                Divider()
-                    .padding(.horizontal, 32)
-                    .padding(.bottom, 4)
-                
-                // Tracks
-                if sortedTracks.isEmpty {
+            }
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
+            .background(Color(nsColor: .windowBackgroundColor))
+            
+            // MARK: - Track List
+            if sortedTracks.isEmpty {
+                Group {
                     VStack(spacing: 12) {
                         Text("This playlist is empty")
                             .font(.headline)
@@ -166,36 +193,70 @@ struct PlaylistDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 40)
-                } else {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(sortedTracks.enumerated()), id: \.element.id) { index, track in
-                            TrackRow(
-                                index: index + 1,
-                                track: track,
-                                isHovered: hoveredTrackId == track.id,
-                                isPlaying: musicPlayer.currentTrack?.id == track.id && musicPlayer.isPlaying,
-                                onPlay: {
-                                    musicPlayer.selectedPlaylist = playlist
-                                    musicPlayer.play(track: track)
-                                },
-                                onDelete: {
-                                    musicPlayer.deleteTrack(track)
-                                }
-                            )
-                            .onHover { isHovering in
-                                hoveredTrackId = isHovering ? track.id : nil
-                            }
+                    .listRowSeparator(.hidden)
+                }
+            } else {
+                ForEach(sortedTracks, id: \.id) { track in
+                    TrackRow(
+                        index: track.sortIndex + 1,
+                        track: track,
+                        isHovered: hoveredTrackId == track.id,
+                        isPlaying: musicPlayer.currentTrack?.id == track.id && musicPlayer.isPlaying,
+                        onPlay: {
+                            musicPlayer.selectedPlaylist = playlist
+                            musicPlayer.play(track: track)
+                        },
+                        onDelete: {
+                            musicPlayer.deleteTrack(track)
+                        }
+                    )
+                    .onHover { isHovering in
+                        hoveredTrackId = isHovering ? track.id : nil
+                    }
+                    // Context Menu for individual track actions
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            musicPlayer.deleteTrack(track)
+                        } label: {
+                            Label("Delete Song", systemImage: "trash")
                         }
                     }
-                    .padding(.bottom, 40)
+                    // For macOS standard list reorder
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 }
+                .onMove(perform: moveTracks)
             }
         }
+        .listStyle(.plain)
         .background(Color(nsColor: .windowBackgroundColor))
+        .alert("Rename Playlist", isPresented: $showingRenameAlert) {
+            TextField("Name", text: $newPlaylistName)
+            Button("Cancel", role: .cancel) { }
+            Button("Rename") {
+                playlist.name = newPlaylistName
+                try? modelContext.save()
+            }
+        }
+        .alert("Delete Playlist?", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                musicPlayer.deletePlaylist(playlist)
+                onBack?()
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
     }
     
     private var isPlayingCurrentPlaylist: Bool {
         musicPlayer.selectedPlaylist?.id == playlist.id && musicPlayer.isPlaying
+    }
+    
+    private func moveTracks(from source: IndexSet, to destination: Int) {
+        var tracks = sortedTracks
+        tracks.move(fromOffsets: source, toOffset: destination)
+        musicPlayer.reorderTracks(tracks)
     }
 }
 
@@ -252,7 +313,7 @@ private struct TrackRow: View {
                         .foregroundStyle(isPlaying ? Color.accentColor : Color.primary)
                         .lineLimit(1)
                     
-                    Text("YouTube") // Placeholder for Artist/Album
+                    Text("YouTube")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -262,7 +323,7 @@ private struct TrackRow: View {
             
             Spacer()
             
-            // Delete Action
+            // Delete Action (Visual Button + Context Menu support via parent)
             if isHovered {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
@@ -281,6 +342,6 @@ private struct TrackRow: View {
         .padding(.horizontal, 32)
         .padding(.vertical, 8)
         .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
-        .contentShape(Rectangle()) // Make full row hoverable
+        .contentShape(Rectangle())
     }
 }

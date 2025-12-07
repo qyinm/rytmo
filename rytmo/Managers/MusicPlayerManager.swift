@@ -192,6 +192,17 @@ class MusicPlayerManager: ObservableObject {
         }
     }
 
+    func renamePlaylist(_ playlist: Playlist, newName: String) {
+        guard let context = modelContext else { return }
+        playlist.name = newName
+        
+        do {
+            try context.save()
+        } catch {
+            print("Failed to rename playlist: \(error)")
+        }
+    }
+
     func deletePlaylist(_ playlist: Playlist) {
         guard let context = modelContext else { return }
 
