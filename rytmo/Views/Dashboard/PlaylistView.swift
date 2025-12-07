@@ -13,6 +13,8 @@ struct PlaylistView: View {
     @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
     @State private var hoveredPlaylistId: UUID?
     
+    var onSelect: ((Playlist) -> Void)? = nil
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -75,13 +77,15 @@ struct PlaylistView: View {
                 } else {
                     LazyVStack(spacing: 0) {
                         ForEach(playlists) { playlist in
-                            PlaylistRow(playlist: playlist, isHovered: hoveredPlaylistId == playlist.id)
-                                .onHover { isHovering in
-                                    hoveredPlaylistId = isHovering ? playlist.id : nil
-                                }
-                                .onTapGesture {
-                                    musicPlayer.selectedPlaylist = playlist
-                                }
+                            Button(action: {
+                                onSelect?(playlist)
+                            }) {
+                                PlaylistRow(playlist: playlist, isHovered: hoveredPlaylistId == playlist.id)
+                                    .onHover { isHovering in
+                                        hoveredPlaylistId = isHovering ? playlist.id : nil
+                                    }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.top, 8)

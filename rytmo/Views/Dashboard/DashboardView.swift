@@ -110,25 +110,14 @@ struct DashboardView: View {
             case .home, .none:
                 HomeView()
             case .allPlaylists:
-                PlaylistView()
+                PlaylistView(onSelect: { playlist in
+                    selection = .playlist(playlist)
+                })
             case .playlist(let playlist):
-                // 개별 플레이리스트 뷰가 따로 없다면 PlaylistView에 선택된 상태로 전달하거나
-                // HomeView에서 해당 플레이리스트를 재생하도록 할 수 있습니다.
-                // 여기서는 HomeView를 보여주되, 선택된 플레이리스트를 MusicPlayerManager에 설정하는 로직을 추가하면 좋습니다.
-                // 편의상 PlaylistView를 재활용하되, 해당 플레이리스트만 강조하는 형태로 가거나, 
-                // HomeView로 이동해 플레이리스트를 보여주는 것이 자연스러울 수 있습니다.
-                // User Request: "플레이리스트 리스트들이 보이게 해줘" -> It implies navigation.
-                
-                // For now, let's navigate to HomeView and select the playlist automatically via onAppear is tricky in split view.
-                // Better: Show tracks of that playlist.
-                // Since user didn't specify detailed "Single Playlist View", I'll show tracks here simply or just PlaylistView.
-                // Let's create a Simple Track List for specifically selected playlist, or re-use HomeView context.
-                
-                // Let's redirect to HomeView and set selected playlist.
-                HomeView()
-                    .onAppear {
-                        musicPlayer.selectedPlaylist = playlist
-                    }
+                PlaylistDetailView(playlist: playlist, onBack: {
+                    selection = .allPlaylists
+                })
+                .id(playlist.id) // Force update when switching playlists via sidebar
                     
             case .settings:
                 DashboardSettingsView()
