@@ -357,6 +357,25 @@ class MusicPlayerManager: ObservableObject {
         }
     }
 
+    func playPlaylist(_ playlist: Playlist) {
+        if selectedPlaylist?.id == playlist.id && currentTrack != nil {
+             togglePlayPause() 
+             return
+        }
+
+        selectedPlaylist = playlist
+        
+        if let playlistId = playlist.youtubePlaylistId {
+             Task { try? await youTubePlayer.load(source: .playlist(id: playlistId)) }
+             return
+        }
+
+        let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
+        if let firstTrack = sortedTracks.first {
+             play(track: firstTrack)
+        }
+    }
+
     func playPreviousTrack() {
         if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil {
             Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "previousVideo")) }

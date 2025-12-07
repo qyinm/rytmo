@@ -98,8 +98,7 @@ struct PlaylistDetailView: View {
                     // Action Buttons
                     HStack(spacing: 24) {
                         Button(action: {
-                            musicPlayer.selectedPlaylist = playlist
-                            musicPlayer.togglePlayPause()
+                            musicPlayer.playPlaylist(playlist)
                         }) {
                             Image(systemName: isPlayingCurrentPlaylist ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 56))
