@@ -81,18 +81,43 @@ struct DashboardView: View {
                             }
                         }
                         
-                        NavigationLink(value: DashboardSelection.settings) {
-                            Label {
-                                Text("Settings")
-                            } icon: {
-                                Image(systemName: "gearshape.fill")
-                            }
-                        }
+
                     }
                 }
                 .listStyle(.sidebar)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 300)
-                // Add a toggle sidebar button if needed, but standard toolbar usually handles it.
+                .safeAreaInset(edge: .bottom) {
+                    VStack(spacing: 0) {
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        Button {
+                            selection = .settings
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: selection == .settings ? "gearshape.fill" : "gearshape")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(selection == .settings ? .white : .primary)
+                                
+                                Text("Settings")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(selection == .settings ? .white : .primary)
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(selection == .settings ? Color.accentColor : Color.clear)
+                        )
+                    .padding(.horizontal, 8)
+                        .padding(.bottom, 12)
+                    }
+                }
                 
             } detail: {
                 switch selection {
