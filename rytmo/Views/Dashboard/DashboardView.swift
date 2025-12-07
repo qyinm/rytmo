@@ -39,23 +39,7 @@ struct DashboardView: View {
                     // Profile Section
                     Section {
                         HStack(spacing: 12) {
-                            AsyncImage(url: getUserProfilePictureURL()) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .foregroundColor(.gray)
-                            }                                
-                                .frame(width: 32, height: 32)
-                                .clipShape(Circle())
-                                .overlay(
-                                    Text(String(authManager.currentUser?.uid.prefix(1) ?? "U").uppercased())
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.white)
-                                )
+                            UserProfileImage(size: 32)
                             
                             if let user = authManager.currentUser {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -70,7 +54,6 @@ struct DashboardView: View {
                         }
                         .padding(.vertical, 8)
                     }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                     .listRowBackground(Color.clear)
                     
                     // Menu Section
@@ -140,16 +123,7 @@ struct DashboardView: View {
     }
 }
 
-func getUserProfilePictureURL() -> URL? {
-    if let user = Auth.auth().currentUser {
-        // The user is signed in.
-        // The photoURL property contains the URL of the user's profile picture.
-        return user.photoURL
-    } else {
-        // No user is signed in.
-        return nil
-    }
-}
+
 
 
 #Preview {

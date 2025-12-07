@@ -19,20 +19,7 @@ struct SideRailView: View {
             Button {
                 // Navigate to settings on profile click? or just visual
             } label: {
-                ZStack {
-                    AsyncImage(url: getUserProfilePictureURL()) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Image(systemName: "person.circle.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(width: 24, height: 24)
-                    .clipShape(Circle())
-                }
+                UserProfileImage(size: 24)
             }
             .buttonStyle(.plain)
             .padding(.top, 16)
