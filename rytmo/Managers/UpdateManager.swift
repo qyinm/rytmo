@@ -1,6 +1,5 @@
-import SwiftUI
-import Sparkle
 import Combine
+import Sparkle
 
 // MVVM 패턴에 맞춰 ObservableObject로 만듭니다.
 final class UpdateManager: ObservableObject {
