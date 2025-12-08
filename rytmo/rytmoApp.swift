@@ -65,7 +65,8 @@ struct rytmoApp: App {
                 }
         }
         // 윈도우 크기 설정
-        .defaultSize(width: 1390, height: 800)
+        .defaultSize(width: UIConstants.MainWindow.idealWidth,
+                     height: UIConstants.MainWindow.idealHeight)
         .modelContainer(modelContainer)
         // Sparkle, 업데이트 메뉴 추가
         .commands {

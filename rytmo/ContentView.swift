@@ -24,6 +24,11 @@ struct ContentView: View {
                 LoginView()
             }
         }
-        .frame(minWidth: 980, idealWidth: 1390, maxWidth: .infinity, minHeight: 600, idealHeight: 800, maxHeight: .infinity)
+        .frame(minWidth: UIConstants.MainWindow.minWidth,
+               idealWidth: UIConstants.MainWindow.idealWidth,
+               maxWidth: .infinity,
+               minHeight: UIConstants.MainWindow.minHeight,
+               idealHeight: UIConstants.MainWindow.idealHeight,
+               maxHeight: .infinity)
     }
 }
