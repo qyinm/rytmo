@@ -38,11 +38,39 @@ struct MenuBarView: View {
         .fixedSize(horizontal: false, vertical: true) // 핵심: 세로 길이를 내용물 크기에 고정
     }
 
+    private struct Style {
+        static let iconSize: CGFloat = 16
+        static let headerSpacing: CGFloat = 16
+    }
+
+    private func headerButton(systemName: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: Style.iconSize))
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
     // MARK: - Timer Content
 
     private var timerContent: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // 상단 헤더: 대시보드 및 설정
+                HStack(spacing: 16) {
+                    Spacer()
+                    
+                    headerButton(systemName: "chart.bar.fill", help: "대시보드 열기") {
+                        openWindow(id: "main")
+                    }
+                    
+                    headerButton(systemName: "gearshape.fill", help: "설정") {
+                        showingSettings = true
+                    }
+                }
+                
                 // 타이머 디스플레이
                 TimerView()
 
@@ -96,51 +124,6 @@ struct MenuBarView: View {
 
                 // Music 섹션
                 MusicSectionView()
-
-                Divider()
-
-                // 대시보드 및 설정 버튼
-                HStack(spacing: 12) {
-                    Button(action: {
-                        openWindow(id: "main")
-                    }) {
-                        HStack {
-                            Image(systemName: "chart.bar.fill")
-                            Text("대시보드")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button(action: {
-                        showingSettings = true
-                    }) {
-                        HStack {
-                            Image(systemName: "gearshape.fill")
-                            Text("설정")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                Divider()
-
-                // 종료 버튼
-                Button(action: {
-                    NSApplication.shared.terminate(nil)
-                }) {
-                    HStack {
-                        Image(systemName: "power")
-                        Text("종료")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(.red)
             }
             .padding()
         }
