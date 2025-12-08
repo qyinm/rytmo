@@ -20,6 +20,7 @@ struct rytmoApp: App {
     @StateObject private var timerManager: PomodoroTimerManager
     @StateObject private var musicPlayer = MusicPlayerManager()
     @StateObject private var authManager = AuthManager()
+    @StateObject private var updateManager = UpdateManager()
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -66,6 +67,14 @@ struct rytmoApp: App {
         // 윈도우 크기 설정
         .defaultSize(width: 800, height: 600)
         .modelContainer(modelContainer)
+        // Sparkle, 업데이트 메뉴 추가
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates") {
+                    updateManager.checkForUpdates()
+                }
+            }
+        }
 
         // 2) 메뉴바 Extra (팝오버 UI - 설정 포함)
         MenuBarExtra {
@@ -102,9 +111,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Firebase 초기화는 App의 init으로 이동했으므로 제거됨
-
-        // Dock 아이콘 숨기기 (메뉴바 전용 앱)
-        NSApp.setActivationPolicy(.accessory)
 
         // Amplitude 초기화
         setupAmplitude()
