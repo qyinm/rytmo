@@ -24,6 +24,6 @@ struct ContentView: View {
                 LoginView()
             }
         }
-        .frame(minWidth: 980, minHeight: 600)
+        .frame(minWidth: 980, idealWidth: 1390, maxWidth: .infinity, minHeight: 600, idealHeight: 800, maxHeight: .infinity)
     }
 }
