@@ -38,6 +38,21 @@ struct MenuBarView: View {
         .fixedSize(horizontal: false, vertical: true) // 핵심: 세로 길이를 내용물 크기에 고정
     }
 
+    private struct Style {
+        static let iconSize: CGFloat = 16
+        static let headerSpacing: CGFloat = 16
+    }
+
+    private func headerButton(systemName: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: Style.iconSize))
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+
     // MARK: - Timer Content
 
     private var timerContent: some View {
@@ -47,25 +62,13 @@ struct MenuBarView: View {
                 HStack(spacing: 16) {
                     Spacer()
                     
-                    Button(action: {
+                    headerButton(systemName: "chart.bar.fill", help: "대시보드 열기") {
                         openWindow(id: "main")
-                    }) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .help("대시보드 열기")
                     
-                    Button(action: {
+                    headerButton(systemName: "gearshape.fill", help: "설정") {
                         showingSettings = true
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .help("설정")
                 }
                 
                 // 타이머 디스플레이
