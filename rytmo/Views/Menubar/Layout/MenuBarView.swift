@@ -43,6 +43,31 @@ struct MenuBarView: View {
     private var timerContent: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // 상단 헤더: 대시보드 및 설정
+                HStack(spacing: 16) {
+                    Spacer()
+                    
+                    Button(action: {
+                        openWindow(id: "main")
+                    }) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("대시보드 열기")
+                    
+                    Button(action: {
+                        showingSettings = true
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("설정")
+                }
+                
                 // 타이머 디스플레이
                 TimerView()
 
@@ -96,51 +121,6 @@ struct MenuBarView: View {
 
                 // Music 섹션
                 MusicSectionView()
-
-                Divider()
-
-                // 대시보드 및 설정 버튼
-                HStack(spacing: 12) {
-                    Button(action: {
-                        openWindow(id: "main")
-                    }) {
-                        HStack {
-                            Image(systemName: "chart.bar.fill")
-                            Text("대시보드")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Button(action: {
-                        showingSettings = true
-                    }) {
-                        HStack {
-                            Image(systemName: "gearshape.fill")
-                            Text("설정")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.bordered)
-                }
-
-                Divider()
-
-                // 종료 버튼
-                Button(action: {
-                    NSApplication.shared.terminate(nil)
-                }) {
-                    HStack {
-                        Image(systemName: "power")
-                        Text("종료")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(.borderless)
-                .foregroundColor(.red)
             }
             .padding()
         }
