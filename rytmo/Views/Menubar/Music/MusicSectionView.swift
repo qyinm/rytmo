@@ -17,11 +17,6 @@ struct MusicSectionView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Hidden YouTube Player (for audio playback)
-            YouTubePlayerView(musicPlayer.youTubePlayer)
-                .frame(width: 1, height: 1)
-                .opacity(0)
-
             // Playlist selector
             PlaylistSelectorView()
 

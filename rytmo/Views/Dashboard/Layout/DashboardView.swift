@@ -120,31 +120,29 @@ struct DashboardView: View {
                 }
                 
             } detail: {
-                switch selection {
-                case .home, .none:
-                    HomeView()
-                case .allPlaylists:
-                    PlaylistView(onSelect: { playlist in
-                        selection = .playlist(playlist)
-                    })
-                case .playlist(let playlist):
-                    PlaylistDetailView(playlist: playlist, onBack: {
-                        selection = .allPlaylists
-                    })
-                    .id(playlist.id) // Force update when switching playlists via sidebar
+                VStack(spacing: 0) {
+                    switch selection {
+                    case .home, .none:
+                        HomeView()
+                    case .allPlaylists:
+                        PlaylistView(onSelect: { playlist in
+                            selection = .playlist(playlist)
+                        })
+                    case .playlist(let playlist):
+                        PlaylistDetailView(playlist: playlist, onBack: {
+                            selection = .allPlaylists
+                        })
+                        .id(playlist.id) // Force update when switching playlists via sidebar
                         
-                case .settings:
-                    DashboardSettingsView()
-                        .environmentObject(authManager)
+                    case .settings:
+                        DashboardSettingsView()
+                            .environmentObject(authManager)
+                    }
+                    
+                    MusicPlayerBar()
                 }
             }
         }
-        // Persistent Player Layer
-        .overlay(
-            YouTubePlayerView(musicPlayer.youTubePlayer)
-                .frame(width: 1, height: 1)
-                .opacity(0)
-        )
     }
 }
 
