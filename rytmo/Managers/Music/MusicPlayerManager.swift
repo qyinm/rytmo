@@ -289,6 +289,64 @@ class MusicPlayerManager: ObservableObject {
 
     // MARK: - Playlist Management
 
+    func syncPlaylistWithYouTube(_ playlist: Playlist) async -> (success: Bool, newTracksCount: Int) {
+        guard let playlistId = playlist.youtubePlaylistId else {
+            print("❌ No YouTube playlist ID found")
+            return (false, 0)
+        }
+
+        guard let context = modelContext else {
+            print("❌ ModelContext not available")
+            return (false, 0)
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        // Fetch all tracks from YouTube
+        let youtubeTracks = await fetchPlaylistItems(playlistId: playlistId)
+
+        if youtubeTracks.isEmpty {
+            isLoading = false
+            errorMessage = "Failed to fetch playlist from YouTube"
+            return (false, 0)
+        }
+
+        // Get existing videoIds in local playlist
+        let existingVideoIds = Set(playlist.tracks.map { $0.videoId })
+
+        // Filter tracks that exist in YouTube but not locally
+        let newTracks = youtubeTracks.filter { !existingVideoIds.contains($0.videoId) }
+
+        if newTracks.isEmpty {
+            isLoading = false
+            return (true, 0)
+        }
+
+        // Get current max sortIndex
+        let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
+        var currentMaxIndex = sortedTracks.last?.sortIndex ?? -1
+
+        // Add new tracks to playlist
+        for track in newTracks {
+            currentMaxIndex += 1
+            track.playlist = playlist
+            track.sortIndex = currentMaxIndex
+            context.insert(track)
+        }
+
+        do {
+            try context.save()
+            isLoading = false
+            return (true, newTracks.count)
+        } catch {
+            print("❌ Failed to save synced tracks: \(error)")
+            errorMessage = "Failed to save synced tracks"
+            isLoading = false
+            return (false, 0)
+        }
+    }
+
     func createPlaylist(name: String, colorHex: String, urlString: String? = nil) {
         guard let context = modelContext else { return }
 

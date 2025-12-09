@@ -21,6 +21,11 @@ struct PlaylistDetailView: View {
     @State private var showingRenameAlert = false
     @State private var showingDeleteAlert = false
     @State private var newPlaylistName = ""
+
+    // Sync States
+    @State private var isSyncing = false
+    @State private var syncResultMessage: String?
+    @State private var showingSyncResult = false
     
     // Sort tracks by sortIndex
     var sortedTracks: [MusicTrack] {
@@ -130,7 +135,37 @@ struct PlaylistDetailView: View {
                                 playlist: playlist
                             )
                         }
-                        
+
+                        // Sync button (only for YouTube playlists)
+                        if playlist.youtubePlaylistId != nil {
+                            Button(action: {
+                                Task {
+                                    await syncPlaylist()
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    if isSyncing {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                            .frame(width: 14, height: 14)
+                                    } else {
+                                        Image(systemName: "arrow.triangle.2.circlepath")
+                                            .font(.system(size: 14))
+                                    }
+                                    Text(isSyncing ? "Syncing..." : "Sync")
+                                }
+                                .font(.system(size: 14, weight: .medium))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(Color.secondary.opacity(0.5), lineWidth: 1)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSyncing)
+                        }
+
                         Spacer()
                     }
                     .padding(.bottom, 32)
@@ -225,16 +260,41 @@ struct PlaylistDetailView: View {
         } message: {
             Text("This action cannot be undone.")
         }
+        .alert("Sync Complete", isPresented: $showingSyncResult) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(syncResultMessage ?? "")
+        }
     }
-    
+
     private var isPlayingCurrentPlaylist: Bool {
         musicPlayer.selectedPlaylist?.id == playlist.id && musicPlayer.isPlaying
     }
-    
+
     private func moveTracks(from source: IndexSet, to destination: Int) {
         var tracks = sortedTracks
         tracks.move(fromOffsets: source, toOffset: destination)
         musicPlayer.reorderTracks(tracks)
+    }
+
+    private func syncPlaylist() async {
+        isSyncing = true
+
+        let result = await musicPlayer.syncPlaylistWithYouTube(playlist)
+
+        isSyncing = false
+
+        if result.success {
+            if result.newTracksCount > 0 {
+                syncResultMessage = "Successfully synced! Added \(result.newTracksCount) new track(s)."
+            } else {
+                syncResultMessage = "Playlist is already up to date."
+            }
+        } else {
+            syncResultMessage = "Failed to sync playlist. Please try again."
+        }
+
+        showingSyncResult = true
     }
 }
 
