@@ -327,7 +327,9 @@ class MusicPlayerManager: ObservableObject {
 
     // MARK: - Playlist Management
 
-    func syncPlaylistWithYouTube(_ playlist: Playlist) async -> (success: Bool, newTracksCount: Int) {
+    /// Fetches tracks from the YouTube playlist and adds any that are missing locally.
+    /// This does NOT remove local tracks that are no longer in the YouTube playlist, nor does it reorder them.
+    func addMissingTracksFromYouTube(_ playlist: Playlist) async -> (success: Bool, newTracksCount: Int) {
         guard let playlistId = playlist.youtubePlaylistId else {
             print("❌ No YouTube playlist ID found")
             return (false, 0)

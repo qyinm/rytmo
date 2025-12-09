@@ -280,7 +280,7 @@ struct PlaylistDetailView: View {
     private func syncPlaylist() async {
         isSyncing = true
 
-        let result = await musicPlayer.syncPlaylistWithYouTube(playlist)
+        let result = await musicPlayer.addMissingTracksFromYouTube(playlist)
 
         isSyncing = false
 
