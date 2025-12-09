@@ -277,29 +277,37 @@ class MusicPlayerManager: ObservableObject {
                 print("📡 YouTube API Status: \(httpResponse.statusCode) for PlaylistID: \(playlistId)")
             }
             
-            // Try to decode successful response
-            if let listResponse = try? JSONDecoder().decode(YouTubePlaylistItemListResponse.self, from: data) {
-                 var tracks = listResponse.items.compactMap { item -> MusicTrack? in
-                    let videoId = item.snippet.resourceId.videoId
-                    let title = item.snippet.title
-                    let thumbnailUrl = item.snippet.thumbnails?.bestAvailable
+            // Check for successful status code
+            if let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) {
+                do {
+                    let listResponse = try JSONDecoder().decode(YouTubePlaylistItemListResponse.self, from: data)
                     
-                    if title == "Private video" || title == "Deleted video" { return nil }
+                    var tracks = listResponse.items.compactMap { item -> MusicTrack? in
+                        let videoId = item.snippet.resourceId.videoId
+                        let title = item.snippet.title
+                        let thumbnailUrl = item.snippet.thumbnails?.bestAvailable
+                        
+                        if title == "Private video" || title == "Deleted video" { return nil }
+                        
+                        return MusicTrack(
+                            title: title, 
+                            videoId: videoId, 
+                            thumbnailUrl: thumbnailUrl, 
+                            sortIndex: 0 
+                        )
+                    }
                     
-                    return MusicTrack(
-                        title: title, 
-                        videoId: videoId, 
-                        thumbnailUrl: thumbnailUrl, 
-                        sortIndex: 0 
-                    )
+                    if let nextPageToken = listResponse.nextPageToken {
+                        let nextTracks = await fetchPlaylistItems(playlistId: playlistId, pageToken: nextPageToken)
+                        tracks.append(contentsOf: nextTracks)
+                    }
+                    
+                    return tracks
+                } catch {
+                    let rawString = String(data: data, encoding: .utf8) ?? "Unable to decode data"
+                    print("❌ Failed to decode YouTube API success response: \(error). Raw data: \(rawString)")
+                    return []
                 }
-                
-                if let nextPageToken = listResponse.nextPageToken {
-                    let nextTracks = await fetchPlaylistItems(playlistId: playlistId, pageToken: nextPageToken)
-                    tracks.append(contentsOf: nextTracks)
-                }
-                
-                return tracks
             } else {
                 // Try to decode error response
                 if let errorResponse = try? JSONDecoder().decode(YouTubeAPIErrorResponse.self, from: data) {
@@ -307,7 +315,7 @@ class MusicPlayerManager: ObservableObject {
                 } else {
                     // Print raw string for debugging
                     let rawString = String(data: data, encoding: .utf8) ?? "Unable to decode data"
-                    print("❌ Failed to decode YouTube API response. Raw data: \(rawString)")
+                    print("❌ Failed to decode YouTube API error response. Raw data: \(rawString)")
                 }
                 return []
             }
