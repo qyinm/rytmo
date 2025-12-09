@@ -91,20 +91,15 @@ struct TrackRowView: View {
     private var lpThumbnail: some View {
         ZStack {
             if let thumbnailUrl = track.thumbnailUrl {
-                AsyncImage(url: thumbnailUrl) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 32, height: 32)
-                            .clipShape(Circle())
-                            .rotationEffect(.degrees(rotationAngle))
-                    case .failure, .empty:
-                        lpIcon
-                    @unknown default:
-                        lpIcon
-                    }
+                CachedAsyncImage(url: thumbnailUrl) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 32, height: 32)
+                        .clipShape(Circle())
+                        .rotationEffect(.degrees(rotationAngle))
+                } placeholder: {
+                    lpIcon
                 }
             } else {
                 lpIcon
