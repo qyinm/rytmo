@@ -27,6 +27,7 @@ struct MusicPlayerBar: View {
                         .frame(width: 48, height: 48)
                         .cornerRadius(6)
                         .clipped()
+                        .id(thumbnailUrl)
                     } else {
                         // Placeholder
                         RoundedRectangle(cornerRadius: 6)
