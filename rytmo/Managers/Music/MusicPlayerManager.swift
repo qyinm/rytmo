@@ -22,6 +22,56 @@ struct NoembedResponse: Codable {
     }
 }
 
+// MARK: - YouTube API Response
+
+struct YouTubePlaylistItemListResponse: Codable {
+    let items: [YouTubePlaylistItem]
+    let nextPageToken: String?
+}
+
+struct YouTubePlaylistItem: Codable {
+    let snippet: YouTubePlaylistItemSnippet
+}
+
+struct YouTubePlaylistItemSnippet: Codable {
+    let title: String
+    let resourceId: YouTubeResourceId
+    let thumbnails: YouTubeThumbnails?
+}
+
+struct YouTubeResourceId: Codable {
+    let videoId: String
+}
+
+struct YouTubeThumbnails: Codable {
+    let defaultThumbnail: YouTubeThumbnail?
+    let medium: YouTubeThumbnail?
+    let high: YouTubeThumbnail?
+    let standard: YouTubeThumbnail?
+    let maxres: YouTubeThumbnail?
+    
+    enum CodingKeys: String, CodingKey {
+        case defaultThumbnail = "default"
+        case medium
+        case high
+        case standard
+        case maxres
+    }
+
+    var bestAvailable: URL? {
+        if let url = maxres?.url { return URL(string: url) }
+        if let url = standard?.url { return URL(string: url) }
+        if let url = high?.url { return URL(string: url) }
+        if let url = medium?.url { return URL(string: url) }
+        if let url = defaultThumbnail?.url { return URL(string: url) }
+        return nil
+    }
+}
+
+struct YouTubeThumbnail: Codable {
+    let url: String
+}
+
 // MARK: - Music Player Manager
 
 @MainActor
@@ -166,6 +216,77 @@ class MusicPlayerManager: ObservableObject {
         }
     }
 
+    struct YouTubeAPIErrorResponse: Decodable {
+        let error: YouTubeAPIErrorDetails
+    }
+
+    struct YouTubeAPIErrorDetails: Decodable {
+        let code: Int
+        let message: String
+        let status: String?
+    }
+
+    func fetchPlaylistItems(playlistId: String, pageToken: String? = nil) async -> [MusicTrack] {
+        guard let apiKey = Bundle.main.object(forInfoDictionaryKey: "YoutubeDataAPIKey") as? String,
+              !apiKey.isEmpty, !apiKey.contains("$(") else {
+            print("❌ YouTube Data API Key is missing or invalid (check Info.plist and Config.xcconfig)")
+            return []
+        }
+
+        var urlString = "https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=\(playlistId)&key=\(apiKey)&maxResults=50"
+        if let pageToken = pageToken {
+            urlString += "&pageToken=\(pageToken)"
+        }
+        
+        guard let url = URL(string: urlString) else { return [] }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📡 YouTube API Status: \(httpResponse.statusCode) for PlaylistID: \(playlistId)")
+            }
+            
+            // Try to decode successful response
+            if let listResponse = try? JSONDecoder().decode(YouTubePlaylistItemListResponse.self, from: data) {
+                 var tracks = listResponse.items.compactMap { item -> MusicTrack? in
+                    let videoId = item.snippet.resourceId.videoId
+                    let title = item.snippet.title
+                    let thumbnailUrl = item.snippet.thumbnails?.bestAvailable
+                    
+                    if title == "Private video" || title == "Deleted video" { return nil }
+                    
+                    return MusicTrack(
+                        title: title, 
+                        videoId: videoId, 
+                        thumbnailUrl: thumbnailUrl, 
+                        sortIndex: 0 
+                    )
+                }
+                
+                if let nextPageToken = listResponse.nextPageToken {
+                    let nextTracks = await fetchPlaylistItems(playlistId: playlistId, pageToken: nextPageToken)
+                    tracks.append(contentsOf: nextTracks)
+                }
+                
+                return tracks
+            } else {
+                // Try to decode error response
+                if let errorResponse = try? JSONDecoder().decode(YouTubeAPIErrorResponse.self, from: data) {
+                    print("❌ YouTube API Error: \(errorResponse.error.message) (Code: \(errorResponse.error.code))")
+                } else {
+                    // Print raw string for debugging
+                    let rawString = String(data: data, encoding: .utf8) ?? "Unable to decode data"
+                    print("❌ Failed to decode YouTube API response. Raw data: \(rawString)")
+                }
+                return []
+            }
+        } catch {
+            print("❌ Network or decoding error: \(error)")
+            return []
+        }
+    }
+
     // MARK: - Playlist Management
 
     func createPlaylist(name: String, colorHex: String, urlString: String? = nil) {
@@ -189,6 +310,34 @@ class MusicPlayerManager: ObservableObject {
             selectedPlaylist = playlist
         } catch {
             print("Failed to save playlist: \(error)")
+        }
+        
+        // If we have a playlist ID, fetch tracks
+        if let playlistId = youtubePlaylistId {
+            isLoading = true
+            Task {
+                let tracks = await fetchPlaylistItems(playlistId: playlistId)
+                
+                // Ensure we are on main actor for context updates (Task inherits, but explicit is safer if method wasn't isolated)
+                // MusicPlayerManager is @MainActor, so this is fine.
+                for (index, track) in tracks.enumerated() {
+                    track.playlist = playlist
+                    track.sortIndex = index
+                    context.insert(track)
+                }
+                
+                do {
+                    try context.save()
+                    
+                    // If we just created and selected this playlist, and it was empty initially,
+                    // we might want to start playing if the user intended? 
+                    // Usually creation doesn't auto-play, so we just populate it.
+                    // But update UI state.
+                } catch {
+                    print("Failed to save imported tracks: \(error)")
+                }
+                isLoading = false
+            }
         }
     }
 
@@ -312,7 +461,7 @@ class MusicPlayerManager: ObservableObject {
                 // 이미 재생 중이거나 일시정지 상태인 경우 play()만 호출
                 // (YouTube Playlist의 경우 load를 다시 하면 처음부터 시작됨)
                 if currentTrack == nil, let playlist = selectedPlaylist {
-                    if let playlistId = playlist.youtubePlaylistId {
+                    if let playlistId = playlist.youtubePlaylistId, playlist.tracks.isEmpty {
                         // 플레이어가 준비된 상태라면 play()만 호출
                         try? await youTubePlayer.play()
                         
@@ -340,7 +489,7 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playNextTrack() {
-        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil {
+        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil, playlist.tracks.isEmpty {
             Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "nextVideo")) }
             return
         }
@@ -374,8 +523,8 @@ class MusicPlayerManager: ObservableObject {
 
         selectedPlaylist = playlist
         
-        // YouTube Playlist인 경우
-        if let playlistId = playlist.youtubePlaylistId {
+        // YouTube Playlist인 경우 (트랙이 없을 때만 폴백)
+        if let playlistId = playlist.youtubePlaylistId, playlist.tracks.isEmpty {
              Task { try? await youTubePlayer.load(source: .playlist(id: playlistId)) }
              return
         }
@@ -388,7 +537,7 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playPreviousTrack() {
-        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil {
+        if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil, playlist.tracks.isEmpty {
             Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "previousVideo")) }
             return
         }

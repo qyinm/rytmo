@@ -21,5 +21,7 @@
 	<string>$(SPARKLE_FEED_URL)</string>
 	<key>SUPublicEDKey</key>
 	<string>$(SUPublicEDKey)</string>
+	<key>YoutubeDataAPIKey</key>
+	<string>$(YOUTUBE_DATA_API_KEY)</string>
 </dict>
 </plist>
