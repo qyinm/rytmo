@@ -39,6 +39,19 @@
 		41CF671A2EE69E8F00636347 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF67192EE69E8F00636347 /* Sparkle */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		41CF685D2EE87A7600636347 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		41CD3D0E2EE06FAE00FF66E0 /* rytmo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rytmo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		41CF64E42EE2997900636347 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
@@ -140,6 +153,7 @@
 				41CD3D0A2EE06FAE00FF66E0 /* Sources */,
 				41CD3D0B2EE06FAE00FF66E0 /* Frameworks */,
 				41CD3D0C2EE06FAE00FF66E0 /* Resources */,
+				41CF685D2EE87A7600636347 /* Copy Files */,
 			);
 			buildRules = (
 			);
@@ -378,7 +392,7 @@
 				CODE_SIGN_ENTITLEMENTS = rytmo/rytmo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = MCP4D3M7XK;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -426,7 +440,7 @@
 				CODE_SIGN_ENTITLEMENTS = rytmo/rytmo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = MCP4D3M7XK;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
