@@ -63,6 +63,9 @@ struct rytmoApp: App {
                     // Google Sign-In URL 처리
                     GIDSignIn.sharedInstance.handle(url)
                 }
+                .onAppear {
+                    musicPlayer.setModelContext(modelContainer.mainContext)
+                }
         }
         // 윈도우 크기 설정
         .defaultSize(width: UIConstants.MainWindow.idealWidth,
