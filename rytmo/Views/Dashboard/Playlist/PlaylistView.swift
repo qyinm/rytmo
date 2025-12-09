@@ -17,6 +17,7 @@ struct PlaylistView: View {
     @State private var showingDeleteAlert = false
     @State private var playlistToEdit: Playlist?
     @State private var newPlaylistName = ""
+    @State private var showingCreatePlaylist = false
     
     var onSelect: ((Playlist) -> Void)? = nil
     
@@ -32,6 +33,25 @@ struct PlaylistView: View {
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(.primary)
                     Spacer()
+                    
+                    Button(action: {
+                        showingCreatePlaylist = true
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("New")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.primary.opacity(0.06))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showingCreatePlaylist) {
+                        CreatePlaylistPopover(isPresented: $showingCreatePlaylist)
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 32)
