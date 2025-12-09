@@ -69,21 +69,12 @@ final class ImageLoader: ObservableObject {
                     // 캐시에 저장
                     cache.set(downloadedImage, for: url)
 
-                    await MainActor.run {
-                        self.image = downloadedImage
-                        self.isLoading = false
-                    }
-                } else {
-                    await MainActor.run {
-                        self.isLoading = false
-                    }
+                    self.image = downloadedImage
                 }
             } catch {
                 print("Failed to load image: \(error.localizedDescription)")
-                await MainActor.run {
-                    self.isLoading = false
-                }
             }
+            self.isLoading = false
         }
     }
 }
