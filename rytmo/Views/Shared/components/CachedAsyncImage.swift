@@ -9,8 +9,7 @@ import SwiftUI
 
 /// 캐싱을 지원하는 비동기 이미지 뷰
 struct CachedAsyncImage<Content: View, Placeholder: View>: View {
-    @StateObject private var loader: ImageLoader
-
+    private let url: URL?
     private let content: (Image) -> Content
     private let placeholder: () -> Placeholder
 
@@ -19,9 +18,32 @@ struct CachedAsyncImage<Content: View, Placeholder: View>: View {
         @ViewBuilder content: @escaping (Image) -> Content,
         @ViewBuilder placeholder: @escaping () -> Placeholder
     ) {
-        // url이 nil이면 빈 URL 사용 (placeholder만 표시)
-        let validUrl = url ?? URL(string: "about:blank")!
-        _loader = StateObject(wrappedValue: ImageLoader(url: validUrl))
+        self.url = url
+        self.content = content
+        self.placeholder = placeholder
+    }
+
+    var body: some View {
+        if let url = url {
+            CachedAsyncImageInternal(url: url, content: content, placeholder: placeholder)
+        } else {
+            placeholder()
+        }
+    }
+}
+
+fileprivate struct CachedAsyncImageInternal<Content: View, Placeholder: View>: View {
+    @StateObject private var loader: ImageLoader
+
+    private let content: (Image) -> Content
+    private let placeholder: () -> Placeholder
+
+    init(
+        url: URL,
+        @ViewBuilder content: @escaping (Image) -> Content,
+        @ViewBuilder placeholder: @escaping () -> Placeholder
+    ) {
+        _loader = StateObject(wrappedValue: ImageLoader(url: url))
         self.content = content
         self.placeholder = placeholder
     }
