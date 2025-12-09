@@ -60,12 +60,11 @@ struct YouTubeThumbnails: Codable {
     }
 
     var bestAvailable: URL? {
-        if let url = maxres?.url { return URL(string: url) }
-        if let url = standard?.url { return URL(string: url) }
-        if let url = high?.url { return URL(string: url) }
-        if let url = medium?.url { return URL(string: url) }
-        if let url = defaultThumbnail?.url { return URL(string: url) }
-        return nil
+        [maxres, standard, high, medium, defaultThumbnail]
+            .compactMap { $0?.url }
+            .lazy
+            .compactMap(URL.init(string:))
+            .first
     }
 }
 
