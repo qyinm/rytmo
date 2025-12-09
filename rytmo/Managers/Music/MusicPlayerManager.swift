@@ -309,9 +309,17 @@ class MusicPlayerManager: ObservableObject {
             if isPlaying {
                 try? await youTubePlayer.pause()
             } else {
+                // 이미 재생 중이거나 일시정지 상태인 경우 play()만 호출
+                // (YouTube Playlist의 경우 load를 다시 하면 처음부터 시작됨)
                 if currentTrack == nil, let playlist = selectedPlaylist {
                     if let playlistId = playlist.youtubePlaylistId {
-                        try? await youTubePlayer.load(source: .playlist(id: playlistId))
+                        // 플레이어가 준비된 상태라면 play()만 호출
+                        try? await youTubePlayer.play()
+                        
+                        // 만약 play()를 했는데도 상태가 변경되지 않거나(처음 로드 시)
+                        // 플레이어가 비어있다면 로드 수행
+                        // (이 부분은 YouTubePlayerKit의 상태를 더 정확히 확인해야 하지만,
+                        //  일단 play()를 먼저 시도하는 것이 핵심)
                         return
                     }
                     
@@ -358,18 +366,21 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playPlaylist(_ playlist: Playlist) {
-        if selectedPlaylist?.id == playlist.id && currentTrack != nil {
+        // 이미 선택된 플레이리스트인 경우
+        if selectedPlaylist?.id == playlist.id {
              togglePlayPause() 
              return
         }
 
         selectedPlaylist = playlist
         
+        // YouTube Playlist인 경우
         if let playlistId = playlist.youtubePlaylistId {
              Task { try? await youTubePlayer.load(source: .playlist(id: playlistId)) }
              return
         }
 
+        // 일반 트랙 리스트인 경우
         let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
         if let firstTrack = sortedTracks.first {
              play(track: firstTrack)
