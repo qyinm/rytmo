@@ -62,7 +62,9 @@ struct MusicControllerView: View {
     }
 
     private var shouldDisableControls: Bool {
-        return musicPlayer.selectedPlaylist == nil
+        guard let playlist = musicPlayer.selectedPlaylist else { return true }
+        if playlist.youtubePlaylistId != nil { return false }
+        return playlist.tracks.isEmpty
     }
 }
 
