@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 import YouTubePlayerKit
 import Combine
+import AppKit
 
 // MARK: - Noembed Response
 
@@ -91,6 +92,7 @@ class MusicPlayerManager: ObservableObject {
 
     private var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
+    private var backgroundWindow: NSWindow?
 
     // MARK: - Initialization
 
@@ -101,7 +103,36 @@ class MusicPlayerManager: ObservableObject {
         )
         self.youTubePlayer = YouTubePlayer(configuration: configuration)
 
+        setupBackgroundPlayer()
         setupPlayerObservation()
+    }
+
+    private func setupBackgroundPlayer() {
+        let window = NSWindow(
+            contentRect: .init(x: 0, y: 0, width: 1, height: 1),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.isExcludedFromWindowsMenu = true
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = false
+        window.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
+        
+        let playerView = YouTubePlayerView(self.youTubePlayer)
+            .frame(width: 1, height: 1)
+            .opacity(0.01)
+            
+        let hostingController = NSHostingController(rootView: playerView)
+        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+        window.contentViewController = hostingController
+        
+        self.backgroundWindow = window
+        
+        window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
+        window.orderFront(nil)
     }
 
     // MARK: - Setup

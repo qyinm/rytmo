@@ -139,12 +139,6 @@ struct DashboardView: View {
                 }
             }
         }
-        // Persistent Player Layer
-        .overlay(
-            YouTubePlayerView(musicPlayer.youTubePlayer)
-                .frame(width: 1, height: 1)
-                .opacity(0)
-        )
     }
 }
 
