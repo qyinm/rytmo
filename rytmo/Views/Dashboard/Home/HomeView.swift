@@ -6,16 +6,9 @@
 //
 
 import SwiftUI
-
-//
-//  HomeView.swift
-//  rytmo
-//
-//  Created by hippoo on 12/7/25.
-//
-
-import SwiftUI
 import YouTubePlayerKit
+
+
 
 struct HomeView: View {
     @EnvironmentObject var timerManager: PomodoroTimerManager

@@ -19,7 +19,7 @@ struct rytmoApp: App {
     @StateObject private var settings = PomodoroSettings()
     @StateObject private var timerManager: PomodoroTimerManager
     @StateObject private var musicPlayer = MusicPlayerManager()
-    @StateObject private var authManager = AuthManager()
+    @StateObject private var authManager: AuthManager
     @StateObject private var updateManager = UpdateManager()
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -38,6 +38,7 @@ struct rytmoApp: App {
         let settings = PomodoroSettings()
         _settings = StateObject(wrappedValue: settings)
         _timerManager = StateObject(wrappedValue: PomodoroTimerManager(settings: settings))
+        _authManager = StateObject(wrappedValue: AuthManager())
 
         // SwiftData container setup
         do {
@@ -121,6 +122,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Google Sign-In 초기화
         setupGoogleSignIn()
+        
+        // 앱 실행 시 윈도우를 맨 앞으로 가져오기
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            for window in sender.windows {
+                window.makeKeyAndOrderFront(self)
+            }
+        }
+        return true
     }
 
     private func setupGoogleSignIn() {

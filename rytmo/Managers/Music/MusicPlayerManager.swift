@@ -107,31 +107,39 @@ class MusicPlayerManager: ObservableObject {
     }
 
     private func setupBackgroundPlayer() {
-        let window = NSWindow(
-            contentRect: .init(x: 0, y: 0, width: 1, height: 1),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
-        window.isExcludedFromWindowsMenu = true
-        window.backgroundColor = .clear
-        window.isOpaque = false
-        window.hasShadow = false
-        window.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
-        
-        let playerView = YouTubePlayerView(self.youTubePlayer)
-            .frame(width: 1, height: 1)
-            .opacity(0.01)
+        // 앱 시작 시 메인 스레드 블로킹을 방지하기 위해 비동기로 처리
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
             
-        let hostingController = NSHostingController(rootView: playerView)
-        hostingController.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
-        window.contentViewController = hostingController
-        
-        self.backgroundWindow = window
-        
-        window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
-        window.orderFront(nil)
+            let window = NSWindow(
+                contentRect: .init(x: 0, y: 0, width: 1, height: 1),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            window.isReleasedWhenClosed = false
+            window.isExcludedFromWindowsMenu = true
+            window.backgroundColor = .clear
+            window.isOpaque = false
+            window.hasShadow = false
+            window.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
+            
+            let playerView = YouTubePlayerView(self.youTubePlayer)
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                
+            let hostingController = NSHostingController(rootView: playerView)
+            hostingController.view.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            window.contentViewController = hostingController
+            
+            self.backgroundWindow = window
+            
+            // 화면 밖으로 이동시키되, 윈도우 시스템에 등록은 함
+            window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
+            
+            // orderFront 대신 orderBack을 사용하여 포커스를 뺏지 않도록 함
+            window.orderBack(nil)
+        }
     }
 
     // MARK: - Setup
