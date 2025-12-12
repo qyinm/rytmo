@@ -72,6 +72,14 @@ struct YouTubeThumbnail: Codable {
     let url: String
 }
 
+// MARK: - Enums
+
+enum RepeatMode {
+    case off
+    case all
+    case one
+}
+
 // MARK: - Music Player Manager
 
 @MainActor
@@ -86,6 +94,8 @@ class MusicPlayerManager: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var playbackTitle: String?
+    @Published var repeatMode: RepeatMode = .off
+    @Published var isShuffle: Bool = false
 
     // MARK: - Private Properties
 
@@ -177,7 +187,7 @@ class MusicPlayerManager: ObservableObject {
                     }
 
                     if state == .ended {
-                        self.playNextTrack()
+                        self.playNextTrack(auto: true)
                     }
                 default:
                     break
@@ -524,7 +534,7 @@ class MusicPlayerManager: ObservableObject {
         guard let context = modelContext else { return }
 
         if currentTrack?.id == track.id {
-            playNextTrack()
+            playNextTrack(auto: true)
         }
 
         context.delete(track)
@@ -594,7 +604,7 @@ class MusicPlayerManager: ObservableObject {
         isPlaying = false
     }
 
-    func playNextTrack() {
+    func playNextTrack(auto: Bool = false) {
         if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil, playlist.tracks.isEmpty {
             Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "nextVideo")) }
             return
@@ -604,8 +614,27 @@ class MusicPlayerManager: ObservableObject {
               let current = currentTrack else {
             return
         }
+        
+        // Handle Repeat One (only if auto-advanced)
+        if auto && repeatMode == .one {
+            play(track: current)
+            return
+        }
 
         let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
+        
+        if isShuffle {
+            if sortedTracks.count > 1 {
+                var nextTrack: MusicTrack
+                repeat {
+                    nextTrack = sortedTracks.randomElement()!
+                } while nextTrack.id == current.id
+                play(track: nextTrack)
+            } else if let first = sortedTracks.first {
+                play(track: first)
+            }
+            return
+        }
 
         guard let currentIndex = sortedTracks.firstIndex(where: { $0.id == current.id }) else {
             return
@@ -614,9 +643,15 @@ class MusicPlayerManager: ObservableObject {
         let nextIndex = currentIndex + 1
         if nextIndex < sortedTracks.count {
             play(track: sortedTracks[nextIndex])
-        } else if let firstTrack = sortedTracks.first {
-            // Loop back to the first track
-            play(track: firstTrack)
+        } else {
+            // End of list
+            if repeatMode == .all {
+                if let firstTrack = sortedTracks.first {
+                    play(track: firstTrack)
+                }
+            } else {
+                Task { await stop() }
+            }
         }
     }
 

@@ -28,6 +28,17 @@ struct MusicControllerView: View {
             }
 
             HStack(spacing: 16) {
+                // Shuffle button
+                Button(action: {
+                    musicPlayer.isShuffle.toggle()
+                }) {
+                    Image(systemName: "shuffle")
+                        .font(.system(size: 14))
+                        .foregroundColor(musicPlayer.isShuffle ? .accentColor : .primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(shouldDisableControls)
+
                 // Previous button
                 Button(action: {
                     musicPlayer.playPreviousTrack()
@@ -54,6 +65,21 @@ struct MusicControllerView: View {
                 }) {
                     Image(systemName: "forward.fill")
                         .font(.system(size: 16))
+                }
+                .buttonStyle(.plain)
+                .disabled(shouldDisableControls)
+
+                // Repeat button
+                Button(action: {
+                    switch musicPlayer.repeatMode {
+                    case .off: musicPlayer.repeatMode = .all
+                    case .all: musicPlayer.repeatMode = .one
+                    case .one: musicPlayer.repeatMode = .off
+                    }
+                }) {
+                    Image(systemName: musicPlayer.repeatMode == .one ? "repeat.1" : "repeat")
+                        .font(.system(size: 14))
+                        .foregroundColor(musicPlayer.repeatMode != .off ? .accentColor : .primary)
                 }
                 .buttonStyle(.plain)
                 .disabled(shouldDisableControls)
