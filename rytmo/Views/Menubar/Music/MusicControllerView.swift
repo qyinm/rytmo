@@ -17,14 +17,6 @@ struct MusicControllerView: View {
     @State private var dragValue: Double = 0
     @State private var isVolumePopoverPresented: Bool = false
 
-    private func formatTime(_ seconds: Double) -> String {
-        guard !seconds.isNaN && !seconds.isInfinite else { return "0:00" }
-        let seconds = Int(seconds)
-        let m = seconds / 60
-        let s = seconds % 60
-        return String(format: "%d:%02d", m, s)
-    }
-
     var body: some View {
         VStack(spacing: 12) {
             // Current track title
@@ -41,7 +33,7 @@ struct MusicControllerView: View {
 
             // Progress Bar
             HStack(spacing: 8) {
-                Text(formatTime(isDragging ? dragValue : musicPlayer.currentTime))
+                Text((isDragging ? dragValue : musicPlayer.currentTime).formattedTimeString())
                     .font(.caption2)
                     .monospacedDigit()
                     .foregroundColor(.secondary)
@@ -65,7 +57,7 @@ struct MusicControllerView: View {
                 .controlSize(.mini)
                 .disabled(shouldDisableControls)
                 
-                Text(formatTime(musicPlayer.duration))
+                Text(musicPlayer.duration.formattedTimeString())
                     .font(.caption2)
                     .monospacedDigit()
                     .foregroundColor(.secondary)

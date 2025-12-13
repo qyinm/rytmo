@@ -779,3 +779,13 @@ extension Color {
         )
     }
 }
+
+extension Double {
+    func formattedTimeString() -> String {
+        guard !self.isNaN && !self.isInfinite else { return "0:00" }
+        let seconds = Int(self)
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
+}
