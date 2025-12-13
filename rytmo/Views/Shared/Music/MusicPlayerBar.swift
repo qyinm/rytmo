@@ -9,6 +9,16 @@ import SwiftUI
 
 struct MusicPlayerBar: View {
     @EnvironmentObject var musicPlayer: MusicPlayerManager
+    @State private var isDragging: Bool = false
+    @State private var dragValue: Double = 0
+    
+    private func formatTime(_ seconds: Double) -> String {
+        guard !seconds.isNaN && !seconds.isInfinite else { return "0:00" }
+        let seconds = Int(seconds)
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -61,6 +71,7 @@ struct MusicPlayerBar: View {
                 Spacer()
                 
                 // Controls
+                VStack(spacing: 6) {
                 HStack(spacing: 24) {
                     // Shuffle
                     Button(action: {
@@ -108,6 +119,42 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .disabled(shouldDisableControls)
+                }
+                
+                // Progress Bar
+                HStack(spacing: 8) {
+                    Text(formatTime(isDragging ? dragValue : musicPlayer.currentTime))
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                        .frame(width: 35, alignment: .trailing)
+                    
+                    Slider(
+                        value: Binding(
+                            get: { isDragging ? dragValue : musicPlayer.currentTime },
+                            set: { newValue in
+                                dragValue = newValue
+                            }
+                        ),
+                        in: 0...max(musicPlayer.duration, 0.1),
+                        onEditingChanged: { editing in
+                            isDragging = editing
+                            if !editing {
+                                musicPlayer.seek(to: dragValue)
+                            }
+                        }
+                    )
+                    .controlSize(.small)
+                    .disabled(shouldDisableControls)
+                    
+                    Text(formatTime(musicPlayer.duration))
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                        .frame(width: 35, alignment: .leading)
+                }
+                .frame(width: 320)
                 }
                 
                 Spacer()

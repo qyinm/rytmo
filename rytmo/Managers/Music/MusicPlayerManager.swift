@@ -96,6 +96,8 @@ class MusicPlayerManager: ObservableObject {
     @Published var playbackTitle: String?
     @Published var repeatMode: RepeatMode = .off
     @Published var isShuffle: Bool = false
+    @Published var currentTime: Double = 0
+    @Published var duration: Double = 0
 
     // MARK: - Private Properties
 
@@ -177,6 +179,13 @@ class MusicPlayerManager: ObservableObject {
                         )
                     }
 
+                    // Explicitly fetch duration
+                    Task {
+                        if let duration = try? await self.youTubePlayer.getDuration() {
+                            self.duration = duration.converted(to: .seconds).value
+                        }
+                    }
+
                 case .paused, .ended, .unstarted, .cued:
                     let wasPlaying = self.isPlaying
                     self.isPlaying = false
@@ -200,6 +209,22 @@ class MusicPlayerManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] metadata in
                 self?.playbackTitle = metadata.title
+            }
+            .store(in: &cancellables)
+
+        // Observe duration
+        youTubePlayer.durationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] duration in
+                self?.duration = duration.converted(to: .seconds).value
+            }
+            .store(in: &cancellables)
+
+        // Observe current time
+        youTubePlayer.currentTimePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] currentTime in
+                self?.currentTime = currentTime.converted(to: .seconds).value
             }
             .store(in: &cancellables)
     }
@@ -700,6 +725,12 @@ class MusicPlayerManager: ObservableObject {
         } else if let lastTrack = sortedTracks.last {
             // Loop to the last track
             play(track: lastTrack)
+        }
+    }
+
+    func seek(to time: Double) {
+        Task {
+            try? await youTubePlayer.seek(to: Measurement(value: time, unit: .seconds), allowSeekAhead: true)
         }
     }
 }
