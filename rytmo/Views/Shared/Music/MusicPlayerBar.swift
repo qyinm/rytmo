@@ -107,11 +107,7 @@ struct MusicPlayerBar: View {
                     
                     // Repeat
                     Button(action: {
-                        switch musicPlayer.repeatMode {
-                        case .off: musicPlayer.repeatMode = .all
-                        case .all: musicPlayer.repeatMode = .one
-                        case .one: musicPlayer.repeatMode = .off
-                        }
+                        musicPlayer.repeatMode = musicPlayer.repeatMode.next()
                     }) {
                         Image(systemName: musicPlayer.repeatMode == .one ? "repeat.1" : "repeat")
                             .font(.system(size: 16))

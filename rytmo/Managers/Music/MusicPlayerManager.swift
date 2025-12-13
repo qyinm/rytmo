@@ -74,10 +74,17 @@ struct YouTubeThumbnail: Codable {
 
 // MARK: - Enums
 
-enum RepeatMode {
+enum RepeatMode: CaseIterable {
     case off
     case all
     case one
+
+    func next() -> RepeatMode {
+        let allCases = Self.allCases
+        guard let currentIndex = allCases.firstIndex(of: self) else { return .off }
+        let nextIndex = (currentIndex + 1) % allCases.count
+        return allCases[nextIndex]
+    }
 }
 
 // MARK: - Music Player Manager
