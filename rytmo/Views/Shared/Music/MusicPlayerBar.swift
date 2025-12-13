@@ -152,12 +152,7 @@ struct MusicPlayerBar: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .onTapGesture {
-                            // Mute toggle logic could be added here
-                            if musicPlayer.volume > 0 {
-                                musicPlayer.setVolume(0)
-                            } else {
-                                musicPlayer.setVolume(50)
-                            }
+                            musicPlayer.toggleMute()
                         }
                     
                     Slider(

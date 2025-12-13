@@ -113,6 +113,7 @@ class MusicPlayerManager: ObservableObject {
     private var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
     private var backgroundWindow: NSWindow?
+    private var volumeBeforeMute: Double?
 
     // MARK: - Initialization
 
@@ -748,6 +749,17 @@ class MusicPlayerManager: ObservableObject {
             // YouTube JS API: player.setVolume(volume: Number) - Accepts an integer between 0 and 100.
             let volumeInt = Int(volume)
             try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "setVolume", parameters: ["\(volumeInt)"]))
+        }
+    }
+
+    func toggleMute() {
+        if volume > 0 {
+            volumeBeforeMute = volume
+            setVolume(0)
+        } else {
+            let newVolume = volumeBeforeMute ?? 50
+            setVolume(newVolume)
+            volumeBeforeMute = nil
         }
     }
 }

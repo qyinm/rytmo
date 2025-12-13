@@ -128,6 +128,9 @@ struct MusicControllerView: View {
                             Image(systemName: "speaker.fill")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
+                                .onTapGesture {
+                                    musicPlayer.toggleMute()
+                                }
                             
                             Slider(
                                 value: Binding(
