@@ -159,11 +159,33 @@ struct MusicPlayerBar: View {
                 
                 Spacer()
                 
-                // Placeholder for Volume/Extra (to balance layout)
-                HStack {
-                     Spacer()
+                // Volume Control
+                HStack(spacing: 8) {
+                    Image(systemName: musicPlayer.volume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .onTapGesture {
+                            // Mute toggle logic could be added here
+                            if musicPlayer.volume > 0 {
+                                musicPlayer.setVolume(0)
+                            } else {
+                                musicPlayer.setVolume(50)
+                            }
+                        }
+                    
+                    Slider(
+                        value: Binding(
+                            get: { musicPlayer.volume },
+                            set: { newValue in
+                                musicPlayer.setVolume(newValue)
+                            }
+                        ),
+                        in: 0...100
+                    )
+                    .controlSize(.mini)
+                    .frame(width: 80)
                 }
-                .frame(width: 200)
+                .frame(width: 120, alignment: .trailing)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)

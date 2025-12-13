@@ -97,7 +97,9 @@ class MusicPlayerManager: ObservableObject {
     @Published var repeatMode: RepeatMode = .off
     @Published var isShuffle: Bool = false
     @Published var currentTime: Double = 0
+
     @Published var duration: Double = 0
+    @Published var volume: Double = 100 // 0.0 ~ 100.0
 
     // MARK: - Private Properties
 
@@ -731,6 +733,15 @@ class MusicPlayerManager: ObservableObject {
     func seek(to time: Double) {
         Task {
             try? await youTubePlayer.seek(to: Measurement(value: time, unit: .seconds), allowSeekAhead: true)
+        }
+    }
+
+    func setVolume(_ volume: Double) {
+        self.volume = volume
+        Task {
+            // YouTube JS API: player.setVolume(volume: Number) - Accepts an integer between 0 and 100.
+            let volumeInt = Int(volume)
+            try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "setVolume", parameters: ["\(volumeInt)"]))
         }
     }
 }
