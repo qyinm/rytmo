@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MusicPlayerBar: View {
     @EnvironmentObject var musicPlayer: MusicPlayerManager
+    @State private var isDragging: Bool = false
+    @State private var dragValue: Double = 0
     
     var body: some View {
         VStack(spacing: 0) {
@@ -61,7 +63,19 @@ struct MusicPlayerBar: View {
                 Spacer()
                 
                 // Controls
+                VStack(spacing: 6) {
                 HStack(spacing: 24) {
+                    // Shuffle
+                    Button(action: {
+                        musicPlayer.isShuffle.toggle()
+                    }) {
+                        Image(systemName: "shuffle")
+                            .font(.system(size: 16))
+                            .foregroundColor(musicPlayer.isShuffle ? .accentColor : .primary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(shouldDisableControls)
+
                     Button(action: { musicPlayer.playPreviousTrack() }) {
                         Image(systemName: "backward.fill")
                             .font(.title3)
@@ -82,15 +96,78 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    
+                    // Repeat
+                    Button(action: {
+                        musicPlayer.repeatMode = musicPlayer.repeatMode.next()
+                    }) {
+                        Image(systemName: musicPlayer.repeatMode == .one ? "repeat.1" : "repeat")
+                            .font(.system(size: 16))
+                            .foregroundColor(musicPlayer.repeatMode != .off ? .accentColor : .primary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(shouldDisableControls)
+                }
+                
+                // Progress Bar
+                HStack(spacing: 8) {
+                    Text((isDragging ? dragValue : musicPlayer.currentTime).formattedTimeString())
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                        .frame(width: 35, alignment: .trailing)
+                    
+                    Slider(
+                        value: Binding(
+                            get: { isDragging ? dragValue : musicPlayer.currentTime },
+                            set: { newValue in
+                                dragValue = newValue
+                            }
+                        ),
+                        in: 0...max(musicPlayer.duration, 0.1),
+                        onEditingChanged: { editing in
+                            isDragging = editing
+                            if !editing {
+                                musicPlayer.seek(to: dragValue)
+                            }
+                        }
+                    )
+                    .controlSize(.small)
+                    .disabled(shouldDisableControls)
+                    
+                    Text(musicPlayer.duration.formattedTimeString())
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundColor(.secondary)
+                        .frame(width: 35, alignment: .leading)
+                }
+                .frame(width: 320)
                 }
                 
                 Spacer()
                 
-                // Placeholder for Volume/Extra (to balance layout)
-                HStack {
-                     Spacer()
+                // Volume Control
+                HStack(spacing: 8) {
+                    Image(systemName: musicPlayer.volume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .onTapGesture {
+                            musicPlayer.toggleMute()
+                        }
+                    
+                    Slider(
+                        value: Binding(
+                            get: { musicPlayer.volume },
+                            set: { newValue in
+                                musicPlayer.setVolume(newValue)
+                            }
+                        ),
+                        in: 0...100
+                    )
+                    .controlSize(.mini)
+                    .frame(width: 80)
                 }
-                .frame(width: 200)
+                .frame(width: 120, alignment: .trailing)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)

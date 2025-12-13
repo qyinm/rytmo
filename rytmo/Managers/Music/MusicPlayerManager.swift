@@ -72,6 +72,21 @@ struct YouTubeThumbnail: Codable {
     let url: String
 }
 
+// MARK: - Enums
+
+enum RepeatMode: CaseIterable {
+    case off
+    case all
+    case one
+
+    func next() -> RepeatMode {
+        let allCases = Self.allCases
+        guard let currentIndex = allCases.firstIndex(of: self) else { return .off }
+        let nextIndex = (currentIndex + 1) % allCases.count
+        return allCases[nextIndex]
+    }
+}
+
 // MARK: - Music Player Manager
 
 @MainActor
@@ -86,12 +101,19 @@ class MusicPlayerManager: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var playbackTitle: String?
+    @Published var repeatMode: RepeatMode = .off
+    @Published var isShuffle: Bool = false
+    @Published var currentTime: Double = 0
+
+    @Published var duration: Double = 0
+    @Published var volume: Double = 100 // 0.0 ~ 100.0
 
     // MARK: - Private Properties
 
     private var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
     private var backgroundWindow: NSWindow?
+    private var volumeBeforeMute: Double?
 
     // MARK: - Initialization
 
@@ -167,6 +189,13 @@ class MusicPlayerManager: ObservableObject {
                         )
                     }
 
+                    // Explicitly fetch duration
+                    Task {
+                        if let duration = try? await self.youTubePlayer.getDuration() {
+                            self.duration = duration.converted(to: .seconds).value
+                        }
+                    }
+
                 case .paused, .ended, .unstarted, .cued:
                     let wasPlaying = self.isPlaying
                     self.isPlaying = false
@@ -177,7 +206,7 @@ class MusicPlayerManager: ObservableObject {
                     }
 
                     if state == .ended {
-                        self.playNextTrack()
+                        self.playNextTrack(auto: true)
                     }
                 default:
                     break
@@ -190,6 +219,22 @@ class MusicPlayerManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] metadata in
                 self?.playbackTitle = metadata.title
+            }
+            .store(in: &cancellables)
+
+        // Observe duration
+        youTubePlayer.durationPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] duration in
+                self?.duration = duration.converted(to: .seconds).value
+            }
+            .store(in: &cancellables)
+
+        // Observe current time
+        youTubePlayer.currentTimePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] currentTime in
+                self?.currentTime = currentTime.converted(to: .seconds).value
             }
             .store(in: &cancellables)
     }
@@ -524,7 +569,7 @@ class MusicPlayerManager: ObservableObject {
         guard let context = modelContext else { return }
 
         if currentTrack?.id == track.id {
-            playNextTrack()
+            playNextTrack(auto: true)
         }
 
         context.delete(track)
@@ -594,7 +639,7 @@ class MusicPlayerManager: ObservableObject {
         isPlaying = false
     }
 
-    func playNextTrack() {
+    func playNextTrack(auto: Bool = false) {
         if let playlist = selectedPlaylist, playlist.youtubePlaylistId != nil, playlist.tracks.isEmpty {
             Task { try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "nextVideo")) }
             return
@@ -604,8 +649,26 @@ class MusicPlayerManager: ObservableObject {
               let current = currentTrack else {
             return
         }
+        
+        // Handle Repeat One (only if auto-advanced)
+        if auto && repeatMode == .one {
+            play(track: current)
+            return
+        }
 
         let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
+        
+        if isShuffle {
+            let otherTracks = sortedTracks.filter { $0.id != current.id }
+            if let nextTrack = otherTracks.randomElement() {
+                play(track: nextTrack)
+            } else if let firstTrack = sortedTracks.first {
+                // 다른 트랙이 없는 경우 (재생 목록에 트랙이 하나뿐이거나 모두 현재 트랙과 동일한 경우)
+                // 첫 번째 트랙을 재생합니다.
+                play(track: firstTrack)
+            }
+            return
+        }
 
         guard let currentIndex = sortedTracks.firstIndex(where: { $0.id == current.id }) else {
             return
@@ -614,9 +677,15 @@ class MusicPlayerManager: ObservableObject {
         let nextIndex = currentIndex + 1
         if nextIndex < sortedTracks.count {
             play(track: sortedTracks[nextIndex])
-        } else if let firstTrack = sortedTracks.first {
-            // Loop back to the first track
-            play(track: firstTrack)
+        } else {
+            // End of list
+            if repeatMode == .all {
+                if let firstTrack = sortedTracks.first {
+                    play(track: firstTrack)
+                }
+            } else {
+                Task { await stop() }
+            }
         }
     }
 
@@ -667,6 +736,32 @@ class MusicPlayerManager: ObservableObject {
             play(track: lastTrack)
         }
     }
+
+    func seek(to time: Double) {
+        Task {
+            try? await youTubePlayer.seek(to: Measurement(value: time, unit: .seconds), allowSeekAhead: true)
+        }
+    }
+
+    func setVolume(_ volume: Double) {
+        self.volume = volume
+        Task {
+            // YouTube JS API: player.setVolume(volume: Number) - Accepts an integer between 0 and 100.
+            let volumeInt = Int(volume)
+            try? await youTubePlayer.evaluate(javaScript: .youTubePlayer(functionName: "setVolume", parameters: ["\(volumeInt)"]))
+        }
+    }
+
+    func toggleMute() {
+        if volume > 0 {
+            volumeBeforeMute = volume
+            setVolume(0)
+        } else {
+            let newVolume = volumeBeforeMute ?? 50
+            setVolume(newVolume)
+            volumeBeforeMute = nil
+        }
+    }
 }
 
 // MARK: - Color Extension
@@ -694,5 +789,15 @@ extension Color {
             blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
+    }
+}
+
+extension Double {
+    func formattedTimeString() -> String {
+        guard !self.isNaN && !self.isInfinite else { return "0:00" }
+        let seconds = Int(self)
+        let m = seconds / 60
+        let s = seconds % 60
+        return String(format: "%d:%02d", m, s)
     }
 }

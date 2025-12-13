@@ -26,7 +26,7 @@ struct MusicSectionView: View {
             Divider()
 
             // Track list
-            TrackListView()
+            TrackListView(isMenuBar: true)
         }
     }
 }

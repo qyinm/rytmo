@@ -31,6 +31,9 @@ struct rytmoApp: App {
     // MARK: - Initialization
 
     init() {
+        // Firebase Crashlytics: 예외 발생 시 크래시 리포팅 활성화
+        UserDefaults.standard.register(defaults: ["NSApplicationCrashOnExceptions": true])
+
         // Firebase 초기화를 가장 먼저 수행 (AuthManager 초기화 전에 필요)
         FirebaseApp.configure()
         print("✅ Firebase 초기화 완료 (App init)")
@@ -105,9 +108,30 @@ struct rytmoApp: App {
                         .font(.system(.body, design: .monospaced))
                 }
             }
+            // ReopenHandler를 여기에 추가하여 항상 이벤트를 수신할 수 있게 함
+            .background(ReopenHandler())
         }
         .menuBarExtraStyle(.window)
     }
+}
+
+// MARK: - Reopen Handler
+
+struct ReopenHandler: View {
+    @Environment(\.openWindow) private var openWindow
+    
+    var body: some View {
+        EmptyView()
+            .onReceive(NotificationCenter.default.publisher(for: .reopenMainWindow)) { _ in
+                openWindow(id: "main")
+            }
+    }
+}
+
+// MARK: - Notification Extension
+
+extension Notification.Name {
+    static let reopenMainWindow = Notification.Name("reopenMainWindow")
 }
 
 // MARK: - App Delegate
@@ -128,12 +152,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            for window in sender.windows {
+        // Always bring app to front
+        NSApp.activate(ignoringOtherApps: true)
+
+        // Check if we have any relevant windows to show (excluding background/hidden windows)
+        // The background player window has isExcludedFromWindowsMenu = true
+        // Also filter out windows that cannot become key (like Status Bar windows) to avoid warnings
+        let validWindows = sender.windows.filter { 
+            !$0.isExcludedFromWindowsMenu && 
+            $0.isVisible && 
+            $0.canBecomeKey 
+        }
+        
+        if validWindows.isEmpty {
+            // No valid windows found. We need to open a new one.
+            // Since we can't directly open a SwiftUI WindowGroup from AppDelegate,
+            // and the system might think the app is already open due to the background window,
+            // we post a notification that the MenuBarExtra (which is always alive) will listen to.
+            NotificationCenter.default.post(name: .reopenMainWindow, object: nil)
+            return true
+        } else {
+            for window in validWindows {
                 window.makeKeyAndOrderFront(self)
             }
+            return false // We handled it
         }
-        return true
     }
 
     private func setupGoogleSignIn() {
