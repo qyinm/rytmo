@@ -95,28 +95,36 @@ struct HomeView: View {
                     
                     Divider()
                     
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // Playlist Selector
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Playlists")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                PlaylistSelectorView()
-                            }
-                            
-                            Divider()
-                            
-                            // Track List
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Tracks")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                TrackListView()
-                            }
+                    // Playlist Selector Section (Fixed)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Playlists")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                        
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            PlaylistSelectorView()
+                                .padding(.horizontal)
                         }
-                        .padding()
                     }
+                    .padding(.vertical)
+                    
+                    Divider()
+                    
+                    // Track List Section (Scrollable)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tracks")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal)
+                        
+                        ScrollView {
+                            TrackListView()
+                                .padding(.horizontal)
+                                .padding(.bottom)
+                        }
+                    }
+                    .padding(.top)
                 }
                 .frame(width: 320)
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.3))

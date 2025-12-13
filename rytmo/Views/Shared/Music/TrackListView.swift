@@ -20,6 +20,8 @@ struct TrackListView: View {
     @State private var newTrackUrl: String = ""
     @State private var tracks: [MusicTrack] = []
 
+    var isMenuBar: Bool = false
+
     var body: some View {
         VStack(spacing: 0) {
             if let playlist = musicPlayer.selectedPlaylist {
@@ -78,33 +80,44 @@ struct TrackListView: View {
     // MARK: - Track List
 
     private var trackList: some View {
-        ScrollView {
-            VStack(spacing: 4) {
-                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                    TrackRowView(
-                        track: track,
-                        isCurrentTrack: musicPlayer.currentTrack?.id == track.id,
-                        isPlaying: musicPlayer.isPlaying,
-                        canMoveUp: index > 0,
-                        canMoveDown: index < tracks.count - 1,
-                        onDelete: {
-                            deleteTrack(track)
-                        },
-                        onMoveUp: {
-                            moveTrack(at: index, direction: -1)
-                        },
-                        onMoveDown: {
-                            moveTrack(at: index, direction: 1)
-                        },
-                        onTap: {
-                            musicPlayer.play(track: track)
-                        }
-                    )
+        Group {
+            if isMenuBar {
+                ScrollView {
+                    trackListContent
                 }
+                .frame(maxHeight: 300) // Limit height for MenuBar
+            } else {
+                // Dashboard: Allow full expansion, parent handles scrolling
+                trackListContent
             }
-            .padding(.horizontal, 4)
         }
-        .frame(maxHeight: 200)
+    }
+
+    private var trackListContent: some View {
+        VStack(spacing: 4) {
+            ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
+                TrackRowView(
+                    track: track,
+                    isCurrentTrack: musicPlayer.currentTrack?.id == track.id,
+                    isPlaying: musicPlayer.isPlaying,
+                    canMoveUp: index > 0,
+                    canMoveDown: index < tracks.count - 1,
+                    onDelete: {
+                        deleteTrack(track)
+                    },
+                    onMoveUp: {
+                        moveTrack(at: index, direction: -1)
+                    },
+                    onMoveDown: {
+                        moveTrack(at: index, direction: 1)
+                    },
+                    onTap: {
+                        musicPlayer.play(track: track)
+                    }
+                )
+            }
+        }
+        .padding(.horizontal, 4)
     }
 
     // MARK: - Empty State
