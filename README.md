@@ -2,7 +2,7 @@
 
 리듬감 있는 몰입을 위한 macOS 메뉴바 타이머
 
-[![Platform](https://img.shields.io/badge/platform-macOS%2013.0+-lightgrey.svg)]()
+[![Platform](https://img.shields.io/badge/platform-macOS%2014.6+-lightgrey.svg)]()
 [![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)]()
 
 ## 소개
@@ -21,7 +21,7 @@
 
 ### 요구사항
 
-- macOS 13.0+
+- macOS 14.6+
 - Xcode 15.0+
 - Swift 5.9+
 
