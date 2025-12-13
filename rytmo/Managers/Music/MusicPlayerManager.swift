@@ -658,14 +658,13 @@ class MusicPlayerManager: ObservableObject {
         let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
         
         if isShuffle {
-            if sortedTracks.count > 1 {
-                var nextTrack: MusicTrack
-                repeat {
-                    nextTrack = sortedTracks.randomElement()!
-                } while nextTrack.id == current.id
+            let otherTracks = sortedTracks.filter { $0.id != current.id }
+            if let nextTrack = otherTracks.randomElement() {
                 play(track: nextTrack)
-            } else if let first = sortedTracks.first {
-                play(track: first)
+            } else if let firstTrack = sortedTracks.first {
+                // 다른 트랙이 없는 경우 (재생 목록에 트랙이 하나뿐이거나 모두 현재 트랙과 동일한 경우)
+                // 첫 번째 트랙을 재생합니다.
+                play(track: firstTrack)
             }
             return
         }
