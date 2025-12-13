@@ -107,7 +107,6 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
-                    .disabled(shouldDisableControls)
                 }
                 
                 // Progress Bar
