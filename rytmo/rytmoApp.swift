@@ -98,10 +98,20 @@ struct rytmoApp: App {
         } label: {
             // 메뉴바 라벨 (아이콘 + 타이머)
             HStack(spacing: 4) {
-                Image("MenuBarIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
+                // 타이머 상태에 따라 다른 아이콘 표시
+                Group {
+                    switch timerManager.session.state {
+                    case .shortBreak, .longBreak:
+                        Image(systemName: "cup.and.heat.waves")
+                            .resizable()
+                            .scaledToFit()
+                    default:
+                        Image("MenuBarIcon")
+                            .resizable()
+                            .scaledToFit()
+                    }
+                }
+                .frame(width: 16, height: 16)
 
                 if !timerManager.menuBarTitle.isEmpty {
                     Text(timerManager.menuBarTitle)
