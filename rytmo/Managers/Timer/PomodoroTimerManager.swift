@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 // MARK: - Pomodoro Timer Manager
 
@@ -144,6 +145,9 @@ class PomodoroTimerManager: ObservableObject {
         // 다음 상태로 전환
         session.moveToNextState(settings: settings)
 
+        // 상태 변경 알림 발송
+        sendStateChangeNotification()
+
         // 자동으로 다음 상태 시작
         start()
     }
@@ -159,5 +163,35 @@ class PomodoroTimerManager: ObservableObject {
         } else {
             menuBarTitle = time
         }
+    }
+
+    /// 상태 변경 알림 발송
+    private func sendStateChangeNotification() {
+        let content = UNMutableNotificationContent()
+
+        switch session.state {
+        case .idle:
+            return // idle 상태에서는 알림 발송하지 않음
+        case .focus:
+            content.title = "집중 시간"
+            content.body = "집중 시간이 시작되었습니다 (\(Int(session.totalDuration / 60))분)"
+            content.sound = .default
+        case .shortBreak:
+            content.title = "짧은 휴식"
+            content.body = "짧은 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
+            content.sound = .default
+        case .longBreak:
+            content.title = "긴 휴식"
+            content.body = "긴 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
+            content.sound = .default
+        }
+
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString,
+            content: content,
+            trigger: nil // 즉시 발송
+        )
+
+        UNUserNotificationCenter.current().add(request)
     }
 }

@@ -10,6 +10,7 @@ import SwiftData
 import AmplitudeUnified
 import FirebaseCore
 import GoogleSignIn
+import UserNotifications
 
 @main
 struct rytmoApp: App {
@@ -156,7 +157,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Google Sign-In 초기화
         setupGoogleSignIn()
-        
+
+        // UserNotifications 권한 요청
+        setupNotifications()
+
         // 앱 실행 시 윈도우를 맨 앞으로 가져오기
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -204,5 +208,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let apiKey = Bundle.main.infoDictionary?["AMPLITUDE_API_KEY"] as? String ?? "YOUR_API_KEY_HERE"
 
         AmplitudeManager.shared.setup(apiKey: apiKey)
+    }
+
+    private func setupNotifications() {
+        let center = UNUserNotificationCenter.current()
+
+        // 먼저 현재 권한 상태를 확인
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                // 아직 권한을 요청하지 않음 - 권한 요청
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+            default:
+                break
+            }
+        }
     }
 }
