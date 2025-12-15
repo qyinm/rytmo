@@ -7,10 +7,14 @@
 
 import SwiftUI
 import FirebaseAuth
+import UserNotifications
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var authManager: AuthManager
-    
+    @EnvironmentObject var settings: PomodoroSettings
+
+    @State private var notificationAuthStatus: UNAuthorizationStatus = .notDetermined
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
@@ -97,24 +101,47 @@ struct GeneralSettingsView: View {
                     
                     VStack(spacing: 0) {
                         // Notifications
-                        HStack {
-                            Image(systemName: "bell")
-                                .frame(width: 20)
-                                .font(.system(size: 14))
-                                .foregroundStyle(.primary)
-                            
-                            Text("Notifications")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.primary)
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: .constant(true))
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "bell")
+                                    .frame(width: 20)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.primary)
+
+                                Text("Notifications")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Toggle("", isOn: $settings.notificationsEnabled)
+                                    .toggleStyle(.switch)
+                                    .controlSize(.small)
+                                    .disabled(notificationAuthStatus == .denied)
+                            }
+
+                            // 권한 거부 시 안내 메시지
+                            if notificationAuthStatus == .denied {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.orange)
+
+                                    Text("System notification permission is denied.")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+
+                                    Button("Open Settings") {
+                                        openSystemNotificationSettings()
+                                    }
+                                    .font(.system(size: 11))
+                                    .buttonStyle(.link)
+                                }
+                                .padding(.leading, 28)
+                            }
                         }
                         .padding(16)
-                        
+
                         Divider()
                             .padding(.leading, 52)
                         
@@ -181,10 +208,34 @@ struct GeneralSettingsView: View {
             }
             .padding(32)
         }
+        .onAppear {
+            checkNotificationAuthStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // 앱이 활성화될 때마다 권한 상태 재확인
+            checkNotificationAuthStatus()
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func checkNotificationAuthStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                self.notificationAuthStatus = settings.authorizationStatus
+            }
+        }
+    }
+
+    private func openSystemNotificationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }
 
 #Preview {
     GeneralSettingsView()
         .environmentObject(AuthManager())
+        .environmentObject(PomodoroSettings())
 }

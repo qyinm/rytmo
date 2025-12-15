@@ -167,6 +167,9 @@ class PomodoroTimerManager: ObservableObject {
 
     /// 상태 변경 알림 발송
     private func sendStateChangeNotification() {
+        // 알림이 비활성화되어 있으면 발송하지 않음
+        guard settings.notificationsEnabled else { return }
+
         let content = UNMutableNotificationContent()
 
         switch session.state {

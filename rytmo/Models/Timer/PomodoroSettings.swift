@@ -59,6 +59,17 @@ class PomodoroSettings: ObservableObject {
         }
     }
 
+    /// 알림 활성화 여부
+    @Published var notificationsEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled")
+            AmplitudeManager.shared.trackSettingChanged(
+                settingName: "notifications_enabled",
+                newValue: notificationsEnabled
+            )
+        }
+    }
+
     // MARK: - Initialization
 
     init() {
@@ -67,6 +78,7 @@ class PomodoroSettings: ObservableObject {
         self.shortBreakDuration = UserDefaults.standard.object(forKey: "shortBreakDuration") as? Int ?? 5
         self.longBreakDuration = UserDefaults.standard.object(forKey: "longBreakDuration") as? Int ?? 15
         self.sessionsBeforeLongBreak = UserDefaults.standard.object(forKey: "sessionsBeforeLongBreak") as? Int ?? 4
+        self.notificationsEnabled = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
     }
 
     // MARK: - Helper Methods
@@ -77,6 +89,7 @@ class PomodoroSettings: ObservableObject {
         shortBreakDuration = 5
         longBreakDuration = 15
         sessionsBeforeLongBreak = 4
+        notificationsEnabled = true
 
         // 이벤트 트래킹
         AmplitudeManager.shared.track(eventName: "settings_reset_to_defaults")
