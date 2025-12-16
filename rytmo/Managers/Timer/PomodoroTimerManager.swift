@@ -178,16 +178,14 @@ class PomodoroTimerManager: ObservableObject {
         case .focus:
             content.title = "집중 시간"
             content.body = "집중 시간이 시작되었습니다 (\(Int(session.totalDuration / 60))분)"
-            content.sound = .default
         case .shortBreak:
             content.title = "짧은 휴식"
             content.body = "짧은 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
-            content.sound = .default
         case .longBreak:
             content.title = "긴 휴식"
             content.body = "긴 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
-            content.sound = .default
         }
+        content.sound = .default
 
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
