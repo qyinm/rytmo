@@ -35,9 +35,9 @@ struct DashboardView: View {
             }
             
             NavigationSplitView(columnVisibility: $columnVisibility) {
-                List(selection: $selection) {
-                    // Profile Section
-                    Section {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Profile Section
                         HStack(spacing: 12) {
                             UserProfileImage(size: 32)
                             
@@ -52,39 +52,115 @@ struct DashboardView: View {
                                     .font(.system(size: 13, weight: .medium))
                             }
                         }
-                        .padding(.vertical, 8)
-                    }
-                    .listRowBackground(Color.clear)
-                    
-                    // Menu Section
-                    Section("Menu") {
-                        NavigationLink(value: DashboardSelection.home) {
-                            Label("Home", systemImage: "house.fill")
-                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 8)
                         
-                        DisclosureGroup(isExpanded: $isPlaylistExpanded) {
-                            ForEach(playlists.prefix(5)) { playlist in
-                                NavigationLink(value: DashboardSelection.playlist(playlist)) {
-                                    Label(playlist.name, systemImage: "music.note.list")
-                                }
-                            }
+                        // Menu Section
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Menu")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.bottom, 4)
                             
-                            if playlists.count > 5 {
-                                NavigationLink(value: DashboardSelection.allPlaylists) {
-                                    Label("More...", systemImage: "ellipsis.circle")
+                            Button {
+                                selection = .home
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "house.fill")
+                                        .font(.system(size: 14))
+                                    Text("Home")
+                                        .font(.system(size: 14))
+                                    Spacer()
                                 }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(selection == .home ? Color.primary.opacity(0.1) : Color.clear)
+                                )
+                                .contentShape(Rectangle())
                             }
-                        } label: {
-                            NavigationLink(value: DashboardSelection.allPlaylists) {
-                                Label("Playlists", systemImage: "music.note")
-                                    .foregroundStyle(.primary)
+                            .buttonStyle(.plain)
+                            
+                            DisclosureGroup(isExpanded: $isPlaylistExpanded) {
+                                VStack(spacing: 2) {
+                                    ForEach(playlists.prefix(5)) { playlist in
+                                        Button {
+                                            selection = .playlist(playlist)
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: "music.note.list")
+                                                    .font(.system(size: 14))
+                                                Text(playlist.name)
+                                                    .font(.system(size: 14))
+                                                Spacer()
+                                            }
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(selection == .playlist(playlist) ? Color.primary.opacity(0.1) : Color.clear)
+                                            )
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    
+                                    if playlists.count > 5 {
+                                        Button {
+                                            selection = .allPlaylists
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: "ellipsis.circle")
+                                                    .font(.system(size: 14))
+                                                Text("More...")
+                                                    .font(.system(size: 14))
+                                                Spacer()
+                                            }
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(selection == .allPlaylists ? Color.primary.opacity(0.1) : Color.clear)
+                                            )
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.leading, 8) 
+                            } label: {
+                                Button {
+                                    selection = .allPlaylists
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "music.note")
+                                            .font(.system(size: 14))
+                                        Text("Playlists")
+                                            .font(.system(size: 14))
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 8)
+                                    // Highlight 'Playlists' header only if allPlaylists is selected OR a child playlist is NOT selected (optional logic, sticking to simple selection check)
+                                    // Actually, usually headers aren't selectable in the same way, but user had it selectable.
+                                    // Let's keep it selectable but maybe different visual if it acts as a header.
+                                    // Based on previous code: NavigationLink(value: .allPlaylists)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(selection == .allPlaylists ? Color.primary.opacity(0.1) : Color.clear)
+                                    )
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
                             }
+                            .foregroundStyle(.primary)
+                            .accentColor(.primary) // Chevron color
                         }
-                        
-
                     }
+                    .padding(.horizontal, 12)
                 }
-                .listStyle(.sidebar)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 300)
                 .safeAreaInset(edge: .bottom) {
                     VStack(spacing: 0) {
@@ -97,12 +173,12 @@ struct DashboardView: View {
                             HStack(spacing: 7) {
                                 Image(systemName: selection == .settings ? "gearshape.fill" : "gearshape")
                                     .font(.system(size: 14))
-                                    .foregroundStyle(selection == .settings ? .white : .primary)
-                                
+                                    .foregroundStyle(.primary)
+
                                 Text("Settings")
                                     .font(.system(size: 14))
-                                    .foregroundStyle(selection == .settings ? .white : .primary)
-                                
+                                    .foregroundStyle(.primary)
+
                                 Spacer()
                             }
                             .padding(.vertical, 6)

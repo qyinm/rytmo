@@ -64,6 +64,7 @@ struct rytmoApp: App {
                 .environmentObject(settings)
                 .environmentObject(musicPlayer)
                 .environmentObject(authManager)
+                .tint(Color.primary.opacity(0.7))
                 .onOpenURL { url in
                     // Google Sign-In URL 처리
                     GIDSignIn.sharedInstance.handle(url)
@@ -92,6 +93,7 @@ struct rytmoApp: App {
                 .environmentObject(settings)
                 .environmentObject(musicPlayer)
                 .environmentObject(authManager)
+                .tint(Color.primary.opacity(0.7))
                 .modelContainer(modelContainer)
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)

@@ -75,50 +75,80 @@ struct MenuBarView: View {
                 TimerView()
 
                 // 타이머 컨트롤 버튼
-                HStack(spacing: 12) {
+                HStack(spacing: 20) {
+                    // 리셋 버튼
+                    if timerManager.session.isRunning || timerManager.session.state != .idle {
+                        Button(action: {
+                            withAnimation {
+                                timerManager.reset()
+                            }
+                        }) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 40, height: 40)
+                                .background(
+                                    Circle()
+                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                        .background(Circle().fill(Color.primary.opacity(0.05)))
+                                )
+                                .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("타이머 리셋")
+                        .transition(.scale.combined(with: .opacity))
+                    } else {
+                         Color.clear.frame(width: 40, height: 40)
+                    }
+
                     // 시작/일시정지 버튼
                     Button(action: {
-                        if timerManager.session.isRunning {
-                            timerManager.pause()
-                        } else {
-                            timerManager.start()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            if timerManager.session.isRunning {
+                                timerManager.pause()
+                            } else {
+                                timerManager.start()
+                            }
                         }
                     }) {
-                        HStack {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 64, height: 64)
+                                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                            
                             Image(systemName: timerManager.session.isRunning ? "pause.fill" : "play.fill")
-                            Text(timerManager.session.isRunning ? "일시정지" : "시작")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundStyle(Color.white)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(timerManager.session.isRunning ? .orange : .blue)
+                    .buttonStyle(.plain)
+                    .help(timerManager.session.isRunning ? "일시정지" : "시작")
 
                     // 스킵 버튼
-                    Button(action: {
-                        timerManager.skip()
-                    }) {
-                        HStack {
+                    if timerManager.session.state != .idle {
+                        Button(action: {
+                            withAnimation {
+                                timerManager.skip()
+                            }
+                        }) {
                             Image(systemName: "forward.fill")
-                            Text("스킵")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(width: 40, height: 40)
+                                .background(
+                                    Circle()
+                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                        .background(Circle().fill(Color.primary.opacity(0.05)))
+                                )
+                                .foregroundStyle(.primary)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .buttonStyle(.plain)
+                        .help("스키 current session")
+                        .transition(.scale.combined(with: .opacity))
+                    } else {
+                        Color.clear.frame(width: 40, height: 40)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(timerManager.session.state == .idle)
-
-                    // 리셋 버튼
-                    Button(action: {
-                        timerManager.reset()
-                    }) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(timerManager.session.state == .idle && !timerManager.session.isRunning)
                 }
+                .padding(.bottom, 8)
 
                 Divider()
 

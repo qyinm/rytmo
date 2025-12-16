@@ -28,56 +28,83 @@ struct HomeView: View {
                             .scaleEffect(1.2)
                         
                         // Timer Controls
-                        HStack(spacing: 20) {
-                            Button(action: {
-                                if timerManager.session.isRunning {
-                                    timerManager.pause()
-                                } else {
-                                    timerManager.start()
-                                }
-                            }) {
-                                Image(systemName: timerManager.session.isRunning ? "pause.fill" : "play.fill")
-                                    .font(.title)
-                                    .frame(width: 60, height: 60)
-                                    .background(timerManager.session.isRunning ? Color.orange : Color.blue)
-                                    .foregroundColor(.white)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 4)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            // Skip Button
-                            if timerManager.session.state != .idle {
-                                Button(action: {
-                                    timerManager.skip()
-                                }) {
-                                    Image(systemName: "forward.fill")
-                                        .font(.title3)
-                                        .frame(width: 44, height: 44)
-                                        .background(Color.gray.opacity(0.2))
-                                        .foregroundColor(.primary)
-                                        .clipShape(Circle())
-                                }
-                                .buttonStyle(.plain)
-                                .help("Skip current session")
-                            }
-                            
-                            // Reset Button
+                        HStack(spacing: 24) {
+                            // Reset Button (Left)
                             if timerManager.session.isRunning || timerManager.session.state != .idle {
                                 Button(action: {
-                                    timerManager.reset()
+                                    withAnimation {
+                                        timerManager.reset()
+                                    }
                                 }) {
                                     Image(systemName: "arrow.counterclockwise")
-                                        .font(.title3)
+                                        .font(.system(size: 16, weight: .semibold))
                                         .frame(width: 44, height: 44)
-                                        .background(Color.gray.opacity(0.2))
-                                        .foregroundColor(.primary)
-                                        .clipShape(Circle())
+                                        .background(
+                                            Circle()
+                                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                                .background(Circle().fill(Color.primary.opacity(0.05)))
+                                        )
+                                        .foregroundStyle(.primary)
                                 }
                                 .buttonStyle(.plain)
                                 .help("Reset timer")
+                                .transition(.scale.combined(with: .opacity))
+                            } else {
+                                // Placeholder to keep layout balanced if needed, or just Spacer
+                                Color.clear
+                                    .frame(width: 44, height: 44)
+                            }
+                            
+                            // Play/Pause Button (Center)
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    if timerManager.session.isRunning {
+                                        timerManager.pause()
+                                    } else {
+                                        timerManager.start()
+                                    }
+                                }
+                            }) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.black)
+                                        .frame(width: 72, height: 72)
+                                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                                    
+                                    Image(systemName: timerManager.session.isRunning ? "pause.fill" : "play.fill")
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundStyle(Color.white)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Skip Button (Right)
+                            if timerManager.session.state != .idle {
+                                Button(action: {
+                                    withAnimation {
+                                        timerManager.skip()
+                                    }
+                                }) {
+                                    Image(systemName: "forward.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .frame(width: 44, height: 44)
+                                        .background(
+                                            Circle()
+                                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                                .background(Circle().fill(Color.primary.opacity(0.05)))
+                                        )
+                                        .foregroundStyle(.primary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Skip current session")
+                                .transition(.scale.combined(with: .opacity))
+                            } else {
+                                Color.clear
+                                    .frame(width: 44, height: 44)
                             }
                         }
+                        .animation(.spring(), value: timerManager.session.state)
+                        .animation(.spring(), value: timerManager.session.isRunning)
                     }
                     
                     Spacer()
