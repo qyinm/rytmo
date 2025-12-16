@@ -251,6 +251,15 @@ struct GeneralSettingsView: View {
         }
     }
 
+    private func openMail(subject: String, body: String) {
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     private func openEmailSupport() {
         let subject = "Rytmo Support Request"
         let body = """
@@ -261,12 +270,7 @@ struct GeneralSettingsView: View {
         macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
         """
 
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
-            NSWorkspace.shared.open(url)
-        }
+        openMail(subject: subject, body: body)
     }
 
     private func reportBug() {
@@ -291,12 +295,7 @@ struct GeneralSettingsView: View {
         macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
         """
 
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
-            NSWorkspace.shared.open(url)
-        }
+        openMail(subject: subject, body: body)
     }
 
     private func openHelpAndSupport() {
@@ -337,12 +336,7 @@ struct GeneralSettingsView: View {
         macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
         """
 
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
-            NSWorkspace.shared.open(url)
-        }
+        openMail(subject: subject, body: body)
     }
 }
 
