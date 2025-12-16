@@ -15,24 +15,67 @@ struct DashboardSettingsView: View {
     @State private var selectedTab: Int = 0
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            GeneralSettingsView()
-                .tabItem {
-                    Label("General", systemImage: "gear")
-                }
-                .tag(0)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Settings")
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
+            .padding(.horizontal, 32)
+            .padding(.top, 32)
+            .padding(.bottom, 16)
             
-            FocusTimeSettingsView()
-                .tabItem {
-                    Label("Focus time", systemImage: "timer")
+            // Custom Tab Bar
+            HStack(spacing: 8) {
+                DashboardTabButton(title: "General", isSelected: selectedTab == 0) {
+                    selectedTab = 0
                 }
-                .tag(1)
+                
+                DashboardTabButton(title: "Focus time", isSelected: selectedTab == 1) {
+                    selectedTab = 1
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal, 32)
+            .padding(.bottom, 16)
+
+            Divider()
+
+            // Content
+            Group {
+                if selectedTab == 0 {
+                    GeneralSettingsView()
+                } else {
+                    FocusTimeSettingsView()
+                }
+            }
         }
-        .padding(20)
-        .frame(minWidth: 500, minHeight: 400)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 }
 
+private struct DashboardTabButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isSelected ? Color.primary.opacity(0.1) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
 
 
 

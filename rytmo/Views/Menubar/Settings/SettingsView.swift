@@ -19,12 +19,13 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // 헤더
+            // Header
             HStack {
                 if let onDismiss = onDismiss {
                     Button(action: onDismiss) {
                         Image(systemName: "chevron.left")
                             .font(.title3)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                 }
@@ -38,24 +39,59 @@ struct SettingsView: View {
             .padding()
             .background(Color(nsColor: .windowBackgroundColor))
 
+            // Custom Tab Bar
+            HStack(spacing: 8) {
+                SettingsTabButton(title: "General", isSelected: selectedTab == 0) {
+                    selectedTab = 0
+                }
+                
+                SettingsTabButton(title: "Focus time", isSelected: selectedTab == 1) {
+                    selectedTab = 1
+                }
+                
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 16)
+            .background(Color(nsColor: .windowBackgroundColor))
+
             Divider()
 
-            TabView(selection: $selectedTab) {
-                GeneralSettingsView()
-                    .tabItem {
-                        Label("General", systemImage: "gear")
-                    }
-                    .tag(0)
-                
-                FocusTimeSettingsView()
-                    .tabItem {
-                        Label("Focus time", systemImage: "timer")
-                    }
-                    .tag(1)
+            // Content
+            Group {
+                if selectedTab == 0 {
+                    GeneralSettingsView()
+                } else {
+                    FocusTimeSettingsView()
+                }
             }
         }
         .frame(width: 380)
         .fixedSize(horizontal: false, vertical: true)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+// MARK: - Components
+
+struct SettingsTabButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isSelected ? Color.primary.opacity(0.1) : Color.clear)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -34,7 +34,7 @@ struct TrackRowView: View {
                 .font(.system(size: 13))
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .foregroundColor(isCurrentTrack ? .accentColor : .primary)
+                .foregroundColor(.primary)
 
             Spacer()
 
@@ -75,7 +75,7 @@ struct TrackRowView: View {
         .padding(.horizontal, 8)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(isCurrentTrack ? Color.accentColor.opacity(0.1) : Color.clear)
+                .fill(isCurrentTrack ? Color.accentColor : Color.clear)
         )
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)

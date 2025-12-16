@@ -10,6 +10,7 @@ import SwiftData
 import AmplitudeUnified
 import FirebaseCore
 import GoogleSignIn
+import UserNotifications
 
 @main
 struct rytmoApp: App {
@@ -63,6 +64,7 @@ struct rytmoApp: App {
                 .environmentObject(settings)
                 .environmentObject(musicPlayer)
                 .environmentObject(authManager)
+                .tint(Color.primary.opacity(0.7))
                 .onOpenURL { url in
                     // Google Sign-In URL 처리
                     GIDSignIn.sharedInstance.handle(url)
@@ -91,6 +93,7 @@ struct rytmoApp: App {
                 .environmentObject(settings)
                 .environmentObject(musicPlayer)
                 .environmentObject(authManager)
+                .tint(Color.primary.opacity(0.7))
                 .modelContainer(modelContainer)
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
@@ -98,10 +101,20 @@ struct rytmoApp: App {
         } label: {
             // 메뉴바 라벨 (아이콘 + 타이머)
             HStack(spacing: 4) {
-                Image("MenuBarIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
+                // 타이머 상태에 따라 다른 아이콘 표시
+                Group {
+                    switch timerManager.session.state {
+                    case .shortBreak, .longBreak:
+                        Image(systemName: "cup.and.heat.waves")
+                            .resizable()
+                            .scaledToFit()
+                    default:
+                        Image("MenuBarIcon")
+                            .resizable()
+                            .scaledToFit()
+                    }
+                }
+                .frame(width: 16, height: 16)
 
                 if !timerManager.menuBarTitle.isEmpty {
                     Text(timerManager.menuBarTitle)
@@ -146,7 +159,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Google Sign-In 초기화
         setupGoogleSignIn()
-        
+
+        // UserNotifications 권한 요청
+        setupNotifications()
+
         // 앱 실행 시 윈도우를 맨 앞으로 가져오기
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -194,5 +210,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let apiKey = Bundle.main.infoDictionary?["AMPLITUDE_API_KEY"] as? String ?? "YOUR_API_KEY_HERE"
 
         AmplitudeManager.shared.setup(apiKey: apiKey)
+    }
+
+    private func setupNotifications() {
+        let center = UNUserNotificationCenter.current()
+
+        // 먼저 현재 권한 상태를 확인
+        center.getNotificationSettings { settings in
+            switch settings.authorizationStatus {
+            case .notDetermined:
+                // 아직 권한을 요청하지 않음 - 권한 요청
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error = error {
+                        print("⚠️ 알림 권한 요청 실패: \(error.localizedDescription)")
+                        return
+                    }
+                    print(granted ? "✅ 알림 권한 승인됨" : "⚠️ 알림 권한 거부됨")
+                }
+            default:
+                break
+            }
+        }
     }
 }

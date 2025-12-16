@@ -348,9 +348,9 @@ private struct TrackRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(track.title)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(isPlaying ? Color.accentColor : Color.primary)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
-                    
+
                     Text("YouTube")
                         .font(.caption)
                         .foregroundStyle(.secondary)

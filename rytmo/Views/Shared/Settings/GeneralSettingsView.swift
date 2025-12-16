@@ -7,10 +7,20 @@
 
 import SwiftUI
 import FirebaseAuth
+import UserNotifications
 
 struct GeneralSettingsView: View {
     @EnvironmentObject var authManager: AuthManager
-    
+    @EnvironmentObject var settings: PomodoroSettings
+
+    @State private var notificationAuthStatus: UNAuthorizationStatus = .notDetermined
+
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
@@ -57,7 +67,7 @@ struct GeneralSettingsView: View {
                             .padding(16)
                             
                             Divider()
-                                .padding(.leading, 16)
+                                // .padding(.leading, 16)
                         }
                         
                         // Sign Out Row
@@ -97,26 +107,49 @@ struct GeneralSettingsView: View {
                     
                     VStack(spacing: 0) {
                         // Notifications
-                        HStack {
-                            Image(systemName: "bell")
-                                .frame(width: 20)
-                                .font(.system(size: 14))
-                                .foregroundStyle(.primary)
-                            
-                            Text("Notifications")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.primary)
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: .constant(true))
-                                .toggleStyle(.switch)
-                                .controlSize(.small)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "bell")
+                                    .frame(width: 20)
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.primary)
+
+                                Text("Notifications")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Toggle("", isOn: $settings.notificationsEnabled)
+                                    .toggleStyle(.switch)
+                                    .controlSize(.small)
+                                    .disabled(notificationAuthStatus == .denied)
+                            }
+
+                            // 권한 거부 시 안내 메시지
+                            if notificationAuthStatus == .denied {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.orange)
+
+                                    Text("System notification permission is denied.")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+
+                                    Button("Open Settings") {
+                                        openSystemNotificationSettings()
+                                    }
+                                    .font(.system(size: 11))
+                                    .buttonStyle(.link)
+                                }
+                                .padding(.leading, 28)
+                            }
                         }
                         .padding(16)
-                        
+
                         Divider()
-                            .padding(.leading, 52)
+                            // .padding(.leading, 16)
                         
                         // Version
                         HStack {
@@ -124,14 +157,14 @@ struct GeneralSettingsView: View {
                                 .frame(width: 20)
                                 .font(.system(size: 14))
                                 .foregroundStyle(.primary)
-                            
+
                             Text("Version")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.primary)
-                            
+
                             Spacer()
-                            
-                            Text("1.0.0")
+
+                            Text(appVersion)
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 8)
@@ -142,24 +175,36 @@ struct GeneralSettingsView: View {
                         .padding(16)
                         
                         Divider()
-                            .padding(.leading, 52)
+                            // .padding(.leading, 16)
                         
                         // Help / Support
                         Button {
-                            // Action
+                            openHelpAndSupport()
                         } label: {
-                            HStack {
+                            HStack(spacing: 12) {
                                 Image(systemName: "questionmark.circle")
                                     .frame(width: 20)
                                     .font(.system(size: 14))
                                     .foregroundStyle(.primary)
-                                
-                                Text("Help & Support")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(.primary)
-                                
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Help & Support")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.primary)
+
+                                    HStack(spacing: 4) {
+                                        Text("Get rewarded for finding bugs")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+
+                                        Image(systemName: "gift.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.red)
+                                    }
+                                }
+
                                 Spacer()
-                                
+
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 10))
                                     .foregroundStyle(.tertiary)
@@ -181,10 +226,122 @@ struct GeneralSettingsView: View {
             }
             .padding(32)
         }
+        .onAppear {
+            checkNotificationAuthStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // 앱이 활성화될 때마다 권한 상태 재확인
+            checkNotificationAuthStatus()
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func checkNotificationAuthStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                self.notificationAuthStatus = settings.authorizationStatus
+            }
+        }
+    }
+
+    private func openSystemNotificationSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openMail(subject: String, body: String) {
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openEmailSupport() {
+        let subject = "Rytmo Support Request"
+        let body = """
+
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        openMail(subject: subject, body: body)
+    }
+
+    private func reportBug() {
+        let subject = "[Bug Report] Rytmo"
+        let body = """
+        Bug Description:
+        [Please describe the bug you encountered]
+
+        Steps to Reproduce:
+        1.
+        2.
+        3.
+
+        Expected Behavior:
+        [What did you expect to happen?]
+
+        Actual Behavior:
+        [What actually happened?]
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        openMail(subject: subject, body: body)
+    }
+
+    private func openHelpAndSupport() {
+        let subject = "Rytmo Support Request"
+        let body = """
+        How can we help you?
+
+        [ ] General Question / Inquiry
+        [ ] Bug Report (Get rewarded!)
+        [ ] Feature Request
+        [ ] Other
+
+        ---
+
+        For General Inquiries:
+        [Please describe your question or issue]
+
+
+
+        For Bug Reports (Get rewarded for valid bugs!):
+
+        Bug Description:
+        [Describe the bug you encountered]
+
+        Steps to Reproduce:
+        1.
+        2.
+        3.
+
+        Expected Behavior:
+        [What did you expect to happen?]
+
+        Actual Behavior:
+        [What actually happened?]
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        openMail(subject: subject, body: body)
     }
 }
 
 #Preview {
     GeneralSettingsView()
         .environmentObject(AuthManager())
+        .environmentObject(PomodoroSettings())
 }
