@@ -15,6 +15,12 @@ struct GeneralSettingsView: View {
 
     @State private var notificationAuthStatus: UNAuthorizationStatus = .notDetermined
 
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        return "\(version) (\(build))"
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
@@ -151,14 +157,14 @@ struct GeneralSettingsView: View {
                                 .frame(width: 20)
                                 .font(.system(size: 14))
                                 .foregroundStyle(.primary)
-                            
+
                             Text("Version")
                                 .font(.system(size: 14))
                                 .foregroundStyle(.primary)
-                            
+
                             Spacer()
-                            
-                            Text("1.0.0")
+
+                            Text(appVersion)
                                 .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 8)
