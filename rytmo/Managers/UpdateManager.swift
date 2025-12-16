@@ -13,6 +13,10 @@ final class UpdateManager: ObservableObject {
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
+        
+        // 앱 실행 시마다 자동으로 업데이트 체크 확인
+        controller.updater.automaticallyChecksForUpdates = true
+        controller.updater.checkForUpdatesInBackground()
     }
     
     // 메뉴바에서 "업데이트 확인"을 눌렀을 때 호출할 함수
