@@ -218,7 +218,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             switch settings.authorizationStatus {
             case .notDetermined:
                 // 아직 권한을 요청하지 않음 - 권한 요청
-                center.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+                center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if let error = error {
+                        print("⚠️ 알림 권한 요청 실패: \(error.localizedDescription)")
+                        return
+                    }
+                    print(granted ? "✅ 알림 권한 승인됨" : "⚠️ 알림 권한 거부됨")
+                }
             default:
                 break
             }
