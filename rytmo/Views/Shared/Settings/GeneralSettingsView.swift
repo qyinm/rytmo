@@ -179,20 +179,20 @@ struct GeneralSettingsView: View {
                         
                         // Help / Support
                         Button {
-                            // Action
+                            openEmailSupport()
                         } label: {
                             HStack {
                                 Image(systemName: "questionmark.circle")
                                     .frame(width: 20)
                                     .font(.system(size: 14))
                                     .foregroundStyle(.primary)
-                                
+
                                 Text("Help & Support")
                                     .font(.system(size: 14))
                                     .foregroundStyle(.primary)
-                                
+
                                 Spacer()
-                                
+
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 10))
                                     .foregroundStyle(.tertiary)
@@ -235,6 +235,24 @@ struct GeneralSettingsView: View {
 
     private func openSystemNotificationSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openEmailSupport() {
+        let subject = "Rytmo Support Request"
+        let body = """
+
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
             NSWorkspace.shared.open(url)
         }
     }
