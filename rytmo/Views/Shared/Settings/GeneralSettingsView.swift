@@ -67,7 +67,7 @@ struct GeneralSettingsView: View {
                             .padding(16)
                             
                             Divider()
-                                .padding(.leading, 16)
+                                // .padding(.leading, 16)
                         }
                         
                         // Sign Out Row
@@ -149,7 +149,7 @@ struct GeneralSettingsView: View {
                         .padding(16)
 
                         Divider()
-                            .padding(.leading, 52)
+                            // .padding(.leading, 16)
                         
                         // Version
                         HStack {
@@ -175,21 +175,33 @@ struct GeneralSettingsView: View {
                         .padding(16)
                         
                         Divider()
-                            .padding(.leading, 52)
+                            // .padding(.leading, 16)
                         
                         // Help / Support
                         Button {
-                            openEmailSupport()
+                            openHelpAndSupport()
                         } label: {
-                            HStack {
+                            HStack(spacing: 12) {
                                 Image(systemName: "questionmark.circle")
                                     .frame(width: 20)
                                     .font(.system(size: 14))
                                     .foregroundStyle(.primary)
 
-                                Text("Help & Support")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(.primary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Help & Support")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.primary)
+
+                                    HStack(spacing: 4) {
+                                        Text("Get rewarded for finding bugs")
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(.secondary)
+
+                                        Image(systemName: "gift.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.red)
+                                    }
+                                }
 
                                 Spacer()
 
@@ -243,6 +255,82 @@ struct GeneralSettingsView: View {
         let subject = "Rytmo Support Request"
         let body = """
 
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func reportBug() {
+        let subject = "[Bug Report] Rytmo"
+        let body = """
+        Bug Description:
+        [Please describe the bug you encountered]
+
+        Steps to Reproduce:
+        1.
+        2.
+        3.
+
+        Expected Behavior:
+        [What did you expect to happen?]
+
+        Actual Behavior:
+        [What actually happened?]
+
+        ---
+        App Version: \(appVersion)
+        macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
+        """
+
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:support@dievas.ai?subject=\(encodedSubject)&body=\(encodedBody)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openHelpAndSupport() {
+        let subject = "Rytmo Support Request"
+        let body = """
+        How can we help you?
+
+        [ ] General Question / Inquiry
+        [ ] Bug Report (Get rewarded!)
+        [ ] Feature Request
+        [ ] Other
+
+        ---
+
+        For General Inquiries:
+        [Please describe your question or issue]
+
+
+
+        For Bug Reports (Get rewarded for valid bugs!):
+
+        Bug Description:
+        [Describe the bug you encountered]
+
+        Steps to Reproduce:
+        1.
+        2.
+        3.
+
+        Expected Behavior:
+        [What did you expect to happen?]
+
+        Actual Behavior:
+        [What actually happened?]
 
         ---
         App Version: \(appVersion)
