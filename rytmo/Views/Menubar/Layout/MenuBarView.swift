@@ -87,7 +87,7 @@ struct MenuBarView: View {
     // MARK: - Settings Content
 
     private var settingsContent: some View {
-        SettingsView(onDismiss: {
+        MenuBarSettingsView(onDismiss: {
             showingSettings = false
         })
     }
