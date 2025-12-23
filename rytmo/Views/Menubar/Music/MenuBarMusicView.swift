@@ -18,6 +18,7 @@ struct MenuBarMusicView: View {
     @State private var isDragging: Bool = false
     @State private var dragValue: Double = 0
     @State private var showTrackList: Bool = false
+    @State private var showEmptyStateMessage: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -112,7 +113,9 @@ struct MenuBarMusicView: View {
                 
                 // 재생 컨트롤 (중앙)
                 HStack(spacing: 20) {
-                    Button(action: { musicPlayer.playPreviousTrack() }) {
+                    Button(action: { 
+                        handlePreviousTrack()
+                    }) {
                         Image(systemName: "backward.fill")
                             .font(.system(size: 20))
                             .foregroundColor(.primary)
@@ -120,15 +123,21 @@ struct MenuBarMusicView: View {
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
                     
-                    Button(action: { musicPlayer.togglePlayPause() }) {
+                    Button(action: { 
+                        handlePlayPause()
+                    }) {
                         Image(systemName: musicPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 44))
                             .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(shouldDisableControls)
+                    .popover(isPresented: $showEmptyStateMessage, arrowEdge: .bottom) {
+                        emptyStatePopover
+                    }
                     
-                    Button(action: { musicPlayer.playNextTrack() }) {
+                    Button(action: { 
+                        handleNextTrack()
+                    }) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: 20))
                             .foregroundColor(.primary)
@@ -206,12 +215,85 @@ struct MenuBarMusicView: View {
         }
     }
     
+    // MARK: - Empty State Popover
+    
+    private var emptyStatePopover: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "music.note.list")
+                .font(.system(size: 32))
+                .foregroundColor(.secondary)
+            
+            Text("곡을 추가하세요")
+                .font(.system(size: 14, weight: .semibold))
+            
+            Text("트랙 리스트에서 곡을 추가하거나\n대시보드에서 플레이리스트를 관리하세요")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(width: 220)
+    }
+    
+    // MARK: - Actions
+    
+    private func handlePlayPause() {
+        // 1. 플레이리스트가 없으면 첫 번째 플레이리스트 자동 선택
+        if musicPlayer.selectedPlaylist == nil {
+            if let firstPlaylist = playlists.first {
+                withAnimation {
+                    musicPlayer.selectedPlaylist = firstPlaylist
+                }
+            } else {
+                // 플레이리스트가 하나도 없음
+                showEmptyStateMessage = true
+                return
+            }
+        }
+        
+        // 2. 선택된 플레이리스트에 곡이 없으면 트랙 리스트 열기
+        if let playlist = musicPlayer.selectedPlaylist {
+            let hasNoTracks = playlist.youtubePlaylistId == nil && playlist.tracks.isEmpty
+            
+            if hasNoTracks {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    showTrackList = true
+                }
+                showEmptyStateMessage = true
+                return
+            }
+        }
+        
+        // 3. 정상적으로 재생/일시정지
+        musicPlayer.togglePlayPause()
+    }
+    
+    private func handlePreviousTrack() {
+        // 플레이리스트가 없으면 자동 선택
+        if musicPlayer.selectedPlaylist == nil, let firstPlaylist = playlists.first {
+            withAnimation {
+                musicPlayer.selectedPlaylist = firstPlaylist
+            }
+        }
+        musicPlayer.playPreviousTrack()
+    }
+    
+    private func handleNextTrack() {
+        // 플레이리스트가 없으면 자동 선택
+        if musicPlayer.selectedPlaylist == nil, let firstPlaylist = playlists.first {
+            withAnimation {
+                musicPlayer.selectedPlaylist = firstPlaylist
+            }
+        }
+        musicPlayer.playNextTrack()
+    }
+    
     // MARK: - Helpers
     
     private var shouldDisableControls: Bool {
-        guard let playlist = musicPlayer.selectedPlaylist else { return true }
-        if playlist.youtubePlaylistId != nil { return false }
-        return playlist.tracks.isEmpty
+        // 재생 버튼은 항상 활성화 (스마트하게 처리하므로)
+        return false
     }
 }
 
