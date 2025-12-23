@@ -16,7 +16,7 @@ struct MusicSectionView: View {
     @EnvironmentObject var musicPlayer: MusicPlayerManager
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 10) {
             // Playlist selector
             PlaylistSelectorView()
 
@@ -24,6 +24,7 @@ struct MusicSectionView: View {
             MusicControllerView()
 
             Divider()
+                .padding(.vertical, 2)
 
             // Track list
             TrackListView(isMenuBar: true)
