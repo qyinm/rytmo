@@ -23,19 +23,19 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             if authManager.isLoggedIn {
-                // 로그인됨: 기존 기능 표시
+                // 로그인됨: 새로운 메뉴바 전용 UI
                 if showingSettings {
                     settingsContent
                 } else {
-                    timerContent
+                    newMenuBarContent
                 }
             } else {
                 // 로그인 안됨: 로그인 UI 표시
                 loginContent
             }
         }
-        .frame(width: 360)
-        .fixedSize(horizontal: false, vertical: true) // 핵심: 세로 길이를 내용물 크기에 고정
+        .frame(width: 420)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private struct Style {
@@ -53,13 +53,13 @@ struct MenuBarView: View {
         .help(help)
     }
 
-    // MARK: - Timer Content
-
-    private var timerContent: some View {
+    // MARK: - New Menu Bar Content
+    
+    private var newMenuBarContent: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 // 상단 헤더: 대시보드 및 설정
-                HStack(spacing: 16) {
+                HStack(spacing: 10) {
                     Spacer()
                     
                     headerButton(systemName: "chart.bar.fill", help: "대시보드 열기") {
@@ -71,98 +71,23 @@ struct MenuBarView: View {
                     }
                 }
                 
-                // 타이머 디스플레이
-                TimerView()
-
-                // 타이머 컨트롤 버튼
-                HStack(spacing: 20) {
-                    // 리셋 버튼
-                    if timerManager.session.isRunning || timerManager.session.state != .idle {
-                        Button(action: {
-                            withAnimation {
-                                timerManager.reset()
-                            }
-                        }) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 14, weight: .semibold))
-                                .frame(width: 40, height: 40)
-                                .background(
-                                    Circle()
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                                        .background(Circle().fill(Color.primary.opacity(0.05)))
-                                )
-                                .foregroundStyle(.primary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("타이머 리셋")
-                        .transition(.scale.combined(with: .opacity))
-                    } else {
-                         Color.clear.frame(width: 40, height: 40)
-                    }
-
-                    // 시작/일시정지 버튼
-                    Button(action: {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            if timerManager.session.isRunning {
-                                timerManager.pause()
-                            } else {
-                                timerManager.start()
-                            }
-                        }
-                    }) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.black)
-                                .frame(width: 64, height: 64)
-                                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
-                            
-                            Image(systemName: timerManager.session.isRunning ? "pause.fill" : "play.fill")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundStyle(Color.white)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .help(timerManager.session.isRunning ? "일시정지" : "시작")
-
-                    // 스킵 버튼
-                    if timerManager.session.state != .idle {
-                        Button(action: {
-                            withAnimation {
-                                timerManager.skip()
-                            }
-                        }) {
-                            Image(systemName: "forward.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .frame(width: 40, height: 40)
-                                .background(
-                                    Circle()
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                                        .background(Circle().fill(Color.primary.opacity(0.05)))
-                                )
-                                .foregroundStyle(.primary)
-                        }
-                        .buttonStyle(.plain)
-                        .help("스키 current session")
-                        .transition(.scale.combined(with: .opacity))
-                    } else {
-                        Color.clear.frame(width: 40, height: 40)
-                    }
-                }
-                .padding(.bottom, 8)
-
+                // 새로운 컴팩트 타이머
+                MenuBarTimerView()
+                
                 Divider()
-
-                // Music 섹션
-                MusicSectionView()
+                
+                // 새로운 컴팩트 음악 플레이어
+                MenuBarMusicView()
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
     }
 
     // MARK: - Settings Content
 
     private var settingsContent: some View {
-        SettingsView(onDismiss: {
+        MenuBarSettingsView(onDismiss: {
             showingSettings = false
         })
     }

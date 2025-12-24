@@ -15,16 +15,16 @@ struct TimerView: View {
     @EnvironmentObject var timerManager: PomodoroTimerManager
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
             // 원형 프로그레스 바
             ZStack {
                 // 배경 원
                 Circle()
                     .stroke(
                         Color.gray.opacity(0.2),
-                        lineWidth: 12
+                        lineWidth: 10
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 160, height: 160)
 
                 // 진행률 원
                 Circle()
@@ -32,38 +32,38 @@ struct TimerView: View {
                     .stroke(
                         progressColor,
                         style: StrokeStyle(
-                            lineWidth: 12,
+                            lineWidth: 10,
                             lineCap: .round
                         )
                     )
-                    .frame(width: 200, height: 200)
+                    .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.5), value: timerManager.session.progress)
 
                 // 중앙 텍스트
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     Text(timerManager.session.formattedTime)
-                        .font(.system(size: 36, weight: .medium, design: .monospaced))
+                        .font(.system(size: 32, weight: .medium, design: .monospaced))
                         .foregroundColor(.primary)
 
                     Text(timerManager.session.state.displayName)
-                        .font(.system(size: 14, weight: .regular))
+                        .font(.system(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
             }
 
             // 세션 카운터
             if timerManager.session.state == .focus || timerManager.session.sessionCount > 0 {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     ForEach(0..<4, id: \.self) { index in
                         Circle()
                             .fill(index < timerManager.session.sessionCount ? Color.red : Color.gray.opacity(0.3))
-                            .frame(width: 8, height: 8)
+                            .frame(width: 7, height: 7)
                     }
                 }
             }
         }
-        .padding()
+        .padding(.vertical, 8)
     }
 
     // MARK: - Private Computed Properties
