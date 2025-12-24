@@ -14,10 +14,12 @@ struct MenuBarMusicView: View {
     
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
+    @StateObject private var audioManager = AudioManager()
     
     @State private var isDragging: Bool = false
     @State private var dragValue: Double = 0
     @State private var showTrackList: Bool = false
+    @State private var showOutputList: Bool = false
     @State private var showEmptyStateMessage: Bool = false
     
     var body: some View {
@@ -31,7 +33,14 @@ struct MenuBarMusicView: View {
                     .padding(.top, 12)
                 
                 trackList
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            
+            // 출력 기기 리스트 (이미지 준수 - 토글 가능)
+            if showOutputList {
+                Divider()
+                    .padding(.top, 12)
+                
+                outputDeviceList
             }
         }
         .padding(.horizontal, 14)
@@ -133,9 +142,8 @@ struct MenuBarMusicView: View {
             HStack(spacing: 0) {
                 // 트랙 리스트 버튼 (왼쪽)
                 Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        showTrackList.toggle()
-                    }
+                    showTrackList.toggle()
+                    if showTrackList { showOutputList = false }
                 }) {
                     Image(systemName: "list.bullet")
                         .font(.system(size: 16))
@@ -173,12 +181,62 @@ struct MenuBarMusicView: View {
                 
                 Spacer()
                 
-                // 헤드폰 아이콘 (오른쪽 - 이미지 준수)
-                Image(systemName: "headphones")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-                    .frame(width: 32, height: 32)
+                // 오디오 출력 선택기 버튼 (이미지 준수 - 토글로 변경)
+                Button(action: {
+                    showOutputList.toggle()
+                    if showOutputList { showTrackList = false }
+                }) {
+                    Image(systemName: audioManager.currentDeviceIcon)
+                        .font(.system(size: 16))
+                        .foregroundColor(showOutputList ? .accentColor : .secondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
             }
+        }
+    }
+    
+    // MARK: - Output Device List
+    
+    private var outputDeviceList: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Outputs")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.primary)
+                .padding(.top, 8)
+            
+            VStack(spacing: 12) {
+                ForEach(audioManager.outputDevices) { device in
+                    Button(action: {
+                        audioManager.setOutputDevice(device.id)
+                    }) {
+                        HStack(spacing: 12) {
+                            let isCurrent = device.id == audioManager.currentDeviceID
+                            
+                            // 장치 아이콘
+                            ZStack {
+                                Circle()
+                                    .fill(isCurrent ? Color.accentColor : Color.primary.opacity(0.1))
+                                    .frame(width: 36, height: 36)
+                                
+                                Image(systemName: device.iconName)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(isCurrent ? .white : .primary)
+                            }
+                            
+                            Text(device.name)
+                                .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
+                                .foregroundColor(isCurrent ? .primary : .secondary)
+                            
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .onAppear {
+            audioManager.refreshDevices()
         }
     }
     
@@ -250,9 +308,7 @@ struct MenuBarMusicView: View {
             let hasNoTracks = playlist.youtubePlaylistId == nil && playlist.tracks.isEmpty
             
             if hasNoTracks {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    showTrackList = true
-                }
+                showTrackList = true
                 showEmptyStateMessage = true
                 return
             }
