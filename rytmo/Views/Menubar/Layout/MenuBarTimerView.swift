@@ -14,47 +14,47 @@ struct MenuBarTimerView: View {
     @EnvironmentObject var timerManager: PomodoroTimerManager
     
     var body: some View {
-        HStack(spacing: 16) {
-            // 왼쪽: 프로그레스 링 (작게)
+        HStack(spacing: 12) {
+            // 왼쪽: 프로그레스 링 (더 작게)
             ZStack {
                 Circle()
-                    .stroke(Color.gray.opacity(0.15), lineWidth: 3)
-                    .frame(width: 48, height: 48)
+                    .stroke(Color.gray.opacity(0.15), lineWidth: 2.5)
+                    .frame(width: 42, height: 42)
                 
                 Circle()
                     .trim(from: 0, to: timerManager.session.progress)
                     .stroke(
                         progressColor,
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
                     )
-                    .frame(width: 48, height: 48)
+                    .frame(width: 42, height: 42)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.5), value: timerManager.session.progress)
                 
                 // 상태 아이콘
                 Image(systemName: stateIcon)
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .foregroundColor(progressColor)
             }
             
             // 중앙: 시간 표시
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(timerManager.session.formattedTime)
-                    .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 22, weight: .semibold, design: .monospaced))
                     .foregroundColor(.primary)
                 
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Text(timerManager.session.state.displayName)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.secondary)
                     
                     // 세션 카운터 (인라인)
                     if timerManager.session.state == .focus || timerManager.session.sessionCount > 0 {
-                        HStack(spacing: 3) {
+                        HStack(spacing: 2.5) {
                             ForEach(0..<4, id: \.self) { index in
                                 Circle()
                                     .fill(index < timerManager.session.sessionCount ? progressColor : Color.gray.opacity(0.3))
-                                    .frame(width: 4, height: 4)
+                                    .frame(width: 3.5, height: 3.5)
                             }
                         }
                     }
@@ -64,12 +64,12 @@ struct MenuBarTimerView: View {
             Spacer()
             
             // 오른쪽: 컨트롤 버튼들 (세로 배치)
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 // 리셋 버튼
                 if timerManager.session.isRunning || timerManager.session.state != .idle {
                     controlButton(
                         icon: "arrow.counterclockwise",
-                        size: 28,
+                        size: 26,
                         help: "리셋"
                     ) {
                         withAnimation { timerManager.reset() }
@@ -80,7 +80,7 @@ struct MenuBarTimerView: View {
                 // 재생/일시정지 버튼
                 controlButton(
                     icon: timerManager.session.isRunning ? "pause.fill" : "play.fill",
-                    size: 32,
+                    size: 30,
                     isPrimary: true,
                     help: timerManager.session.isRunning ? "일시정지" : "시작"
                 ) {
@@ -97,7 +97,7 @@ struct MenuBarTimerView: View {
                 if timerManager.session.state != .idle {
                     controlButton(
                         icon: "forward.fill",
-                        size: 28,
+                        size: 26,
                         help: "스킵"
                     ) {
                         withAnimation { timerManager.skip() }
@@ -106,8 +106,8 @@ struct MenuBarTimerView: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
@@ -128,7 +128,7 @@ struct MenuBarTimerView: View {
     private var stateIcon: String {
         switch timerManager.session.state {
         case .idle: return "moon.zzz.fill"
-        case .focus: return "brain.head.profile"
+        case .focus: return "flame.fill"
         case .shortBreak: return "cup.and.saucer.fill"
         case .longBreak: return "bed.double.fill"
         }

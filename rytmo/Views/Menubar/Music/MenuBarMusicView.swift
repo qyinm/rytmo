@@ -34,9 +34,10 @@ struct MenuBarMusicView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(16)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Color(nsColor: .controlBackgroundColor).opacity(0.3))
         )
     }
@@ -44,8 +45,8 @@ struct MenuBarMusicView: View {
     // MARK: - Main Player
     
     private var mainPlayer: some View {
-        VStack(spacing: 14) {
-            // 앨범 아트 + 트랙 정보
+        VStack(spacing: 12) {
+            // 상단: 앨범 아트 + 트랙 정보 + 비주얼라이저
             HStack(spacing: 12) {
                 // 앨범 아트
                 if let thumbnailUrl = musicPlayer.currentTrack?.thumbnailUrl {
@@ -54,13 +55,14 @@ struct MenuBarMusicView: View {
                     } placeholder: {
                         Rectangle().fill(Color.gray.opacity(0.2))
                     }
-                    .frame(width: 56, height: 56)
+                    .frame(width: 52, height: 52)
                     .cornerRadius(8)
                     .clipped()
+                    .shadow(radius: 2)
                 } else {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.2))
-                        .frame(width: 56, height: 56)
+                        .frame(width: 52, height: 52)
                         .overlay(
                             Image(systemName: "music.note")
                                 .font(.system(size: 20))
@@ -69,33 +71,67 @@ struct MenuBarMusicView: View {
                 }
                 
                 // 트랙 정보
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     if let title = musicPlayer.playbackTitle ?? musicPlayer.currentTrack?.title {
                         Text(title)
-                            .font(.system(size: 13, weight: .medium))
-                            .lineLimit(2)
+                            .font(.system(size: 14, weight: .bold))
+                            .lineLimit(1)
                     } else {
                         Text("재생 중인 곡이 없습니다")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.secondary)
                     }
                     
                     if let playlist = musicPlayer.selectedPlaylist {
                         Text(playlist.name)
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
                 }
                 
                 Spacer()
+                
+                // 오른쪽 끝: 비주얼라이저 아이콘
+                if musicPlayer.isPlaying {
+                    Image(systemName: "waveform")
+                        .font(.system(size: 16))
+                        .foregroundColor(.accentColor)
+                        .padding(.trailing, 4)
+                }
             }
             
-            // 프로그레스 바
-            progressBar
+            // 중앙: 프로그레스 바 (이미지 준수: 시간과 슬라이더를 한 줄에)
+            HStack(spacing: 8) {
+                Text((isDragging ? dragValue : musicPlayer.currentTime).formattedTimeString())
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 40, alignment: .leading)
+                
+                Slider(
+                    value: Binding(
+                        get: { isDragging ? dragValue : musicPlayer.currentTime },
+                        set: { newValue in dragValue = newValue }
+                    ),
+                    in: 0...max(musicPlayer.duration, 0.1),
+                    onEditingChanged: { editing in
+                        isDragging = editing
+                        if !editing {
+                            musicPlayer.seek(to: dragValue)
+                        }
+                    }
+                )
+                .controlSize(.mini)
+                .disabled(shouldDisableControls)
+                
+                Text("-" + (musicPlayer.duration - (isDragging ? dragValue : musicPlayer.currentTime)).formattedTimeString())
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 45, alignment: .trailing)
+            }
             
-            // 컨트롤 버튼 + 트랙 리스트 토글
+            // 하단: 컨트롤 버튼들
             HStack(spacing: 0) {
-                // 트랙 리스트 토글 버튼 (왼쪽)
+                // 트랙 리스트 버튼 (왼쪽)
                 Button(action: {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         showTrackList.toggle()
@@ -107,84 +143,41 @@ struct MenuBarMusicView: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
-                .help("트랙 리스트")
                 
                 Spacer()
                 
-                // 재생 컨트롤 (중앙)
-                HStack(spacing: 20) {
-                    Button(action: { 
-                        handlePreviousTrack()
-                    }) {
+                // 중앙 컨트롤
+                HStack(spacing: 24) {
+                    Button(action: { handlePreviousTrack() }) {
                         Image(systemName: "backward.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(shouldDisableControls)
                     
-                    Button(action: { 
-                        handlePlayPause()
-                    }) {
-                        Image(systemName: musicPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(.primary)
+                    Button(action: { handlePlayPause() }) {
+                        Image(systemName: musicPlayer.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 32))
                     }
                     .buttonStyle(.plain)
                     .popover(isPresented: $showEmptyStateMessage, arrowEdge: .bottom) {
                         emptyStatePopover
                     }
                     
-                    Button(action: { 
-                        handleNextTrack()
-                    }) {
+                    Button(action: { handleNextTrack() }) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(shouldDisableControls)
                 }
+                .foregroundColor(.primary)
                 
                 Spacer()
                 
-                // 빈 공간 (레이아웃 밸런스)
-                Color.clear
+                // 헤드폰 아이콘 (오른쪽 - 이미지 준수)
+                Image(systemName: "headphones")
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
                     .frame(width: 32, height: 32)
-            }
-        }
-    }
-    
-    // MARK: - Progress Bar
-    
-    private var progressBar: some View {
-        VStack(spacing: 6) {
-            Slider(
-                value: Binding(
-                    get: { isDragging ? dragValue : musicPlayer.currentTime },
-                    set: { newValue in dragValue = newValue }
-                ),
-                in: 0...max(musicPlayer.duration, 0.1),
-                onEditingChanged: { editing in
-                    isDragging = editing
-                    if !editing {
-                        musicPlayer.seek(to: dragValue)
-                    }
-                }
-            )
-            .controlSize(.small)
-            .disabled(shouldDisableControls)
-            
-            HStack {
-                Text((isDragging ? dragValue : musicPlayer.currentTime).formattedTimeString())
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                Text(musicPlayer.duration.formattedTimeString())
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
             }
         }
     }
@@ -192,26 +185,26 @@ struct MenuBarMusicView: View {
     // MARK: - Track List
     
     private var trackList: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("트랙 리스트")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 if let playlist = musicPlayer.selectedPlaylist {
                     Text(playlist.name)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
             }
-            .padding(.top, 8)
+            .padding(.top, 6)
             
             ScrollView {
                 TrackListView(isMenuBar: true)
             }
-            .frame(maxHeight: 200)
+            .frame(maxHeight: 160)
         }
     }
     
