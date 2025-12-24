@@ -30,11 +30,18 @@ struct TrackRowView: View {
             lpThumbnail
 
             // Title
-            Text(track.title)
-                .font(.system(size: 13))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundColor(.primary)
+            HStack(spacing: 6) {
+                Text(track.title)
+                    .font(.system(size: 13))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundColor(.primary)
+                
+                if isCurrentTrack && isPlaying {
+                    LiveWaveformView(isPlaying: true, color: .accentColor)
+                        .scaleEffect(0.7) // 트랙 리스트에 맞게 작게 조정
+                }
+            }
 
             Spacer()
 

@@ -100,11 +100,9 @@ struct MenuBarMusicView: View {
                 
                 Spacer()
                 
-                // 오른쪽 끝: 비주얼라이저 아이콘
+                // 오른쪽 끝: 비주얼라이저 아이콘 (인터랙티브 파형)
                 if musicPlayer.isPlaying {
-                    Image(systemName: "waveform")
-                        .font(.system(size: 16))
-                        .foregroundColor(.accentColor)
+                    LiveWaveformView(isPlaying: true, color: .accentColor)
                         .padding(.trailing, 4)
                 }
             }
