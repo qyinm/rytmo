@@ -8,11 +8,10 @@
 import SwiftUI
 import YouTubePlayerKit
 
-
-
 struct HomeView: View {
     @EnvironmentObject var timerManager: PomodoroTimerManager
     @EnvironmentObject var musicPlayer: MusicPlayerManager
+    @State private var rightSidebarSelection: Int = 0 // 0: Library, 1: Tasks
     
     var body: some View {
         VStack(spacing: 0) {
@@ -112,46 +111,90 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
                 .background(Color(nsColor: .windowBackgroundColor))
                 
-                // Right: Playlist & Tracks Sidebar
+                // Right: Sidebar (Library & Tasks)
                 VStack(spacing: 0) {
-                    Text("Library")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                    // Selection Header
+                    HStack(spacing: 0) {
+                        Button {
+                            rightSidebarSelection = 0
+                        } label: {
+                            VStack(spacing: 8) {
+                                Text("Library")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(rightSidebarSelection == 0 ? .primary : .secondary)
+                                
+                                Rectangle()
+                                    .fill(rightSidebarSelection == 0 ? Color.accentColor : Color.clear)
+                                    .frame(height: 2)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
+                        
+                        Button {
+                            rightSidebarSelection = 1
+                        } label: {
+                            VStack(spacing: 8) {
+                                Text("Tasks")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(rightSidebarSelection == 1 ? .primary : .secondary)
+                                
+                                Rectangle()
+                                    .fill(rightSidebarSelection == 1 ? Color.accentColor : Color.clear)
+                                    .frame(height: 2)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.top, 16)
+                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
                     
                     Divider()
                     
-                    // Playlist Selector Section (Fixed)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Playlists")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-                        
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            PlaylistSelectorView()
-                                .padding(.horizontal)
+                    if rightSidebarSelection == 0 {
+                        // Library Content
+                        VStack(spacing: 0) {
+                            // Playlist Selector Section (Fixed)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Playlists")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    PlaylistSelectorView()
+                                        .padding(.horizontal)
+                                }
+                            }
+                            .padding(.vertical)
+                            
+                            Divider()
+                            
+                            // Track List Section (Scrollable)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Tracks")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal)
+                                
+                                ScrollView {
+                                    TrackListView()
+                                        .padding(.horizontal)
+                                        .padding(.bottom)
+                                }
+                            }
+                            .padding(.top)
+                        }
+                    } else {
+                        // Tasks Content
+                        VStack(alignment: .leading, spacing: 16) {
+                            TodoListView(showHeader: false, compact: true)
+                                .padding()
+                            
+                            Spacer()
                         }
                     }
-                    .padding(.vertical)
-                    
-                    Divider()
-                    
-                    // Track List Section (Scrollable)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Tracks")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal)
-                        
-                        ScrollView {
-                            TrackListView()
-                                .padding(.horizontal)
-                                .padding(.bottom)
-                        }
-                    }
-                    .padding(.top)
                 }
                 .frame(width: 320)
                 .background(Color(nsColor: .controlBackgroundColor).opacity(0.3))
@@ -165,8 +208,6 @@ struct HomeView: View {
             
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        // Hidden Player for Logic
-
     }
 }
 

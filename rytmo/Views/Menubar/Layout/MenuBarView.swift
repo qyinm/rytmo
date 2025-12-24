@@ -76,6 +76,11 @@ struct MenuBarView: View {
                 
                 Divider()
                 
+                // 투두 리스트
+                MenuBarTodoView()
+                
+                Divider()
+                
                 // 새로운 컴팩트 음악 플레이어
                 MenuBarMusicView()
             }

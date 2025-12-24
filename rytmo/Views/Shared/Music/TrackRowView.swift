@@ -31,11 +31,11 @@ struct TrackRowView: View {
 
             // Title
             HStack(spacing: 6) {
-                Text(track.title)
-                    .font(.system(size: 13))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundColor(.primary)
+            Text(track.title)
+                .font(.system(size: 13))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundColor(.primary)
                 
                 if isCurrentTrack && isPlaying {
                     LiveWaveformView(isPlaying: true, color: .accentColor)

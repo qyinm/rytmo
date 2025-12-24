@@ -46,7 +46,11 @@ struct rytmoApp: App {
 
         // SwiftData container setup
         do {
-            let schema = Schema([Playlist.self, MusicTrack.self])
+            let schema = Schema([
+                Playlist.self,
+                MusicTrack.self,
+                TodoItem.self
+            ])
             let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {

@@ -12,6 +12,7 @@ import YouTubePlayerKit
 
 enum DashboardSelection: Hashable {
     case home
+    case tasks
     case allPlaylists
     case playlist(Playlist)
     case settings
@@ -67,7 +68,7 @@ struct DashboardView: View {
                                 selection = .home
                             } label: {
                                 HStack(spacing: 12) {
-                                    Image(systemName: "house.fill")
+                                    Image(systemName: selection == .home ? "house.fill" : "house")
                                         .font(.system(size: 14))
                                     Text("Home")
                                         .font(.system(size: 14))
@@ -78,6 +79,26 @@ struct DashboardView: View {
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(selection == .home ? Color.primary.opacity(0.1) : Color.clear)
+                                )
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                selection = .tasks
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selection == .tasks ? "checklist.checked" : "checklist")
+                                        .font(.system(size: 14))
+                                    Text("Tasks")
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(selection == .tasks ? Color.primary.opacity(0.1) : Color.clear)
                                 )
                                 .contentShape(Rectangle())
                             }
@@ -200,6 +221,8 @@ struct DashboardView: View {
                     switch selection {
                     case .home, .none:
                         HomeView()
+                    case .tasks:
+                        DashboardTodoView()
                     case .allPlaylists:
                         PlaylistView(onSelect: { playlist in
                             selection = .playlist(playlist)
