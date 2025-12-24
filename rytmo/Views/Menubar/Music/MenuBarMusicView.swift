@@ -339,8 +339,7 @@ struct MenuBarMusicView: View {
     // MARK: - Helpers
     
     private var shouldDisableControls: Bool {
-        // 재생 버튼은 항상 활성화 (스마트하게 처리하므로)
-        return false
+        musicPlayer.currentTrack == nil
     }
 }
 

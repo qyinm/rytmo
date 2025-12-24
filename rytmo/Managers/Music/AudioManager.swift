@@ -71,13 +71,14 @@ class AudioManager: ObservableObject {
     }
     
     func setOutputDevice(_ id: AudioDeviceID) {
+        var deviceID = id
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDefaultOutputDevice,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
         
-        AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), [id])
+        AudioObjectSetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, UInt32(MemoryLayout<AudioDeviceID>.size), &deviceID)
         refreshDevices()
     }
     
@@ -94,15 +95,16 @@ class AudioManager: ObservableObject {
     }
     
     private func getDeviceName(_ id: AudioDeviceID) -> String? {
-        var name: CFString = "" as CFString
+        var name: CFString?
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyDeviceNameCFString,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        var propsize = UInt32(MemoryLayout<CFString>.size)
-        AudioObjectGetPropertyData(id, &address, 0, nil, &propsize, &name)
-        return name as String
+        var propsize = UInt32(MemoryLayout<CFString?>.size)
+        let status = AudioObjectGetPropertyData(id, &address, 0, nil, &propsize, &name)
+        guard status == noErr else { return nil }
+        return name as String?
     }
     
     private func isOutputDevice(_ id: AudioDeviceID) -> Bool {
@@ -131,7 +133,52 @@ class AudioManager: ObservableObject {
     }
     
     private func setupNotifications() {
-        // 기기 변경 시 알림 리스너 등록 생략 (간결함을 위해)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        let selfPtr = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        
+        AudioObjectAddPropertyListener(AudioObjectID(kAudioObjectSystemObject), &address, audioObjectPropertyListener, selfPtr)
+        
+        var devicesAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        AudioObjectAddPropertyListener(AudioObjectID(kAudioObjectSystemObject), &devicesAddress, audioObjectPropertyListener, selfPtr)
     }
+    
+    deinit {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let selfPtr = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+        AudioObjectRemovePropertyListener(AudioObjectID(kAudioObjectSystemObject), &address, audioObjectPropertyListener, selfPtr)
+        
+        var devicesAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectRemovePropertyListener(AudioObjectID(kAudioObjectSystemObject), &devicesAddress, audioObjectPropertyListener, selfPtr)
+    }
+}
+
+private func audioObjectPropertyListener(
+    id: AudioObjectID,
+    nAddresses: UInt32,
+    addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    clientData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    guard let clientData = clientData else { return noErr }
+    let manager = Unmanaged<AudioManager>.fromOpaque(clientData).takeUnretainedValue()
+    manager.refreshDevices()
+    return noErr
 }
 
