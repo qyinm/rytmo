@@ -12,6 +12,7 @@ import SwiftUI
 struct MenuBarTimerView: View {
     
     @EnvironmentObject var timerManager: PomodoroTimerManager
+    @EnvironmentObject var settings: PomodoroSettings
     
     var body: some View {
         HStack(spacing: 12) {
@@ -51,7 +52,7 @@ struct MenuBarTimerView: View {
                     // 세션 카운터 (인라인)
                     if timerManager.session.state == .focus || timerManager.session.sessionCount > 0 {
                         HStack(spacing: 2.5) {
-                            ForEach(0..<4, id: \.self) { index in
+                            ForEach(0..<settings.sessionsBeforeLongBreak, id: \.self) { index in
                                 Circle()
                                     .fill(index < timerManager.session.sessionCount ? progressColor : Color.gray.opacity(0.3))
                                     .frame(width: 3.5, height: 3.5)
