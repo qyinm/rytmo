@@ -30,20 +30,11 @@ struct TodoListView: View {
                         .font(.system(size: compact ? 10 : 12, weight: .bold))
                         .padding(.horizontal, compact ? 6 : 8)
                         .padding(.vertical, 2)
-                        .background(Color.accentColor.opacity(0.1))
-                        .foregroundColor(.accentColor)
+                        .background(Color.primary.opacity(0.1))
+                        .foregroundColor(.primary)
                         .clipShape(Capsule())
                     
                     Spacer()
-                    
-                    if !todos.filter({ $0.isCompleted }).isEmpty {
-                        Button(action: clearCompleted) {
-                            Text("Clear Done")
-                                .font(.system(size: compact ? 10 : 12, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.link)
-                    }
                 }
             }
             
@@ -107,15 +98,6 @@ struct TodoListView: View {
         newTaskContent = ""
         isInputFocused = false
     }
-    
-    private func clearCompleted() {
-        withAnimation {
-            let completedTodos = todos.filter { $0.isCompleted }
-            for todo in completedTodos {
-                modelContext.delete(todo)
-            }
-        }
-    }
 }
 
 struct TodoRowView: View {
@@ -128,14 +110,12 @@ struct TodoRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    todo.isCompleted.toggle()
-                    todo.completedAt = todo.isCompleted ? Date() : nil
-                }
+                todo.isCompleted.toggle()
+                todo.completedAt = todo.isCompleted ? Date() : nil
             }) {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: compact ? 16 : 18))
-                    .foregroundColor(todo.isCompleted ? .green : .secondary)
+                    .foregroundColor(todo.isCompleted ? .primary : .secondary)
             }
             .buttonStyle(.plain)
             

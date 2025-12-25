@@ -17,8 +17,8 @@ struct MenuBarTodoView: View {
     @State private var newTaskContent: String = ""
     @FocusState private var isInputFocused: Bool
     
-    private var incompleteTodos: [TodoItem] {
-        todos.filter { !$0.isCompleted }
+    private var incompleteTodosCount: Int {
+        todos.filter { !$0.isCompleted }.count
     }
     
     private var completionRate: Double {
@@ -45,8 +45,8 @@ struct MenuBarTodoView: View {
                     HStack(spacing: 4) {
                         ForEach(0..<3, id: \.self) { index in
                             Circle()
-                                .fill(index < Int(completionRate * 3) ? Color.primary : Color.primary.opacity(0.15))
-                                .frame(width: 4, height: 4)
+                                .fill(index < Int(round(completionRate * 3)) ? Color.black : Color.black.opacity(0.15))
+                                .frame(width: 5, height: 5)
                         }
                     }
                     
@@ -57,8 +57,8 @@ struct MenuBarTodoView: View {
                     Spacer()
                     
                     // Counter Badge
-                    if !incompleteTodos.isEmpty {
-                        Text("\(incompleteTodos.count)")
+                    if incompleteTodosCount > 0 {
+                        Text("\(incompleteTodosCount)")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .frame(minWidth: 20, minHeight: 20)
@@ -135,7 +135,7 @@ struct MenuBarTodoView: View {
                     // Task List - Fixed Height ScrollView
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
-                            if incompleteTodos.isEmpty {
+                            if todos.isEmpty {
                                 // Minimal Empty State
                                 VStack(spacing: 14) {
                                     ZStack {
@@ -143,17 +143,17 @@ struct MenuBarTodoView: View {
                                             .fill(Color.black.opacity(0.04))
                                             .frame(width: 48, height: 48)
                                         
-                                        Image(systemName: "checkmark")
+                                        Image(systemName: "plus")
                                             .font(.system(size: 20, weight: .semibold))
                                             .foregroundColor(.black.opacity(0.3))
                                     }
                                     
                                     VStack(spacing: 4) {
-                                        Text(todos.isEmpty ? "No tasks yet" : "All done")
+                                        Text("No tasks yet")
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(.primary)
                                         
-                                        Text(todos.isEmpty ? "Add your first task" : "Take a break")
+                                        Text("Add your first task")
                                             .font(.system(size: 11))
                                             .foregroundColor(.secondary)
                                     }
@@ -162,19 +162,23 @@ struct MenuBarTodoView: View {
                                 .padding(.vertical, 40)
                             } else {
                                 LazyVStack(spacing: 0) {
-                                    ForEach(Array(incompleteTodos.prefix(8).enumerated()), id: \.element.id) { index, todo in
-                        MinimalTodoRow(
-                            todo: todo,
-                            onComplete: {
-                                todo.isCompleted = true
-                                todo.completedAt = Date()
-                            },
-                            onDelete: {
-                                modelContext.delete(todo)
-                            }
-                        )
+                                    ForEach(Array(todos.prefix(12).enumerated()), id: \.element.id) { index, todo in
+                                        MinimalTodoRow(
+                                            todo: todo,
+                                            onToggle: {
+                                                todo.isCompleted.toggle()
+                                                if todo.isCompleted {
+                                                    todo.completedAt = Date()
+                                                } else {
+                                                    todo.completedAt = nil
+                                                }
+                                            },
+                                            onDelete: {
+                                                modelContext.delete(todo)
+                                            }
+                                        )
                                         
-                                        if index < min(incompleteTodos.count, 8) - 1 {
+                                        if index < min(todos.count, 12) - 1 {
                                             Rectangle()
                                                 .fill(Color.black.opacity(0.04))
                                                 .frame(height: 0.5)
@@ -188,7 +192,7 @@ struct MenuBarTodoView: View {
                     .frame(height: 220)
                     
                     // Bottom Bar
-                    if incompleteTodos.count > 8 || !todos.filter({ $0.isCompleted }).isEmpty {
+                    if todos.count > 12 {
                         VStack(spacing: 0) {
                             Rectangle()
                                 .fill(Color.black.opacity(0.06))
@@ -196,43 +200,28 @@ struct MenuBarTodoView: View {
                                 .padding(.horizontal, 14)
                             
                             HStack(spacing: 12) {
-                                if incompleteTodos.count > 8 {
-                                    Button(action: {
-                                        openWindow(id: "main")
-                                    }) {
-                                        HStack(spacing: 6) {
-                                            Text("View all")
-                                                .font(.system(size: 11, weight: .medium))
-                                            Text("\(incompleteTodos.count)")
-                                                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                                                .padding(.horizontal, 5)
-                                                .padding(.vertical, 2)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(Color.black.opacity(0.06))
-                                                )
-                                            Image(systemName: "arrow.up.forward")
-                                                .font(.system(size: 9, weight: .semibold))
-                                        }
-                                        .foregroundColor(.primary)
+                                Button(action: {
+                                    openWindow(id: "main")
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Text("View all")
+                                            .font(.system(size: 11, weight: .medium))
+                                        Text("\(todos.count)")
+                                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                            .padding(.horizontal, 5)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule()
+                                                    .fill(Color.black.opacity(0.06))
+                                            )
+                                        Image(systemName: "arrow.up.forward")
+                                            .font(.system(size: 9, weight: .semibold))
                                     }
-                                    .buttonStyle(.plain)
+                                    .foregroundColor(.primary)
                                 }
+                                .buttonStyle(.plain)
                                 
                                 Spacer()
-                                
-                                if !todos.filter({ $0.isCompleted }).isEmpty {
-                                    Button(action: clearCompleted) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "trash")
-                                                .font(.system(size: 9, weight: .medium))
-                                            Text("Clear")
-                                                .font(.system(size: 11, weight: .medium))
-                                        }
-                                        .foregroundColor(.secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
@@ -254,20 +243,13 @@ struct MenuBarTodoView: View {
         modelContext.insert(newTodo)
         newTaskContent = ""
     }
-    
-    private func clearCompleted() {
-        let completedTodos = todos.filter { $0.isCompleted }
-        for todo in completedTodos {
-            modelContext.delete(todo)
-        }
-    }
 }
 
 // MARK: - Minimal Todo Row
 
 private struct MinimalTodoRow: View {
     let todo: TodoItem
-    let onComplete: () -> Void
+    let onToggle: () -> Void
     let onDelete: () -> Void
     
     @State private var isHovering = false
@@ -275,15 +257,14 @@ private struct MinimalTodoRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Minimal Checkbox
-            Button(action: onComplete) {
+            Button(action: onToggle) {
                 ZStack {
                     // Outer circle
                     Circle()
-                        .stroke(Color.black.opacity(isHovering ? 0.3 : 0.15), lineWidth: 1.5)
+                        .stroke(todo.isCompleted ? Color.black : Color.black.opacity(isHovering ? 0.3 : 0.15), lineWidth: 1.5)
                         .frame(width: 18, height: 18)
                     
-                    // Inner fill on hover
-                    if isHovering {
+                    if todo.isCompleted {
                         Circle()
                             .fill(Color.black)
                             .frame(width: 18, height: 18)
@@ -291,6 +272,10 @@ private struct MinimalTodoRow: View {
                         Image(systemName: "checkmark")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.white)
+                    } else if isHovering {
+                        Circle()
+                            .fill(Color.black.opacity(0.1))
+                            .frame(width: 18, height: 18)
                     }
                 }
             }
@@ -299,7 +284,8 @@ private struct MinimalTodoRow: View {
             // Task Text
             Text(todo.content)
                 .font(.system(size: 13, weight: .regular))
-                .foregroundColor(.primary)
+                .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                .strikethrough(todo.isCompleted)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
