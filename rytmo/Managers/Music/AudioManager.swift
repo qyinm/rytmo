@@ -18,7 +18,7 @@ struct AudioDevice: Identifiable, Hashable {
     
     var iconName: String {
         if name.contains("AirPods") { return "airpodspro" }
-        if name.contains("Speaker") || name.contains("Speaker") { return "laptopcomputer" }
+        if name.contains("Speaker") { return "laptopcomputer" }
         return "speaker.wave.2"
     }
 }
