@@ -57,20 +57,7 @@ struct MenuBarView: View {
     
     private var newMenuBarContent: some View {
         ScrollView {
-            VStack(spacing: 12) {
-                // 상단 헤더: 대시보드 및 설정
-                HStack(spacing: 10) {
-                    Spacer()
-                    
-                    headerButton(systemName: "chart.bar.fill", help: "대시보드 열기") {
-                        openWindow(id: "main")
-                    }
-                    
-                    headerButton(systemName: "gearshape.fill", help: "설정") {
-                        showingSettings = true
-                    }
-                }
-                
+            VStack(spacing: 12) {               
                 // 새로운 컴팩트 타이머
                 MenuBarTimerView()
                 
