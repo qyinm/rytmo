@@ -10,7 +10,7 @@ import UserNotifications
 import FirebaseAuth
 
 // MARK: - Menu Bar Settings View
-/// 메뉴바 전용 컴팩트한 설정 화면
+/// Compact Settings Screen for Menu Bar
 struct MenuBarSettingsView: View {
     
     @EnvironmentObject var settings: PomodoroSettings
@@ -29,23 +29,23 @@ struct MenuBarSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // 헤더
+                // Header
                 header
                 
                 Divider()
                     .padding(.bottom, 16)
                 
                 VStack(spacing: 16) {
-                    // 타이머 설정 (컴팩트)
+                    // Timer Settings (Compact)
                     timerSettingsSection
                     
-                    // 앱 설정
+                    // App Settings
                     appSettingsSection
                     
-                    // 계정
+                    // Account
                     accountSection
                     
-                    // 대시보드 열기
+                    // Open Dashboard
                     dashboardButton
                 }
                 .padding(.horizontal, 16)
@@ -73,7 +73,7 @@ struct MenuBarSettingsView: View {
                 .buttonStyle(.plain)
             }
             
-            Text("설정")
+            Text("Settings")
                 .font(.system(size: 18, weight: .semibold))
             
             Spacer()
@@ -98,47 +98,47 @@ struct MenuBarSettingsView: View {
                 Image(systemName: "timer")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                Text("타이머 시간")
+                Text("Timer Duration")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
             }
             
             VStack(spacing: 0) {
                 CompactSettingRow(
-                    title: "집중 시간",
+                    title: "Focus Time",
                     value: $settings.focusDuration,
                     range: 1...60,
-                    unit: "분"
+                    unit: "min"
                 )
                 
                 Divider()
                     .padding(.leading, 16)
                 
                 CompactSettingRow(
-                    title: "짧은 휴식",
+                    title: "Short Break",
                     value: $settings.shortBreakDuration,
                     range: 1...30,
-                    unit: "분"
+                    unit: "min"
                 )
                 
                 Divider()
                     .padding(.leading, 16)
                 
                 CompactSettingRow(
-                    title: "긴 휴식",
+                    title: "Long Break",
                     value: $settings.longBreakDuration,
                     range: 5...60,
-                    unit: "분"
+                    unit: "min"
                 )
                 
                 Divider()
                     .padding(.leading, 16)
                 
                 CompactSettingRow(
-                    title: "긴 휴식까지",
+                    title: "Sessions until Long Break",
                     value: $settings.sessionsBeforeLongBreak,
                     range: 2...10,
-                    unit: "세션"
+                    unit: "sessions"
                 )
             }
             .background(
@@ -160,13 +160,13 @@ struct MenuBarSettingsView: View {
                 Image(systemName: "app.badge")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                Text("앱 설정")
+                Text("App Settings")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
             }
             
             VStack(spacing: 0) {
-                // 알림
+                // Notifications
                 HStack(spacing: 12) {
                     Image(systemName: "bell.fill")
                         .font(.system(size: 14))
@@ -174,11 +174,11 @@ struct MenuBarSettingsView: View {
                         .frame(width: 20)
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("알림")
+                        Text("Notifications")
                             .font(.system(size: 13, weight: .medium))
                         
                         if notificationAuthStatus == .denied {
-                            Text("시스템 설정에서 권한 허용 필요")
+                            Text("Permission required in System Settings")
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
                         }
@@ -201,7 +201,7 @@ struct MenuBarSettingsView: View {
                     Button(action: openSystemNotificationSettings) {
                         HStack {
                             Spacer()
-                            Text("시스템 설정 열기")
+                            Text("Open System Settings")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.accentColor)
                             Image(systemName: "arrow.up.right")
@@ -233,23 +233,23 @@ struct MenuBarSettingsView: View {
                 Image(systemName: "person.circle")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                Text("계정")
+                Text("Account")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
             }
             
             VStack(spacing: 0) {
                 if let user = authManager.currentUser {
-                    // 사용자 정보
+                    // User Info
                     HStack(spacing: 12) {
                         UserProfileImage(size: 36)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(user.isAnonymous ? "게스트" : (user.email ?? "사용자"))
+                            Text(user.isAnonymous ? "Guest" : (user.email ?? "User"))
                                 .font(.system(size: 13, weight: .medium))
                                 .lineLimit(1)
                             
-                            Text(user.isAnonymous ? "익명 계정" : "계정 연결됨")
+                            Text(user.isAnonymous ? "Anonymous Account" : "Account Connected")
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -263,7 +263,7 @@ struct MenuBarSettingsView: View {
                         .padding(.leading, 62)
                 }
                 
-                // 로그아웃
+                // Logout
                 Button(action: {
                     authManager.signOut()
                 }) {
@@ -273,7 +273,7 @@ struct MenuBarSettingsView: View {
                             .foregroundColor(.secondary)
                             .frame(width: 20)
                         
-                        Text("로그아웃")
+                        Text("Log out")
                             .font(.system(size: 13, weight: .medium))
                         
                         Spacer()
@@ -306,7 +306,7 @@ struct MenuBarSettingsView: View {
                 Image(systemName: "square.grid.2x2")
                     .font(.system(size: 14))
                 
-                Text("대시보드에서 더 보기")
+                Text("See more in Dashboard")
                     .font(.system(size: 13, weight: .medium))
                 
                 Spacer()

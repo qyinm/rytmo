@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - Menu Bar View
 
-/// 메뉴바 팝오버 UI
+/// Menu Bar Popover UI
 struct MenuBarView: View {
 
     @EnvironmentObject var timerManager: PomodoroTimerManager
@@ -23,14 +23,14 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             if authManager.isLoggedIn {
-                // 로그인됨: 새로운 메뉴바 전용 UI
+                // Logged In: New Menu Bar UI
                 if showingSettings {
                     settingsContent
                 } else {
                     newMenuBarContent
                 }
             } else {
-                // 로그인 안됨: 로그인 UI 표시
+                // Not Logged In: Show Login UI
                 loginContent
             }
         }
@@ -58,17 +58,17 @@ struct MenuBarView: View {
     private var newMenuBarContent: some View {
         ScrollView {
             VStack(spacing: 12) {               
-                // 새로운 컴팩트 타이머
+                // New Compact Timer
                 MenuBarTimerView()
                 
                 Divider()
                 
-                // 투두 리스트
+                // Todo List
                 MenuBarTodoView()
                 
                 Divider()
                 
-                // 새로운 컴팩트 음악 플레이어
+                // New Compact Music Player
                 MenuBarMusicView()
             }
             .padding(.horizontal, 14)
@@ -88,7 +88,7 @@ struct MenuBarView: View {
 
     private var loginContent: some View {
         VStack(spacing: 0) {
-            // 헤더
+            // Header
             VStack(spacing: 16) {
                 Image("RytmoIcon")
                     .resizable()
@@ -103,16 +103,16 @@ struct MenuBarView: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(.primary)
 
-                    Text("로그인이 필요합니다")
+                    Text("Login Required")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
             .padding(.bottom, 24)
 
-            // 로그인 버튼들
+            // Login Buttons
             VStack(spacing: 10) {
-                // Google 로그인 버튼
+                // Google Login Button
                 Button(action: {
                     Task {
                         await authManager.signInWithGoogle()
@@ -127,7 +127,7 @@ struct MenuBarView: View {
                             Image(systemName: "g.circle.fill")
                                 .font(.caption)
                         }
-                        Text(authManager.isLoading ? "로그인 중..." : "Google로 계속하기")
+                        Text(authManager.isLoading ? "Logging in..." : "Continue with Google")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .frame(maxWidth: .infinity)
@@ -143,12 +143,12 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
-                // 구분선
+                // Divider
                 HStack(spacing: 8) {
                     Rectangle()
                         .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
-                    Text("또는")
+                    Text("or")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                     Rectangle()
@@ -156,7 +156,7 @@ struct MenuBarView: View {
                         .frame(height: 1)
                 }
 
-                // 익명 로그인 버튼
+                // Anonymous Login Button
                 Button(action: {
                     Task {
                         await authManager.signInAnonymously()
@@ -172,7 +172,7 @@ struct MenuBarView: View {
                             Image(systemName: "arrow.right")
                                 .font(.caption)
                         }
-                        Text(authManager.isLoading ? "로그인 중..." : "익명으로 시작하기")
+                        Text(authManager.isLoading ? "Logging in..." : "Start Anonymously")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .frame(maxWidth: .infinity)
@@ -184,14 +184,14 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
-                Text("익명 로그인은 데이터가 저장되지 않습니다")
+                Text("Anonymous login data is not saved")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 4)
             }
             .padding(.horizontal, 16)
 
-            // 에러 메시지
+            // Error Message
             if let errorMessage = authManager.errorMessage {
                 VStack {
                     Divider()
@@ -220,7 +220,7 @@ struct MenuBarView: View {
 
             Spacer()
 
-            // 종료 버튼
+            // Quit Button
             Divider()
 
             Button(action: {
@@ -229,7 +229,7 @@ struct MenuBarView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "power")
                         .font(.caption2)
-                    Text("종료")
+                    Text("Quit")
                         .font(.system(size: 12, weight: .medium))
                 }
                 .frame(maxWidth: .infinity)

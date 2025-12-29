@@ -32,12 +32,12 @@ struct rytmoApp: App {
     // MARK: - Initialization
 
     init() {
-        // Firebase Crashlytics: 예외 발생 시 크래시 리포팅 활성화
+        // Firebase Crashlytics: Enable crash reporting on exceptions
         UserDefaults.standard.register(defaults: ["NSApplicationCrashOnExceptions": true])
 
-        // Firebase 초기화를 가장 먼저 수행 (AuthManager 초기화 전에 필요)
+        // Initialize Firebase first (required before AuthManager initialization)
         FirebaseApp.configure()
-        print("✅ Firebase 초기화 완료 (App init)")
+        print("✅ Firebase initialization complete (App init)")
 
         let settings = PomodoroSettings()
         _settings = StateObject(wrappedValue: settings)
@@ -61,7 +61,7 @@ struct rytmoApp: App {
     // MARK: - Body
 
     var body: some Scene {
-        // 1) 기본 윈도우 그룹 (대시보드)
+        // 1) Default Window Group (Dashboard)
         WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(timerManager)
@@ -70,18 +70,18 @@ struct rytmoApp: App {
                 .environmentObject(authManager)
                 .tint(Color.primary.opacity(0.7))
                 .onOpenURL { url in
-                    // Google Sign-In URL 처리
+                    // Handle Google Sign-In URL
                     GIDSignIn.sharedInstance.handle(url)
                 }
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
                 }
         }
-        // 윈도우 크기 설정
+        // Window Size Settings
         .defaultSize(width: UIConstants.MainWindow.idealWidth,
                      height: UIConstants.MainWindow.idealHeight)
         .modelContainer(modelContainer)
-        // Sparkle, 업데이트 메뉴 추가
+        // Sparkle, Add Update Menu
         .commands {
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates") {
@@ -90,7 +90,7 @@ struct rytmoApp: App {
             }
         }
 
-        // 2) 메뉴바 Extra (팝오버 UI - 설정 포함)
+        // 2) MenuBar Extra (Popover UI - Includes Settings)
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerManager)
@@ -103,9 +103,9 @@ struct rytmoApp: App {
                     musicPlayer.setModelContext(modelContainer.mainContext)
                 }
         } label: {
-            // 메뉴바 라벨 (아이콘 + 타이머)
+            // Menubar Label (Icon + Timer)
             HStack(spacing: 4) {
-                // 타이머 상태에 따라 다른 아이콘 표시
+                // Display different icons depending on timer status
                 Group {
                     switch timerManager.session.state {
                     case .shortBreak, .longBreak:
@@ -125,7 +125,7 @@ struct rytmoApp: App {
                         .font(.system(.body, design: .monospaced))
                 }
             }
-            // ReopenHandler를 여기에 추가하여 항상 이벤트를 수신할 수 있게 함
+            // Add ReopenHandler here to always receive events
             .background(ReopenHandler())
         }
         .menuBarExtraStyle(.window)
@@ -156,18 +156,18 @@ extension Notification.Name {
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Firebase 초기화는 App의 init으로 이동했으므로 제거됨
+        // Firebase initialization moved to App's init, so removed
 
-        // Amplitude 초기화
+        // Amplitude initialization
         setupAmplitude()
 
-        // Google Sign-In 초기화
+        // Google Sign-In initialization
         setupGoogleSignIn()
 
-        // UserNotifications 권한 요청
+        // UserNotifications Permission Request
         setupNotifications()
 
-        // 앱 실행 시 윈도우를 맨 앞으로 가져오기
+        // Bring window to front on app launch
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -200,14 +200,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupGoogleSignIn() {
-        // Google Sign-In 설정은 AuthManager에서 처리됨
-        // 여기서는 Client ID 검증만 수행
+        // Google Sign-In settings handled in AuthManager
+        // Only Client ID verification performed here
         guard let clientID = FirebaseApp.app()?.options.clientID else {
-            print("⚠️ Firebase Client ID를 찾을 수 없습니다.")
+            print("⚠️ Firebase Client ID not found.")
             return
         }
 
-        print("✅ Google Sign-In 준비 완료 (Client ID: \(String(clientID.prefix(20)))...)")
+        print("✅ Google Sign-In ready (Client ID: \(String(clientID.prefix(20)))...)")
     }
 
     private func setupAmplitude() {
@@ -219,17 +219,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupNotifications() {
         let center = UNUserNotificationCenter.current()
 
-        // 먼저 현재 권한 상태를 확인
+        // Check current permission status first
         center.getNotificationSettings { settings in
             switch settings.authorizationStatus {
             case .notDetermined:
-                // 아직 권한을 요청하지 않음 - 권한 요청
+                // Permission not yet requested - Request permission
                 center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
                     if let error = error {
-                        print("⚠️ 알림 권한 요청 실패: \(error.localizedDescription)")
+                        print("⚠️ Notification permission request failed: \(error.localizedDescription)")
                         return
                     }
-                    print(granted ? "✅ 알림 권한 승인됨" : "⚠️ 알림 권한 거부됨")
+                    print(granted ? "✅ Notification permission granted" : "⚠️ Notification permission denied")
                 }
             default:
                 break

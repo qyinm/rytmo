@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - Settings View
 
-/// 포모도로 타이머 설정 화면
+/// Pomodoro Timer Settings Screen
 struct SettingsView: View {
 
     @EnvironmentObject var settings: PomodoroSettings

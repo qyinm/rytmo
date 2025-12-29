@@ -39,7 +39,7 @@ struct TrackRowView: View {
                 
                 if isCurrentTrack && isPlaying {
                     LiveWaveformView(isPlaying: true, color: .accentColor)
-                        .scaleEffect(0.7) // 트랙 리스트에 맞게 작게 조정
+                        .scaleEffect(0.7) // Adjusted small to fit track list
                 }
             }
 

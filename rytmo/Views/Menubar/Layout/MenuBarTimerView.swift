@@ -8,7 +8,7 @@
 import SwiftUI
 
 // MARK: - Menu Bar Timer View
-/// 메뉴바 전용 컴팩트한 가로형 타이머 뷰
+/// Compact Menu Bar Timer View (Horizontal)
 struct MenuBarTimerView: View {
     
     @EnvironmentObject var timerManager: PomodoroTimerManager
@@ -16,7 +16,7 @@ struct MenuBarTimerView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // 왼쪽: 프로그레스 링 (더 작게)
+            // Left: Progress Ring (Smaller)
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.15), lineWidth: 2.5)
@@ -32,13 +32,13 @@ struct MenuBarTimerView: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.5), value: timerManager.session.progress)
                 
-                // 상태 아이콘
+                // Status Icon
                 Image(systemName: stateIcon)
                     .font(.system(size: 12))
                     .foregroundColor(progressColor)
             }
             
-            // 중앙: 시간 표시
+            // Center: Time Display
             VStack(alignment: .leading, spacing: 1) {
                 Text(timerManager.session.formattedTime)
                     .font(.system(size: 22, weight: .semibold, design: .monospaced))
@@ -49,7 +49,7 @@ struct MenuBarTimerView: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.secondary)
                     
-                    // 세션 카운터 (인라인)
+                    // Session Counter (Inline)
                     if timerManager.session.state == .focus || timerManager.session.sessionCount > 0 {
                         HStack(spacing: 2.5) {
                             ForEach(0..<settings.sessionsBeforeLongBreak, id: \.self) { index in
@@ -64,26 +64,26 @@ struct MenuBarTimerView: View {
             
             Spacer()
             
-            // 오른쪽: 컨트롤 버튼들 (세로 배치)
+            // Right: Control Buttons (Vertical Layout)
             HStack(spacing: 8) {
-                // 리셋 버튼
+                // Reset Button
                 if timerManager.session.isRunning || timerManager.session.state != .idle {
                     controlButton(
                         icon: "arrow.counterclockwise",
                         size: 26,
-                        help: "리셋"
+                        help: "Reset"
                     ) {
                         withAnimation { timerManager.reset() }
                     }
                     .transition(.scale.combined(with: .opacity))
                 }
                 
-                // 재생/일시정지 버튼
+                // Play/Pause Button
                 controlButton(
                     icon: timerManager.session.isRunning ? "pause.fill" : "play.fill",
                     size: 30,
                     isPrimary: true,
-                    help: timerManager.session.isRunning ? "일시정지" : "시작"
+                    help: timerManager.session.isRunning ? "Pause" : "Start"
                 ) {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         if timerManager.session.isRunning {
@@ -94,12 +94,12 @@ struct MenuBarTimerView: View {
                     }
                 }
                 
-                // 스킵 버튼
+                // Skip Button
                 if timerManager.session.state != .idle {
                     controlButton(
                         icon: "forward.fill",
                         size: 26,
-                        help: "스킵"
+                        help: "Skip"
                     ) {
                         withAnimation { timerManager.skip() }
                     }

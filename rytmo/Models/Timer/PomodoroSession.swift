@@ -9,51 +9,51 @@ import Foundation
 
 // MARK: - Timer State
 
-/// 타이머 상태
+/// Timer State
 enum TimerState {
-    case idle           // 대기
-    case focus          // 집중 (25분)
-    case shortBreak     // 짧은 휴식 (5분)
-    case longBreak      // 긴 휴식 (15분)
+    case idle           // Idle
+    case focus          // Focus (25min)
+    case shortBreak     // Short Break (5min)
+    case longBreak      // Long Break (15min)
 
     var displayName: String {
         switch self {
         case .idle:
-            return "대기"
+            return "Idle"
         case .focus:
-            return "집중"
+            return "Focus"
         case .shortBreak:
-            return "짧은 휴식"
+            return "Short Break"
         case .longBreak:
-            return "긴 휴식"
+            return "Long Break"
         }
     }
 
-    /// 기본 시간 (초)
+    /// Default Duration (seconds)
     var defaultDuration: TimeInterval {
         switch self {
         case .idle:
             return 0
         case .focus:
-            return 25 * 60  // 25분
+            return 25 * 60  // 25 min
         case .shortBreak:
-            return 5 * 60   // 5분
+            return 5 * 60   // 5 min
         case .longBreak:
-            return 15 * 60  // 15분
+            return 15 * 60  // 15 min
         }
     }
 }
 
 // MARK: - Pomodoro Session
 
-/// 포모도로 세션 데이터
+/// Pomodoro Session Data
 struct PomodoroSession {
     var state: TimerState
     var isRunning: Bool
     var remainingTime: TimeInterval
-    var totalDuration: TimeInterval  // 현재 세션의 전체 시간
-    var sessionCount: Int  // 완료된 집중 세션 수 (0~3)
-    var endDate: Date?     // 타이머 종료 예정 시간 (백그라운드 계산용)
+    var totalDuration: TimeInterval  // Total duration of current session
+    var sessionCount: Int  // Completed focus sessions count (0~3)
+    var endDate: Date?     // Scheduled end time (for background calculation)
 
     init() {
         self.state = .idle
@@ -64,20 +64,20 @@ struct PomodoroSession {
         self.endDate = nil
     }
 
-    /// 진행률 (0.0 ~ 1.0)
+    /// Progress (0.0 ~ 1.0)
     var progress: Double {
         guard totalDuration > 0 else { return 0 }
         return max(0, min(1, (totalDuration - remainingTime) / totalDuration))
     }
 
-    /// MM:SS 형식 문자열
+    /// MM:SS format string
     var formattedTime: String {
         let minutes = Int(remainingTime) / 60
         let seconds = Int(remainingTime) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
-    /// 다음 상태 결정
+    /// Determine next state
     mutating func moveToNextState(settings: PomodoroSettings) {
         switch state {
         case .idle:
@@ -85,7 +85,7 @@ struct PomodoroSession {
             sessionCount = 0
         case .focus:
             sessionCount += 1
-            // 설정된 세트 수 완료 시 긴 휴식, 아니면 짧은 휴식
+            // Long break if set number of sessions completed, otherwise short break
             if sessionCount >= settings.sessionsBeforeLongBreak {
                 state = .longBreak
                 sessionCount = 0
@@ -96,7 +96,7 @@ struct PomodoroSession {
             state = .focus
         }
 
-        // 설정에서 시간 가져오기
+        // Get time from settings
         switch state {
         case .idle:
             remainingTime = 0
@@ -113,7 +113,7 @@ struct PomodoroSession {
         }
     }
 
-    /// 타이머 리셋
+    /// Reset Timer
     mutating func reset() {
         state = .idle
         isRunning = false

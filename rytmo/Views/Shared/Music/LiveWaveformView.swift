@@ -9,7 +9,7 @@ import SwiftUI
 import Combine
 
 // MARK: - Live Waveform View
-/// 오디오 재생 상태에 따라 동적으로 움직이는 파형 뷰
+/// Waveform view that moves dynamically according to audio playback status
 struct LiveWaveformView: View {
     let isPlaying: Bool
     let color: Color
@@ -61,7 +61,7 @@ struct LiveWaveformView: View {
     
     private func updateHeights() {
         for i in 0..<barCount {
-            // 랜덤하게 높이 조절 (0.3 ~ 1.0 사이)
+            // Randomly adjust height (between 0.3 ~ 1.0)
             barHeights[i] = CGFloat.random(in: 0.3...1.0)
         }
     }

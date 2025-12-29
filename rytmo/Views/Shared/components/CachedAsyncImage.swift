@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// 캐싱을 지원하는 비동기 이미지 뷰
+/// Asynchronous image view with caching support
 struct CachedAsyncImage<Content: View, Placeholder: View>: View {
     private let url: URL?
     private let content: (Image) -> Content
@@ -59,7 +59,7 @@ fileprivate struct CachedAsyncImageInternal<Content: View, Placeholder: View>: V
     }
 }
 
-/// 편의 initializer - AsyncImage와 유사한 인터페이스
+/// Convenience initializer - interface similar to AsyncImage
 extension CachedAsyncImage where Content == Image, Placeholder == Color {
     init(url: URL?) {
         self.init(

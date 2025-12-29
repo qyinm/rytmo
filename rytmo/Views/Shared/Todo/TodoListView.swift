@@ -38,9 +38,9 @@ struct TodoListView: View {
                 }
             }
             
-            // 입력 필드
+            // Input Field
             HStack(spacing: 8) {
-                TextField("새로운 할 일 추가...", text: $newTaskContent)
+                TextField("Add a new task...", text: $newTaskContent)
                     .textFieldStyle(.plain)
                     .font(.system(size: compact ? 13 : 15))
                     .padding(.horizontal, 10)
@@ -61,13 +61,13 @@ struct TodoListView: View {
                 .disabled(newTaskContent.isEmpty)
             }
             
-            // 투두 리스트
+            // Todo List
             if todos.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "checklist")
                         .font(.system(size: compact ? 24 : 32))
                         .foregroundColor(.secondary.opacity(0.3))
-                    Text("할 일이 없습니다")
+                    Text("No tasks")
                         .font(.system(size: compact ? 12 : 14))
                         .foregroundColor(.secondary)
                 }

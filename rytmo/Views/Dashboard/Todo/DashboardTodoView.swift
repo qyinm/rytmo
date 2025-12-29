@@ -17,7 +17,7 @@ struct DashboardTodoView: View {
                     Text("My Tasks")
                         .font(.system(size: 28, weight: .bold))
                     
-                    Text("집중 모드에서 완수할 목표들을 관리하세요.")
+                    Text("Manage your focus goals here.")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
