@@ -129,7 +129,7 @@ class MusicPlayerManager: ObservableObject {
     }
 
     private func setupBackgroundPlayer() {
-        // 앱 시작 시 메인 스레드 블로킹을 방지하기 위해 비동기로 처리
+        // Handle asynchronously to prevent blocking the main thread at app launch
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
@@ -156,10 +156,10 @@ class MusicPlayerManager: ObservableObject {
             
             self.backgroundWindow = window
             
-            // 화면 밖으로 이동시키되, 윈도우 시스템에 등록은 함
+            // Move off-screen but keep registered in the window system
             window.setFrameOrigin(NSPoint(x: -10000, y: -10000))
             
-            // orderFront 대신 orderBack을 사용하여 포커스를 뺏지 않도록 함
+            // Use orderBack instead of orderFront to avoid stealing focus
             window.orderBack(nil)
         }
     }
@@ -181,7 +181,7 @@ class MusicPlayerManager: ObservableObject {
                 case .playing:
                     self.isPlaying = true
 
-                    // 이벤트 트래킹 - 음악 재생
+                    // Event Tracking - Music Played
                     if let track = self.currentTrack {
                         AmplitudeManager.shared.trackMusicPlayed(
                             trackTitle: track.title,
@@ -200,7 +200,7 @@ class MusicPlayerManager: ObservableObject {
                     let wasPlaying = self.isPlaying
                     self.isPlaying = false
 
-                    // 이벤트 트래킹 - 음악 일시정지 (재생 중이었을 때만)
+                    // Event Tracking - Music Paused (Only if it was playing)
                     if wasPlaying && state == .paused {
                         AmplitudeManager.shared.trackMusicPaused()
                     }
@@ -609,17 +609,17 @@ class MusicPlayerManager: ObservableObject {
             if isPlaying {
                 try? await youTubePlayer.pause()
             } else {
-                // 이미 재생 중이거나 일시정지 상태인 경우 play()만 호출
-                // (YouTube Playlist의 경우 load를 다시 하면 처음부터 시작됨)
+                // Call play() if already playing or paused
+                // (YouTube Playlist starts from the beginning if loaded again)
                 if currentTrack == nil, let playlist = selectedPlaylist {
                     if let playlistId = playlist.youtubePlaylistId, playlist.tracks.isEmpty {
-                        // 플레이어가 준비된 상태라면 play()만 호출
+                        // If player is ready, call play() only
                         try? await youTubePlayer.play()
                         
-                        // 만약 play()를 했는데도 상태가 변경되지 않거나(처음 로드 시)
-                        // 플레이어가 비어있다면 로드 수행
-                        // (이 부분은 YouTubePlayerKit의 상태를 더 정확히 확인해야 하지만,
-                        //  일단 play()를 먼저 시도하는 것이 핵심)
+                        // If play() doesn't change state (e.g. first load)
+                        // or player is empty, then load
+                        // (This part needs more accurate state check of YouTubePlayerKit,
+                        //  but trying play() first is key)
                         return
                     }
                     
@@ -663,8 +663,8 @@ class MusicPlayerManager: ObservableObject {
             if let nextTrack = otherTracks.randomElement() {
                 play(track: nextTrack)
             } else if let firstTrack = sortedTracks.first {
-                // 다른 트랙이 없는 경우 (재생 목록에 트랙이 하나뿐이거나 모두 현재 트랙과 동일한 경우)
-                // 첫 번째 트랙을 재생합니다.
+                // If there are no other tracks (if there is only one track in the playlist or all are the same as the current track)
+                // Play the first track.
                 play(track: firstTrack)
             }
             return
@@ -690,7 +690,7 @@ class MusicPlayerManager: ObservableObject {
     }
 
     func playPlaylist(_ playlist: Playlist) {
-        // 이미 선택된 플레이리스트인 경우
+        // If already selected playlist
         if selectedPlaylist?.id == playlist.id {
              togglePlayPause() 
              return
@@ -698,13 +698,13 @@ class MusicPlayerManager: ObservableObject {
 
         selectedPlaylist = playlist
         
-        // YouTube Playlist인 경우 (트랙이 없을 때만 폴백)
+        // YouTube Playlist (Fallback only if no tracks)
         if let playlistId = playlist.youtubePlaylistId, playlist.tracks.isEmpty {
              Task { try? await youTubePlayer.load(source: .playlist(id: playlistId)) }
              return
         }
 
-        // 일반 트랙 리스트인 경우
+        // Normal track list
         let sortedTracks = playlist.tracks.sorted { $0.sortIndex < $1.sortIndex }
         if let firstTrack = sortedTracks.first {
              play(track: firstTrack)

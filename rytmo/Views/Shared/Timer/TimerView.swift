@@ -9,16 +9,16 @@ import SwiftUI
 
 // MARK: - Timer View
 
-/// 타이머 디스플레이 (원형 프로그레스 바)
+/// Timer Display (Circular Progress Bar)
 struct TimerView: View {
 
     @EnvironmentObject var timerManager: PomodoroTimerManager
 
     var body: some View {
         VStack(spacing: 12) {
-            // 원형 프로그레스 바
+            // Circular Progress Bar
             ZStack {
-                // 배경 원
+                // Background Circle
                 Circle()
                     .stroke(
                         Color.gray.opacity(0.2),
@@ -26,7 +26,7 @@ struct TimerView: View {
                     )
                     .frame(width: 160, height: 160)
 
-                // 진행률 원
+                // Progress Circle
                 Circle()
                     .trim(from: 0, to: timerManager.session.progress)
                     .stroke(
@@ -40,7 +40,7 @@ struct TimerView: View {
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.5), value: timerManager.session.progress)
 
-                // 중앙 텍스트
+                // Center Text
                 VStack(spacing: 6) {
                     Text(timerManager.session.formattedTime)
                         .font(.system(size: 32, weight: .medium, design: .monospaced))
@@ -52,7 +52,7 @@ struct TimerView: View {
                 }
             }
 
-            // 세션 카운터
+            // Session Counter
             if timerManager.session.state == .focus || timerManager.session.sessionCount > 0 {
                 HStack(spacing: 6) {
                     ForEach(0..<4, id: \.self) { index in
@@ -68,7 +68,7 @@ struct TimerView: View {
 
     // MARK: - Private Computed Properties
 
-    /// 상태별 프로그레스 색상
+    /// Progress Color by State
     private var progressColor: Color {
         switch timerManager.session.state {
         case .idle:

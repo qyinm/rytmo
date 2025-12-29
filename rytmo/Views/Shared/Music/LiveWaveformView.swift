@@ -9,14 +9,14 @@ import SwiftUI
 import Combine
 
 // MARK: - Live Waveform View
-/// 오디오 재생 상태에 따라 동적으로 움직이는 파형 뷰
+/// Waveform view that moves dynamically according to audio playback status
 struct LiveWaveformView: View {
     let isPlaying: Bool
     let color: Color
     let barCount: Int = 5
     
     @State private var barHeights: [CGFloat] = Array(repeating: 0.2, count: 5)
-    let timer = Timer.publish(every: 0.15, on: .main, in: .common).autoconnect()
+    @State private var timerSubscription: AnyCancellable? = nil
     
     var body: some View {
         HStack(alignment: .center, spacing: 2) {
@@ -28,16 +28,40 @@ struct LiveWaveformView: View {
             }
         }
         .frame(height: 16)
-        .onReceive(timer) { _ in
+        .onAppear {
             if isPlaying {
-                updateHeights()
+                startTimer()
+            }
+        }
+        .onDisappear {
+            stopTimer()
+        }
+        .onChange(of: isPlaying) { _, newValue in
+            if newValue {
+                startTimer()
+            } else {
+                stopTimer()
             }
         }
     }
     
+    private func startTimer() {
+        guard timerSubscription == nil else { return }
+        timerSubscription = Timer.publish(every: 0.15, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                updateHeights()
+            }
+    }
+    
+    private func stopTimer() {
+        timerSubscription?.cancel()
+        timerSubscription = nil
+    }
+    
     private func updateHeights() {
         for i in 0..<barCount {
-            // 랜덤하게 높이 조절 (0.3 ~ 1.0 사이)
+            // Randomly adjust height (between 0.3 ~ 1.0)
             barHeights[i] = CGFloat.random(in: 0.3...1.0)
         }
     }

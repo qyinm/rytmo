@@ -18,7 +18,7 @@ struct AudioDevice: Identifiable, Hashable {
     
     var iconName: String {
         if name.contains("AirPods") { return "airpodspro" }
-        if name.contains("Speaker") || name.contains("스피커") { return "laptopcomputer" }
+        if name.contains("Speaker") { return "laptopcomputer" }
         return "speaker.wave.2"
     }
 }
@@ -128,7 +128,7 @@ class AudioManager: ObservableObject {
         var propsize = UInt32(MemoryLayout<UInt32>.size)
         AudioObjectGetPropertyData(id, &address, 0, nil, &propsize, &transportType)
         
-        // kAudioDeviceTransportTypeAirPlay 등 상수로 체크 가능하지만 이름 기반으로 하는 것이 더 정확할 때가 많음
+        // Defined constants like kAudioDeviceTransportTypeAirPlay can be used for checking, but name-based is often more accurate
         return nil
     }
     

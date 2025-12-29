@@ -8,7 +8,7 @@
 import Foundation
 import AmplitudeUnified
 
-/// Amplitude 분석 이벤트를 관리하는 싱글톤 클래스
+/// Singleton class that manages Amplitude analytics events
 class AmplitudeManager {
 
     // MARK: - Singleton
@@ -21,25 +21,25 @@ class AmplitudeManager {
 
     // MARK: - Setup
 
-    /// Amplitude 초기화
-    /// - Parameter apiKey: Amplitude API 키
+    /// Initialize Amplitude
+    /// - Parameter apiKey: Amplitude API Key
     func setup(apiKey: String) {
-        // 로그 레벨 설정 (개발 중에는 debug, 프로덕션에서는 warn)
+        // Log level setting (debug during development, warn in production)
         #if DEBUG
         let logLevel = LogLevelEnum.DEBUG.rawValue
         #else
         let logLevel = LogLevelEnum.WARN.rawValue
         #endif
 
-        // Analytics 구성 설정
+        // Analytics configuration settings
         let analyticsConfig = AnalyticsConfig(
             flushQueueSize: 30,
             flushIntervalMillis: 30000,
             autocapture: [.sessions, .appLifecycles]
         )
 
-        // Amplitude 인스턴스 생성
-        // 참고: Session Replay는 iOS에서만 지원되며, macOS에서는 사용할 수 없습니다.
+        // Create Amplitude instance
+        // Note: Session Replay is supported only on iOS, not available on macOS.
         amplitude = Amplitude(
             apiKey: apiKey,
             serverZone: .US,
@@ -47,16 +47,16 @@ class AmplitudeManager {
             logger: ConsoleLogger(logLevel: logLevel)
         )
 
-        // 초기 이벤트 전송
+        // Send initial event
         trackAppLaunched()
     }
 
     // MARK: - Event Tracking
 
-    /// 일반 이벤트 트래킹
+    /// Track generic event
     /// - Parameters:
-    ///   - eventName: 이벤트 이름
-    ///   - properties: 이벤트 속성 (선택사항)
+    ///   - eventName: Event Name
+    ///   - properties: Event Properties (Optional)
     func track(eventName: String, properties: [String: Any]? = nil) {
         amplitude?.track(
             eventType: eventName,
@@ -64,10 +64,10 @@ class AmplitudeManager {
         )
     }
 
-    /// 사용자 속성 설정
+    /// Set user properties
     /// - Parameters:
-    ///   - userId: 사용자 ID
-    ///   - properties: 사용자 속성
+    ///   - userId: User ID
+    ///   - properties: User properties
     func identify(userId: String, properties: [String: Any]? = nil) {
         amplitude?.setUserId(userId: userId)
 
@@ -82,7 +82,7 @@ class AmplitudeManager {
 
     // MARK: - Predefined Events
 
-    /// 앱 시작 이벤트
+    /// App Launch Event
     private func trackAppLaunched() {
         track(eventName: "app_launched", properties: [
             "platform": "macOS",
@@ -90,10 +90,10 @@ class AmplitudeManager {
         ])
     }
 
-    /// 타이머 시작 이벤트
+    /// Timer Started Event
     /// - Parameters:
-    ///   - sessionType: 세션 타입 (focus, short_break, long_break)
-    ///   - duration: 세션 시간 (초)
+    ///   - sessionType: Session Type (focus, short_break, long_break)
+    ///   - duration: Session Duration (seconds)
     func trackTimerStarted(sessionType: String, duration: Int) {
         track(eventName: "timer_started", properties: [
             "session_type": sessionType,
@@ -101,10 +101,10 @@ class AmplitudeManager {
         ])
     }
 
-    /// 타이머 완료 이벤트
+    /// Timer Completed Event
     /// - Parameters:
-    ///   - sessionType: 세션 타입
-    ///   - duration: 세션 시간 (초)
+    ///   - sessionType: Session Type
+    ///   - duration: Session Duration (seconds)
     func trackTimerCompleted(sessionType: String, duration: Int) {
         track(eventName: "timer_completed", properties: [
             "session_type": sessionType,
@@ -112,10 +112,10 @@ class AmplitudeManager {
         ])
     }
 
-    /// 타이머 일시정지 이벤트
+    /// Timer Paused Event
     /// - Parameters:
-    ///   - sessionType: 세션 타입
-    ///   - remainingTime: 남은 시간 (초)
+    ///   - sessionType: Session Type
+    ///   - remainingTime: Remaining Time (seconds)
     func trackTimerPaused(sessionType: String, remainingTime: Int) {
         track(eventName: "timer_paused", properties: [
             "session_type": sessionType,
@@ -123,10 +123,10 @@ class AmplitudeManager {
         ])
     }
 
-    /// 타이머 스킵 이벤트
+    /// Timer Skipped Event
     /// - Parameters:
-    ///   - sessionType: 세션 타입
-    ///   - remainingTime: 남은 시간 (초)
+    ///   - sessionType: Session Type
+    ///   - remainingTime: Remaining Time (seconds)
     func trackTimerSkipped(sessionType: String, remainingTime: Int) {
         track(eventName: "timer_skipped", properties: [
             "session_type": sessionType,
@@ -134,10 +134,10 @@ class AmplitudeManager {
         ])
     }
 
-    /// 음악 재생 이벤트
+    /// Music Played Event
     /// - Parameters:
-    ///   - trackTitle: 트랙 제목
-    ///   - playlistName: 플레이리스트 이름
+    ///   - trackTitle: Track Title
+    ///   - playlistName: Playlist Name
     func trackMusicPlayed(trackTitle: String, playlistName: String?) {
         track(eventName: "music_played", properties: [
             "track_title": trackTitle,
@@ -145,15 +145,15 @@ class AmplitudeManager {
         ])
     }
 
-    /// 음악 일시정지 이벤트
+    /// Music Paused Event
     func trackMusicPaused() {
         track(eventName: "music_paused")
     }
 
-    /// 설정 변경 이벤트
+    /// Setting Changed Event
     /// - Parameters:
-    ///   - settingName: 설정 이름
-    ///   - newValue: 새로운 값
+    ///   - settingName: Setting Name
+    ///   - newValue: New Value
     func trackSettingChanged(settingName: String, newValue: Any) {
         track(eventName: "setting_changed", properties: [
             "setting_name": settingName,

@@ -11,7 +11,7 @@ import UserNotifications
 
 // MARK: - Pomodoro Timer Manager
 
-/// 포모도로 타이머 비즈니스 로직 관리
+/// Pomodoro Timer Business Logic Management
 class PomodoroTimerManager: ObservableObject {
 
     // MARK: - Published Properties
@@ -33,38 +33,38 @@ class PomodoroTimerManager: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// 타이머 시작
+    /// Start Timer
     func start() {
         guard !session.isRunning else { return }
 
-        // 첫 시작이면 집중 상태로 전환
+        // Switch to focus state if starting for the first time
         if session.state == .idle {
             session.moveToNextState(settings: settings)
         }
 
-        // 종료 시간 계산 (백그라운드 동작 대비)
+        // Calculate end time (for background operation)
         session.endDate = Date().addingTimeInterval(session.remainingTime)
         session.isRunning = true
 
-        // 타이머 시작 (매초 업데이트)
+        // Start timer (Update every second)
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tick()
         }
 
         updateMenuBarTitle()
 
-        // 이벤트 트래킹
+        // Event Tracking
         AmplitudeManager.shared.trackTimerStarted(
             sessionType: session.state.displayName,
             duration: Int(session.totalDuration)
         )
     }
 
-    /// 타이머 일시정지
+    /// Pause Timer
     func pause() {
         guard session.isRunning else { return }
 
-        // 이벤트 트래킹 (중지 전에 호출)
+        // Event Tracking (Called before pause)
         AmplitudeManager.shared.trackTimerPaused(
             sessionType: session.state.displayName,
             remainingTime: Int(session.remainingTime)
@@ -78,29 +78,29 @@ class PomodoroTimerManager: ObservableObject {
         updateMenuBarTitle()
     }
 
-    /// 타이머 스킵 (다음 단계로)
+    /// Skip Timer (to next step)
     func skip() {
-        // 이벤트 트래킹 (스킵 전에 호출)
+        // Event Tracking (Called before skip)
         AmplitudeManager.shared.trackTimerSkipped(
             sessionType: session.state.displayName,
             remainingTime: Int(session.remainingTime)
         )
 
-        // 현재 타이머 중지
+        // Stop current timer
         timer?.invalidate()
         timer = nil
 
-        // 다음 상태로 전환
+        // Switch to next state
         session.moveToNextState(settings: settings)
         session.endDate = nil
 
-        // 자동 시작하지 않음
+        // Do not auto-start
         session.isRunning = false
 
         start()
     }
 
-    /// 타이머 리셋
+    /// Reset Timer
     func reset() {
         timer?.invalidate()
         timer = nil
@@ -110,9 +110,9 @@ class PomodoroTimerManager: ObservableObject {
 
     // MARK: - Private Methods
 
-    /// 매초 호출되는 틱 메서드
+    /// Tick method called every second
     private func tick() {
-        // 백그라운드에서도 정확한 시간 계산
+        // Accurate time calculation even in background
         if let endDate = session.endDate {
             let now = Date()
             session.remainingTime = max(0, endDate.timeIntervalSince(now))
@@ -120,7 +120,7 @@ class PomodoroTimerManager: ObservableObject {
             session.remainingTime = max(0, session.remainingTime - 1)
         }
 
-        // 타이머 종료
+        // Timer finished
         if session.remainingTime <= 0 {
             timerDidFinish()
         }
@@ -128,9 +128,9 @@ class PomodoroTimerManager: ObservableObject {
         updateMenuBarTitle()
     }
 
-    /// 타이머 종료 처리
+    /// Timer termination processing
     private func timerDidFinish() {
-        // 이벤트 트래킹 (상태 변경 전에 호출)
+        // Event Tracking (Called before state change)
         AmplitudeManager.shared.trackTimerCompleted(
             sessionType: session.state.displayName,
             duration: Int(session.totalDuration)
@@ -142,17 +142,17 @@ class PomodoroTimerManager: ObservableObject {
         session.isRunning = false
         session.endDate = nil
 
-        // 다음 상태로 전환
+        // Switch to next state
         session.moveToNextState(settings: settings)
 
-        // 상태 변경 알림 발송
+        // Send state change notification
         sendStateChangeNotification()
 
-        // 자동으로 다음 상태 시작
+        // Automatically start next state
         start()
     }
 
-    /// 메뉴바 타이틀 업데이트
+    /// Update Menubar Title
     private func updateMenuBarTitle() {
         let time = session.formattedTime
 
@@ -165,32 +165,32 @@ class PomodoroTimerManager: ObservableObject {
         }
     }
 
-    /// 상태 변경 알림 발송
+    /// Send state change notification
     private func sendStateChangeNotification() {
-        // 알림이 비활성화되어 있으면 발송하지 않음
+        // Do not send if notifications are disabled
         guard settings.notificationsEnabled else { return }
 
         let content = UNMutableNotificationContent()
 
         switch session.state {
         case .idle:
-            return // idle 상태에서는 알림 발송하지 않음
+            return // Do not send notifications in idle state
         case .focus:
-            content.title = "집중 시간"
-            content.body = "집중 시간이 시작되었습니다 (\(Int(session.totalDuration / 60))분)"
+            content.title = "Focus Time"
+            content.body = "Focus time started (\(Int(session.totalDuration / 60))min)"
         case .shortBreak:
-            content.title = "짧은 휴식"
-            content.body = "짧은 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
+            content.title = "Short Break"
+            content.body = "It's time for a short break (\(Int(session.totalDuration / 60))min)"
         case .longBreak:
-            content.title = "긴 휴식"
-            content.body = "긴 휴식 시간입니다 (\(Int(session.totalDuration / 60))분)"
+            content.title = "Long Break"
+            content.body = "It's time for a long break (\(Int(session.totalDuration / 60))min)"
         }
         content.sound = .default
 
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,
-            trigger: nil // 즉시 발송
+            trigger: nil // Send immediately
         )
 
         UNUserNotificationCenter.current().add(request)

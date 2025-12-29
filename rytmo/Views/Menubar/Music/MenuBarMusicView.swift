@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 // MARK: - Menu Bar Music View
-/// 메뉴바 전용 미니멀 음악 플레이어
+/// Initial Minimal Music Player for Menu Bar
 struct MenuBarMusicView: View {
     
     @EnvironmentObject var musicPlayer: MusicPlayerManager
@@ -24,10 +24,10 @@ struct MenuBarMusicView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 메인 플레이어
+            // Main Player
             mainPlayer
             
-            // 트랙 리스트 (토글 가능)
+            // Track List (Toggleable)
             if showTrackList {
                 Divider()
                     .padding(.top, 12)
@@ -35,7 +35,7 @@ struct MenuBarMusicView: View {
                 trackList
             }
             
-            // 출력 기기 리스트 (이미지 준수 - 토글 가능)
+            // Output Device List (Image Compliant - Toggleable)
             if showOutputList {
                 Divider()
                     .padding(.top, 12)
@@ -55,9 +55,9 @@ struct MenuBarMusicView: View {
     
     private var mainPlayer: some View {
         VStack(spacing: 12) {
-            // 상단: 앨범 아트 + 트랙 정보 + 비주얼라이저
+            // Top: Album Art + Track Info + Visualizer
             HStack(spacing: 12) {
-                // 앨범 아트
+                // Album Art
                 if let thumbnailUrl = musicPlayer.currentTrack?.thumbnailUrl {
                     CachedAsyncImage(url: thumbnailUrl) { image in
                         image.resizable().scaledToFill()
@@ -79,14 +79,14 @@ struct MenuBarMusicView: View {
                         )
                 }
                 
-                // 트랙 정보
+                // Track Info
                 VStack(alignment: .leading, spacing: 2) {
                     if let title = musicPlayer.playbackTitle ?? musicPlayer.currentTrack?.title {
                         Text(title)
                             .font(.system(size: 14, weight: .bold))
                             .lineLimit(1)
                     } else {
-                        Text("재생 중인 곡이 없습니다")
+                        Text("No track playing")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(.secondary)
                     }
@@ -100,14 +100,14 @@ struct MenuBarMusicView: View {
                 
                 Spacer()
                 
-                // 오른쪽 끝: 비주얼라이저 아이콘 (인터랙티브 파형)
+                // Right End: Visualizer Icon (Interactive Waveform)
                 if musicPlayer.isPlaying {
                     LiveWaveformView(isPlaying: true, color: .accentColor)
                         .padding(.trailing, 4)
                 }
             }
             
-            // 중앙: 프로그레스 바 (이미지 준수: 시간과 슬라이더를 한 줄에)
+            // Center: Progress Bar (Image Compliant: Time and Slider in one line)
             HStack(spacing: 8) {
                 Text((isDragging ? dragValue : musicPlayer.currentTime).formattedTimeString())
                     .font(.system(size: 11, design: .monospaced))
@@ -136,9 +136,9 @@ struct MenuBarMusicView: View {
                     .frame(width: 45, alignment: .trailing)
             }
             
-            // 하단: 컨트롤 버튼들
+            // Bottom: Control Buttons
             HStack(spacing: 0) {
-                // 트랙 리스트 버튼 (왼쪽)
+                // Track List Button (Left)
                 Button(action: {
                     showTrackList.toggle()
                     if showTrackList { showOutputList = false }
@@ -152,7 +152,7 @@ struct MenuBarMusicView: View {
                 
                 Spacer()
                 
-                // 중앙 컨트롤
+                // Center Controls
                 HStack(spacing: 24) {
                     Button(action: { handlePreviousTrack() }) {
                         Image(systemName: "backward.fill")
@@ -179,7 +179,7 @@ struct MenuBarMusicView: View {
                 
                 Spacer()
                 
-                // 오디오 출력 선택기 버튼 (이미지 준수 - 토글로 변경)
+                // Audio Output Picker Button (Image Compliant - Changed to Toggle)
                 Button(action: {
                     showOutputList.toggle()
                     if showOutputList { showTrackList = false }
@@ -211,7 +211,7 @@ struct MenuBarMusicView: View {
                         HStack(spacing: 12) {
                             let isCurrent = device.id == audioManager.currentDeviceID
                             
-                            // 장치 아이콘
+                            // Device Icon
                             ZStack {
                                 Circle()
                                     .fill(isCurrent ? Color.accentColor : Color.primary.opacity(0.1))
@@ -243,7 +243,7 @@ struct MenuBarMusicView: View {
     private var trackList: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("트랙 리스트")
+                Text("Track List")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.primary)
                 
@@ -272,10 +272,10 @@ struct MenuBarMusicView: View {
                 .font(.system(size: 32))
                 .foregroundColor(.secondary)
             
-            Text("곡을 추가하세요")
+            Text("Add Songs")
                 .font(.system(size: 14, weight: .semibold))
             
-            Text("트랙 리스트에서 곡을 추가하거나\n대시보드에서 플레이리스트를 관리하세요")
+            Text("Add songs from the track list\nor manage playlists in the Dashboard")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -288,20 +288,20 @@ struct MenuBarMusicView: View {
     // MARK: - Actions
     
     private func handlePlayPause() {
-        // 1. 플레이리스트가 없으면 첫 번째 플레이리스트 자동 선택
+        // 1. If no playlist is selected, automatically select the first one
         if musicPlayer.selectedPlaylist == nil {
             if let firstPlaylist = playlists.first {
                 withAnimation {
                     musicPlayer.selectedPlaylist = firstPlaylist
                 }
             } else {
-                // 플레이리스트가 하나도 없음
+                // No playlists available
                 showEmptyStateMessage = true
                 return
             }
         }
         
-        // 2. 선택된 플레이리스트에 곡이 없으면 트랙 리스트 열기
+        // 2. Open track list if selected playlist has no songs
         if let playlist = musicPlayer.selectedPlaylist {
             let hasNoTracks = playlist.youtubePlaylistId == nil && playlist.tracks.isEmpty
             
@@ -312,12 +312,12 @@ struct MenuBarMusicView: View {
             }
         }
         
-        // 3. 정상적으로 재생/일시정지
+        // 3. Play/Pause normally
         musicPlayer.togglePlayPause()
     }
     
     private func handlePreviousTrack() {
-        // 플레이리스트가 없으면 자동 선택
+        // Auto-select if no playlist
         if musicPlayer.selectedPlaylist == nil, let firstPlaylist = playlists.first {
             withAnimation {
                 musicPlayer.selectedPlaylist = firstPlaylist
@@ -327,7 +327,7 @@ struct MenuBarMusicView: View {
     }
     
     private func handleNextTrack() {
-        // 플레이리스트가 없으면 자동 선택
+        // Auto-select if no playlist
         if musicPlayer.selectedPlaylist == nil, let firstPlaylist = playlists.first {
             withAnimation {
                 musicPlayer.selectedPlaylist = firstPlaylist

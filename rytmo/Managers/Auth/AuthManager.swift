@@ -34,15 +34,15 @@ class AuthManager: ObservableObject {
     // MARK: - Initialization
 
     init() {
-        // Firebase Auth 상태 리스너 등록
+        // Register Firebase Auth state listener
         registerAuthStateHandler()
 
-        // 현재 사용자 확인 (자동 로그인)
+        // Check current user (Auto Login)
         checkCurrentUser()
     }
 
     deinit {
-        // 리스너 해제
+        // Remove listener
         if let handler = authStateHandler {
             Auth.auth().removeStateDidChangeListener(handler)
         }
@@ -60,18 +60,18 @@ class AuthManager: ObservableObject {
 
     // MARK: - Public Methods
 
-    /// 현재 로그인 상태 확인
+    /// Check current login status
     func checkCurrentUser() {
         currentUser = Auth.auth().currentUser
 
         if let user = currentUser {
-            print("✅ 자동 로그인 성공: \(user.uid)")
+            print("✅ Automatic login successful: \(user.uid)")
         } else {
-            print("ℹ️ 로그인된 사용자 없음")
+            print("ℹ️ No logged-in user")
         }
     }
 
-    /// Firebase 익명 로그인
+    /// Firebase Anonymous Login
     func signInAnonymously() async {
         isLoading = true
         errorMessage = nil
@@ -80,126 +80,126 @@ class AuthManager: ObservableObject {
             let result = try await Auth.auth().signInAnonymously()
             currentUser = result.user
 
-            print("✅ 익명 로그인 성공: \(result.user.uid)")
+            print("✅ Anonymous login successful: \(result.user.uid)")
 
         } catch {
             let nsError = error as NSError
             errorMessage = formatErrorMessage(nsError)
-            print("❌ 익명 로그인 실패: \(error.localizedDescription)")
+            print("❌ Anonymous login failed: \(error.localizedDescription)")
         }
 
         isLoading = false
     }
 
-    /// Google 로그인
+    /// Google Login
     func signInWithGoogle() async {
         isLoading = true
         errorMessage = nil
 
         do {
-            // 1. Google Client ID 가져오기
+            // 1. Get Google Client ID
             guard let clientID = FirebaseApp.app()?.options.clientID else {
                 throw NSError(domain: "AuthManager", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Firebase Client ID를 찾을 수 없습니다."
+                    NSLocalizedDescriptionKey: "Firebase Client ID not found."
                 ])
             }
 
-            // 2. GIDConfiguration 설정
+            // 2. Set GIDConfiguration
             let config = GIDConfiguration(clientID: clientID)
             GIDSignIn.sharedInstance.configuration = config
 
-            // 3. 현재 윈도우 가져오기 (macOS)
+            // 3. Get current window (macOS)
             guard let window = NSApplication.shared.windows.first else {
                 throw NSError(domain: "AuthManager", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "윈도우를 찾을 수 없습니다."
+                    NSLocalizedDescriptionKey: "Window not found."
                 ])
             }
 
-            // 4. Google Sign-In 실행
+            // 4. Execute Google Sign-In
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
 
-            // 5. ID Token과 Access Token 가져오기
+            // 5. Get ID Token and Access Token
             guard let idToken = result.user.idToken?.tokenString else {
                 throw NSError(domain: "AuthManager", code: -1, userInfo: [
-                    NSLocalizedDescriptionKey: "Google ID Token을 가져올 수 없습니다."
+                    NSLocalizedDescriptionKey: "Could not get Google ID Token."
                 ])
             }
 
             let accessToken = result.user.accessToken.tokenString
 
-            // 6. Firebase Credential 생성
+            // 6. Create Firebase Credential
             let credential = GoogleAuthProvider.credential(
                 withIDToken: idToken,
                 accessToken: accessToken
             )
 
-            // 7. Firebase Auth에 로그인
+            // 7. Sign in to Firebase Auth
             let authResult = try await Auth.auth().signIn(with: credential)
             currentUser = authResult.user
 
-            print("✅ Google 로그인 성공: \(authResult.user.uid)")
+            print("✅ Google login successful: \(authResult.user.uid)")
             if let email = authResult.user.email {
-                print("   이메일: \(email)")
+                print("   Email: \(email)")
             }
 
         } catch let error as NSError {
-            // Google Sign-In 취소 처리
+            // Handle Google Sign-In cancellation
             if error.domain == "com.google.GIDSignIn" && error.code == -5 {
-                errorMessage = "로그인이 취소되었습니다."
-                print("ℹ️ Google 로그인 취소됨")
+                errorMessage = "Login canceled."
+                print("ℹ️ Google login canceled")
             } else {
                 errorMessage = formatErrorMessage(error)
-                print("❌ Google 로그인 실패: \(error.localizedDescription)")
+                print("❌ Google login failed: \(error.localizedDescription)")
             }
         }
 
         isLoading = false
     }
 
-    /// 로그아웃
+    /// Logout
     func signOut() {
         do {
             try Auth.auth().signOut()
             currentUser = nil
             errorMessage = nil
 
-            print("✅ 로그아웃 성공")
+            print("✅ Logout successful")
 
         } catch {
-            errorMessage = "로그아웃 실패: \(error.localizedDescription)"
-            print("❌ 로그아웃 실패: \(error.localizedDescription)")
+            errorMessage = "Logout failed: \(error.localizedDescription)"
+            print("❌ Logout failed: \(error.localizedDescription)")
         }
     }
 
     // MARK: - Private Methods
 
-    /// Firebase 에러 메시지 한글화
+    /// Localize Firebase error messages
     private func formatErrorMessage(_ error: NSError) -> String {
         guard let errorCode = AuthErrorCode(rawValue: error.code) else {
-            return "알 수 없는 오류가 발생했습니다."
+            return "An unknown error occurred."
         }
 
         switch errorCode {
         case .networkError:
-            return "네트워크 연결을 확인해주세요."
+            return "Please check your network connection."
         case .userNotFound:
-            return "사용자를 찾을 수 없습니다."
+            return "User not found."
         case .invalidEmail:
-            return "이메일 형식이 올바르지 않습니다."
+            return "Email format is incorrect."
         case .emailAlreadyInUse:
-            return "이미 사용 중인 이메일입니다."
+            return "Email already in use."
         case .weakPassword:
-            return "비밀번호가 너무 약합니다."
+            return "Password is too weak."
         case .wrongPassword:
-            return "비밀번호가 올바르지 않습니다."
+            return "Password is incorrect."
         case .tooManyRequests:
-            return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
+            return "Too many requests. Please try again later."
         case .userDisabled:
-            return "비활성화된 계정입니다."
+            return "Disabled account."
         case .operationNotAllowed:
-            return "이 작업은 허용되지 않습니다."
+            return "This operation is not allowed."
         default:
-            return "로그인에 실패했습니다: \(error.localizedDescription)"
+            return "Login failed: \(error.localizedDescription)"
         }
     }
 }

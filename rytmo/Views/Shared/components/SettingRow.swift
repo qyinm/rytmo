@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// 설정 항목 행 (슬라이더 포함)
+/// Setting item row (includes slider)
 struct SettingRow: View {
     let title: String
     @Binding var value: Int

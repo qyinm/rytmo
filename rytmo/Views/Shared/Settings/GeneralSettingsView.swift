@@ -126,7 +126,7 @@ struct GeneralSettingsView: View {
                                     .disabled(notificationAuthStatus == .denied)
                             }
 
-                            // 권한 거부 시 안내 메시지
+                            // Guidance message when permission is denied
                             if notificationAuthStatus == .denied {
                                 HStack(spacing: 6) {
                                     Image(systemName: "exclamationmark.triangle.fill")
@@ -230,7 +230,7 @@ struct GeneralSettingsView: View {
             checkNotificationAuthStatus()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            // 앱이 활성화될 때마다 권한 상태 재확인
+            // Recheck permission status whenever the app becomes active
             checkNotificationAuthStatus()
         }
     }

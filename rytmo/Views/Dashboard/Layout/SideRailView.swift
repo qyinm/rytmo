@@ -32,6 +32,8 @@ struct SideRailView: View {
             Group {
                 railButton(icon: "house", selectedIcon: "house.fill", selectionValue: .home)
                 
+                railButton(icon: "checklist", selectedIcon: "checklist.checked", selectionValue: .tasks)
+                
                 railButton(icon: "music.note", selectedIcon: "music.note", selectionValue: .allPlaylists, isSelected: isPlaylistSelected)
             }
             

@@ -1,25 +1,25 @@
 import Combine
 import Sparkle
 
-// MVVM 패턴에 맞춰 ObservableObject로 만듭니다.
+// Make it an ObservableObject according to the MVVM pattern.
 final class UpdateManager: ObservableObject {
     private let controller: SPUStandardUpdaterController
     
     init() {
-        // Sparkle의 표준 컨트롤러 초기화
-        // startingUpdater: true로 설정하면 앱 시작 시 자동으로 체크 로직이 돕니다.
+        // Initialize Sparkle's standard controller
+        // Setting startingUpdater to true automatically runs the check logic when the app starts.
         controller = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
         
-        // 앱 실행 시마다 자동으로 업데이트 체크 확인
+        // Automatically check for updates every time the app runs
         controller.updater.automaticallyChecksForUpdates = true
         controller.updater.checkForUpdatesInBackground()
     }
     
-    // 메뉴바에서 "업데이트 확인"을 눌렀을 때 호출할 함수
+    // Function to call when 'Check for Updates' is pressed in the menubar
     func checkForUpdates() {
         controller.updater.checkForUpdates()
     }

@@ -9,35 +9,35 @@ import SwiftUI
 import AppKit
 import Combine
 
-/// 이미지 캐싱을 위한 싱글톤 매니저
+/// Singleton manager for image caching
 final class ImageCacheManager {
     static let shared = ImageCacheManager()
 
     private let cache = NSCache<NSURL, NSImage>()
 
     private init() {
-        // 메모리 제한 설정 (약 50MB)
+        // Memory limit setting (approx. 50MB)
         cache.countLimit = 100
         cache.totalCostLimit = 50 * 1024 * 1024
     }
 
-    /// 캐시에서 이미지 가져오기
+    /// Get image from cache
     func get(url: URL) -> NSImage? {
         return cache.object(forKey: url as NSURL)
     }
 
-    /// 캐시에 이미지 저장
+    /// Save image to cache
     func set(_ image: NSImage, for url: URL) {
         cache.setObject(image, forKey: url as NSURL)
     }
 
-    /// 캐시 비우기
+    /// Clear cache
     func clear() {
         cache.removeAllObjects()
     }
 }
 
-/// 이미지 로더 (비동기 다운로드 및 캐싱)
+/// Image loader (asynchronous download and caching)
 final class ImageLoader: ObservableObject {
     @Published var image: NSImage?
     @Published var isLoading = false
@@ -52,13 +52,13 @@ final class ImageLoader: ObservableObject {
 
     @MainActor
     private func loadImage() {
-        // 캐시에서 먼저 확인
+        // Check cache first
         if let cachedImage = cache.get(url: url) {
             self.image = cachedImage
             return
         }
 
-        // 캐시에 없으면 다운로드
+        // Download if not in cache
         isLoading = true
 
         Task {
@@ -66,7 +66,7 @@ final class ImageLoader: ObservableObject {
                 let (data, _) = try await URLSession.shared.data(from: url)
 
                 if let downloadedImage = NSImage(data: data) {
-                    // 캐시에 저장
+                    // Save to cache
                     cache.set(downloadedImage, for: url)
 
                     self.image = downloadedImage

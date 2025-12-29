@@ -15,7 +15,7 @@ struct LoginView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // 로고 및 타이틀
+            // Logo and Title
             VStack(spacing: 24) {
                 Image("RytmoIcon")
                     .resizable()
@@ -29,7 +29,7 @@ struct LoginView: View {
                         .font(.system(size: 36, weight: .semibold))
                         .foregroundStyle(.primary)
 
-                    Text("리듬감 있는 몰입을 위한 타이머")
+                    Text("Timer for Rhythmic Immersion")
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }
@@ -37,9 +37,9 @@ struct LoginView: View {
 
             Spacer()
 
-            // 로그인 영역
+            // Login Area
             VStack(spacing: 16) {
-                // 에러 메시지
+                // Error Message
                 if let errorMessage = authManager.errorMessage {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.circle.fill")
@@ -61,7 +61,7 @@ struct LoginView: View {
                     )
                 }
 
-                // Google 로그인 버튼
+                // Google Login Button
                 Button(action: {
                     Task {
                         await authManager.signInWithGoogle()
@@ -77,7 +77,7 @@ struct LoginView: View {
                                 .font(.body)
                         }
 
-                        Text(authManager.isLoading ? "로그인 중..." : "Google로 계속하기")
+                        Text(authManager.isLoading ? "Logging in..." : "Continue with Google")
                             .font(.system(size: 15, weight: .medium))
                     }
                     .frame(width: 340, height: 44)
@@ -92,13 +92,13 @@ struct LoginView: View {
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
-                // 구분선
+                // Divider
                 HStack(spacing: 12) {
                     Rectangle()
                         .fill(Color(nsColor: .separatorColor))
                         .frame(height: 1)
 
-                    Text("또는")
+                    Text("or")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
 
@@ -108,7 +108,7 @@ struct LoginView: View {
                 }
                 .frame(width: 340)
 
-                // 익명 로그인 버튼
+                // Anonymous Login Button
                 Button(action: {
                     Task {
                         await authManager.signInAnonymously()
@@ -125,7 +125,7 @@ struct LoginView: View {
                                 .font(.body)
                         }
 
-                        Text(authManager.isLoading ? "로그인 중..." : "익명으로 시작하기")
+                        Text(authManager.isLoading ? "Logging in..." : "Start Anonymously")
                             .font(.system(size: 15, weight: .medium))
                     }
                     .frame(width: 340, height: 44)
@@ -136,7 +136,7 @@ struct LoginView: View {
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
-                Text("익명 로그인은 데이터가 저장되지 않습니다")
+                Text("Anonymous login data is not saved")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .padding(.top, 4)
