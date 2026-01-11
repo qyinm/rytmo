@@ -9,8 +9,12 @@ import SwiftUI
 import SwiftData
 
 struct FocusRecordsView: View {
-    @Query(sort: \FocusSession.startTime, order: .reverse) private var allSessions: [FocusSession]
-    
+    @Query(
+        filter: #Predicate<FocusSession> { $0.typeString == "FOCUS" },
+        sort: \FocusSession.startTime,
+        order: .reverse
+    ) private var focusSessions: [FocusSession]
+
     private static let maxDaysToShow = 7
     private static let maxSessionsPerDay = 5
     
@@ -35,13 +39,12 @@ struct FocusRecordsView: View {
     }()
     
     private var groupedSessions: [(Date, [FocusSession])] {
-        let focusSessions = allSessions.filter { $0.sessionType == .focus }
         let calendar = Calendar.current
-        
+
         let grouped = Dictionary(grouping: focusSessions) { session -> Date in
             calendar.startOfDay(for: session.startTime)
         }
-        
+
         return grouped.sorted { $0.key > $1.key }
     }
     
@@ -55,7 +58,7 @@ struct FocusRecordsView: View {
                 Spacer()
             }
             
-            if allSessions.isEmpty {
+            if focusSessions.isEmpty {
                 emptyState
             } else {
                 ScrollView {
@@ -113,11 +116,11 @@ struct FocusRecordsView: View {
     }
     
     // MARK: - Session Row
-    
+
     private func sessionRow(session: FocusSession) -> some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(Color.red.opacity(0.8))
+                .fill(color(for: session.sessionType).opacity(0.8))
                 .frame(width: 8, height: 8)
             
             Text(formatTimeRange(session: session))
@@ -133,7 +136,15 @@ struct FocusRecordsView: View {
     }
     
     // MARK: - Formatters
-    
+
+    private func color(for type: SessionType) -> Color {
+        switch type {
+        case .focus: return .red
+        case .shortBreak: return .green
+        case .longBreak: return .blue
+        }
+    }
+
     private func formatTimeRange(session: FocusSession) -> String {
         let start = Self.timeFormatter.string(from: session.startTime)
         let end = Self.timeFormatter.string(from: session.endTime)

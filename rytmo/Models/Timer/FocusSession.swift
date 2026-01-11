@@ -74,6 +74,8 @@ final class FocusSession {
 // MARK: - Helpers
 
 extension FocusSession {
+    private static let secondsInDay: Double = 86400.0 // 24 * 60 * 60
+
     /// Check if session is from today
     var isToday: Bool {
         Calendar.current.isDateInToday(startTime)
@@ -97,15 +99,13 @@ extension FocusSession {
     /// Start position as fraction of day (0.0 - 1.0)
     var dayFraction: Double {
         let calendar = Calendar.current
-        let hour = calendar.component(.hour, from: startTime)
-        let minute = calendar.component(.minute, from: startTime)
-        let second = calendar.component(.second, from: startTime)
-        let totalSeconds = Double(hour * 3600 + minute * 60 + second)
-        return totalSeconds / 86400.0 // 24 * 60 * 60
+        let startOfDay = calendar.startOfDay(for: startTime)
+        let secondsFromStartOfDay = startTime.timeIntervalSince(startOfDay)
+        return secondsFromStartOfDay / Self.secondsInDay
     }
-    
+
     /// Duration as fraction of day (0.0 - 1.0)
     var durationFraction: Double {
-        Double(durationSeconds) / 86400.0
+        Double(durationSeconds) / Self.secondsInDay
     }
 }

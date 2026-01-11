@@ -9,8 +9,9 @@ import SwiftUI
 import SwiftData
 
 struct FocusStatsView: View {
-    @Query private var allSessions: [FocusSession]
-    
+    @Query(filter: #Predicate<FocusSession> { $0.typeString == "FOCUS" })
+    private var focusSessions: [FocusSession]
+
     private static let durationFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute]
@@ -22,20 +23,18 @@ struct FocusStatsView: View {
     private var stats: (todayPomos: Int, todaySeconds: Int, totalPomos: Int, totalSeconds: Int) {
         var todayPomos = 0
         var todaySeconds = 0
-        var totalPomos = 0
         var totalSeconds = 0
-        
-        for session in allSessions where session.sessionType == .focus {
-            totalPomos += 1
+
+        for session in focusSessions {
             totalSeconds += session.durationSeconds
-            
+
             if session.isToday {
                 todayPomos += 1
                 todaySeconds += session.durationSeconds
             }
         }
-        
-        return (todayPomos, todaySeconds, totalPomos, totalSeconds)
+
+        return (todayPomos, todaySeconds, focusSessions.count, totalSeconds)
     }
     
     var body: some View {

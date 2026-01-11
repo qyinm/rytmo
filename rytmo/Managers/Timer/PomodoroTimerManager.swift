@@ -189,9 +189,8 @@ class PomodoroTimerManager: ObservableObject {
     /// Helper method to save session to SwiftData
     private func saveSession(durationSeconds: Int) {
         guard let context = modelContext,
-              let startTime = currentSessionStartTime,
-              session.state != .idle else { return }
-        
+              let startTime = currentSessionStartTime else { return }
+
         let sessionType: SessionType
         switch session.state {
         case .focus:
