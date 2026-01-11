@@ -238,8 +238,8 @@ struct MenuBarTodoView: View {
     
     private func addTodo() {
         guard !newTaskContent.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        
-        let newTodo = TodoItem(content: newTaskContent, orderIndex: todos.count)
+
+        let newTodo = TodoItem(title: newTaskContent, orderIndex: todos.count)
         modelContext.insert(newTodo)
         newTaskContent = ""
     }
@@ -282,7 +282,7 @@ private struct MinimalTodoRow: View {
             .buttonStyle(.plain)
             
             // Task Text
-            Text(todo.content)
+            Text(todo.title)
                 .font(.system(size: 13, weight: .regular))
                 .foregroundColor(todo.isCompleted ? .secondary : .primary)
                 .strikethrough(todo.isCompleted)

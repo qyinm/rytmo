@@ -92,8 +92,8 @@ struct TodoListView: View {
     
     private func addTodo() {
         guard !newTaskContent.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        
-        let newTodo = TodoItem(content: newTaskContent, orderIndex: todos.count)
+
+        let newTodo = TodoItem(title: newTaskContent, orderIndex: todos.count)
         modelContext.insert(newTodo)
         newTaskContent = ""
         isInputFocused = false
@@ -119,11 +119,30 @@ struct TodoRowView: View {
             }
             .buttonStyle(.plain)
             
-            Text(todo.content)
-                .font(.system(size: compact ? 13 : 15))
-                .strikethrough(todo.isCompleted)
-                .foregroundColor(todo.isCompleted ? .secondary : .primary)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(todo.title)
+                    .font(.system(size: compact ? 13 : 15))
+                    .strikethrough(todo.isCompleted)
+                    .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                    .lineLimit(3)
+
+                if !todo.notes.isEmpty {
+                    Text(todo.notes)
+                        .font(.system(size: compact ? 11 : 13))
+                        .foregroundColor(todo.isCompleted ? .secondary.opacity(0.6) : .secondary.opacity(0.8))
+                        .lineLimit(2)
+                }
+
+                if let dueDate = todo.dueDate {
+                    HStack(spacing: 4) {
+                        Image(systemName: isOverdue(dueDate) ? "calendar.badge.exclamationmark" : "calendar")
+                            .font(.system(size: compact ? 10 : 12))
+                        Text(formatDate(dueDate))
+                            .font(.system(size: compact ? 10 : 12))
+                    }
+                    .foregroundColor(isOverdue(dueDate) ? .red : .secondary)
+                }
+            }
             
             Spacer()
             
@@ -143,6 +162,27 @@ struct TodoRowView: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func isOverdue(_ date: Date) -> Bool {
+        date < Date() && !todo.isCompleted
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        } else if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            return formatter.string(from: date)
         }
     }
 }
