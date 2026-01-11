@@ -171,50 +171,26 @@ class PomodoroTimerManager: ObservableObject {
         start()
     }
     
+    /// Minimum session duration to save (in seconds)
+    private let minimumSessionDurationToSave: Int = 10
+    
     /// Save completed session to SwiftData
     private func saveCompletedSession() {
-        guard let context = modelContext,
-              let startTime = currentSessionStartTime else { return }
-        
-        let sessionType: SessionType
-        switch session.state {
-        case .focus:
-            sessionType = .focus
-        case .shortBreak:
-            sessionType = .shortBreak
-        case .longBreak:
-            sessionType = .longBreak
-        case .idle:
-            return
-        }
-        
-        let focusSession = FocusSession(
-            startTime: startTime,
-            durationSeconds: Int(session.totalDuration),
-            sessionType: sessionType
-        )
-        
-        context.insert(focusSession)
-        
-        do {
-            try context.save()
-            print("✅ Session saved: \(sessionType.displayName) - \(Int(session.totalDuration / 60))min")
-        } catch {
-            print("⚠️ Failed to save session: \(error)")
-        }
-        
-        currentSessionStartTime = nil
+        saveSession(durationSeconds: Int(session.totalDuration))
     }
     
     /// Save partial session (when skipped or stopped early)
     private func savePartialSession() {
+        let elapsedSeconds = Int(session.totalDuration - session.remainingTime)
+        guard elapsedSeconds >= minimumSessionDurationToSave else { return }
+        saveSession(durationSeconds: elapsedSeconds)
+    }
+    
+    /// Helper method to save session to SwiftData
+    private func saveSession(durationSeconds: Int) {
         guard let context = modelContext,
               let startTime = currentSessionStartTime,
               session.state != .idle else { return }
-        
-        let elapsedSeconds = Int(session.totalDuration - session.remainingTime)
-        
-        guard elapsedSeconds >= 10 else { return }
         
         let sessionType: SessionType
         switch session.state {
@@ -230,7 +206,7 @@ class PomodoroTimerManager: ObservableObject {
         
         let focusSession = FocusSession(
             startTime: startTime,
-            durationSeconds: elapsedSeconds,
+            durationSeconds: durationSeconds,
             sessionType: sessionType
         )
         
@@ -238,9 +214,8 @@ class PomodoroTimerManager: ObservableObject {
         
         do {
             try context.save()
-            print("✅ Partial session saved: \(sessionType.displayName) - \(elapsedSeconds / 60)min \(elapsedSeconds % 60)sec")
         } catch {
-            print("⚠️ Failed to save partial session: \(error)")
+            assertionFailure("Failed to save session: \(error)")
         }
         
         currentSessionStartTime = nil

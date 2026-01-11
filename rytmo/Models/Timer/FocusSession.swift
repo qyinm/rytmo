@@ -43,7 +43,13 @@ final class FocusSession {
     var updatedAt: Date
     
     var sessionType: SessionType {
-        get { SessionType(rawValue: typeString) ?? .focus }
+        get {
+            guard let type = SessionType(rawValue: typeString) else {
+                assertionFailure("Invalid typeString: \(typeString)")
+                return .focus
+            }
+            return type
+        }
         set { typeString = newValue.rawValue }
     }
     

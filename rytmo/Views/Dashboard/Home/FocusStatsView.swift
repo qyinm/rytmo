@@ -11,79 +11,68 @@ import SwiftData
 struct FocusStatsView: View {
     @Query private var allSessions: [FocusSession]
     
-    private var todaySessions: [FocusSession] {
-        allSessions.filter { $0.isToday && $0.sessionType == .focus }
-    }
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.zeroFormattingBehavior = .dropAll
+        return formatter
+    }()
     
-    private var todayPomos: Int {
-        todaySessions.count
-    }
-    
-    private var todayFocusSeconds: Int {
-        todaySessions.reduce(0) { $0 + $1.durationSeconds }
-    }
-    
-    private var totalPomos: Int {
-        allSessions.filter { $0.sessionType == .focus }.count
-    }
-    
-    private var totalFocusSeconds: Int {
-        allSessions.filter { $0.sessionType == .focus }.reduce(0) { $0 + $1.durationSeconds }
+    private var stats: (todayPomos: Int, todaySeconds: Int, totalPomos: Int, totalSeconds: Int) {
+        var todayPomos = 0
+        var todaySeconds = 0
+        var totalPomos = 0
+        var totalSeconds = 0
+        
+        for session in allSessions where session.sessionType == .focus {
+            totalPomos += 1
+            totalSeconds += session.durationSeconds
+            
+            if session.isToday {
+                todayPomos += 1
+                todaySeconds += session.durationSeconds
+            }
+        }
+        
+        return (todayPomos, todaySeconds, totalPomos, totalSeconds)
     }
     
     var body: some View {
+        let currentStats = stats
+        
         VStack(spacing: 12) {
             HStack(spacing: 12) {
                 StatCard(
                     title: "Today's Pomos",
-                    value: "\(todayPomos)",
-                    unit: nil
+                    value: "\(currentStats.todayPomos)"
                 )
                 
                 StatCard(
                     title: "Today's Focus",
-                    value: formatTime(seconds: todayFocusSeconds).value,
-                    unit: formatTime(seconds: todayFocusSeconds).unit
+                    value: formatDuration(seconds: currentStats.todaySeconds)
                 )
             }
             
             HStack(spacing: 12) {
                 StatCard(
                     title: "Total Pomos",
-                    value: "\(totalPomos)",
-                    unit: nil
+                    value: "\(currentStats.totalPomos)"
                 )
                 
                 StatCard(
                     title: "Total Focus",
-                    value: formatTotalTime(seconds: totalFocusSeconds).value,
-                    unit: formatTotalTime(seconds: totalFocusSeconds).unit
+                    value: formatDuration(seconds: currentStats.totalSeconds)
                 )
             }
         }
     }
     
-    private func formatTime(seconds: Int) -> (value: String, unit: String?) {
-        let minutes = seconds / 60
-        if minutes < 60 {
-            return ("\(minutes)", "m")
-        } else {
-            let hours = minutes / 60
-            let mins = minutes % 60
-            return ("\(hours)h \(mins)", "m")
+    private func formatDuration(seconds: Int) -> String {
+        if seconds == 0 {
+            return "0m"
         }
-    }
-    
-    private func formatTotalTime(seconds: Int) -> (value: String, unit: String?) {
-        let minutes = seconds / 60
-        let hours = minutes / 60
-        let mins = minutes % 60
-        
-        if hours == 0 {
-            return ("\(mins)", "m")
-        } else {
-            return ("\(hours)h \(mins)", "m")
-        }
+        return Self.durationFormatter.string(from: TimeInterval(seconds)) ?? "0m"
     }
 }
 
@@ -92,7 +81,6 @@ struct FocusStatsView: View {
 private struct StatCard: View {
     let title: String
     let value: String
-    let unit: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -100,17 +88,9 @@ private struct StatCard: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
             
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.primary)
-                
-                if let unit = unit {
-                    Text(unit)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text(value)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)

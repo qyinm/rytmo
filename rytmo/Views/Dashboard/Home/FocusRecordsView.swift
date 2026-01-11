@@ -11,20 +11,38 @@ import SwiftData
 struct FocusRecordsView: View {
     @Query(sort: \FocusSession.startTime, order: .reverse) private var allSessions: [FocusSession]
     
-    private var groupedSessions: [(String, [FocusSession])] {
+    private static let maxDaysToShow = 7
+    private static let maxSessionsPerDay = 5
+    
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy년 M월 d일"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter
+    }()
+    
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+    
+    private static let durationFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+    
+    private var groupedSessions: [(Date, [FocusSession])] {
         let focusSessions = allSessions.filter { $0.sessionType == .focus }
-        let grouped = Dictionary(grouping: focusSessions) { session -> String in
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy년 M월 d일"
-            formatter.locale = Locale(identifier: "ko_KR")
-            return formatter.string(from: session.startTime)
+        let calendar = Calendar.current
+        
+        let grouped = Dictionary(grouping: focusSessions) { session -> Date in
+            calendar.startOfDay(for: session.startTime)
         }
         
-        return grouped.sorted { first, second in
-            guard let firstSession = first.value.first,
-                  let secondSession = second.value.first else { return false }
-            return firstSession.startTime > secondSession.startTime
-        }
+        return grouped.sorted { $0.key > $1.key }
     }
     
     var body: some View {
@@ -42,7 +60,7 @@ struct FocusRecordsView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 16) {
-                        ForEach(groupedSessions.prefix(7), id: \.0) { date, sessions in
+                        ForEach(groupedSessions.prefix(Self.maxDaysToShow), id: \.0) { date, sessions in
                             dateSection(date: date, sessions: sessions)
                         }
                     }
@@ -75,18 +93,18 @@ struct FocusRecordsView: View {
     
     // MARK: - Date Section
     
-    private func dateSection(date: String, sessions: [FocusSession]) -> some View {
+    private func dateSection(date: Date, sessions: [FocusSession]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(date)
+            Text(Self.dateFormatter.string(from: date))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
             
-            ForEach(sessions.prefix(5)) { session in
+            ForEach(sessions.prefix(Self.maxSessionsPerDay)) { session in
                 sessionRow(session: session)
             }
             
-            if sessions.count > 5 {
-                Text("+ \(sessions.count - 5) more")
+            if sessions.count > Self.maxSessionsPerDay {
+                Text("+ \(sessions.count - Self.maxSessionsPerDay) more")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .padding(.leading, 28)
@@ -117,24 +135,13 @@ struct FocusRecordsView: View {
     // MARK: - Formatters
     
     private func formatTimeRange(session: FocusSession) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        
-        let start = formatter.string(from: session.startTime)
-        let end = formatter.string(from: session.endTime)
-        
+        let start = Self.timeFormatter.string(from: session.startTime)
+        let end = Self.timeFormatter.string(from: session.endTime)
         return "\(start) - \(end)"
     }
     
     private func formatDuration(seconds: Int) -> String {
-        let minutes = seconds / 60
-        if minutes < 60 {
-            return "\(minutes)m"
-        } else {
-            let hours = minutes / 60
-            let mins = minutes % 60
-            return "\(hours)h \(mins)m"
-        }
+        Self.durationFormatter.string(from: TimeInterval(seconds)) ?? "0m"
     }
 }
 
