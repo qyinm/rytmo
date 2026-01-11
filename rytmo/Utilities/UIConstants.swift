@@ -9,7 +9,7 @@ import Foundation
 
 struct UIConstants {
     struct MainWindow {
-        static let minWidth: CGFloat = 980
+        static let minWidth: CGFloat = 1100
         static let idealWidth: CGFloat = 1390
         static let minHeight: CGFloat = 600
         static let idealHeight: CGFloat = 800
