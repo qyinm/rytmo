@@ -38,29 +38,6 @@ struct TodoListView: View {
                 }
             }
             
-            // Input Field
-            HStack(spacing: 8) {
-                TextField("Add a new task...", text: $newTaskContent)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: compact ? 13 : 15))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, compact ? 6 : 10)
-                    .background(Color.primary.opacity(0.05))
-                    .cornerRadius(8)
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        addTodo()
-                    }
-                
-                Button(action: addTodo) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: compact ? 18 : 22))
-                        .foregroundColor(newTaskContent.isEmpty ? .secondary.opacity(0.5) : .primary)
-                }
-                .buttonStyle(.plain)
-                .disabled(newTaskContent.isEmpty)
-            }
-            
             // Todo List
             if todos.isEmpty {
                 VStack(spacing: 12) {

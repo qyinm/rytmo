@@ -12,259 +12,358 @@ struct DashboardTodoView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
 
-    @State private var showCreateSheet: Bool = false
+    @State private var newTaskTitle: String = ""
+    @State private var newTaskNotes: String = ""
+    @State private var dueDate: Date? = nil
+    @State private var showDatePicker: Bool = false
+    
+    @FocusState private var focusedField: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header Section
-                HStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("My Tasks")
-                            .font(.system(size: 28, weight: .bold))
-
-                        Text("Manage your focus goals here.")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    Button(action: {
-                        showCreateSheet = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("New Task")
-                                .font(.system(size: 14, weight: .semibold))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Color.black)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.top, 40)
-
-                // Content Section
-                TodoListView(showHeader: false, compact: false)
-                    .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-                    )
+        VStack(spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 8) {
+                Text("My Tasks")
+                    .font(.system(size: 32, weight: .bold))
+                
+                Text("Simplify your day, one task at a time.")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 40)
-            .padding(.bottom, 40)
-            .frame(maxWidth: 800)
+            .padding(.top, 48)
+            .padding(.bottom, 32)
+
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Inline Quick Add Bar (Image 1 inspired)
+                    quickAddBar
+                    
+                    // Task List
+                    TodoListView(showHeader: true, compact: false)
+                }
+                .padding(.horizontal, 40)
+                .padding(.bottom, 40)
+                .frame(maxWidth: 800)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
-        .sheet(isPresented: $showCreateSheet) {
-            TodoCreateSheet()
-        }
     }
-}
 
-// MARK: - Todo Create Sheet
-
-private struct TodoCreateSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var title: String = ""
-    @State private var notes: String = ""
-    @State private var dueDate: Date? = nil
-    @State private var showDatePicker: Bool = false
-    @FocusState private var isTitleFocused: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            // Header
-            HStack {
-                Text("New Task")
-                    .font(.system(size: 20, weight: .bold))
-
-                Spacer()
-
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.secondary)
+    // MARK: - Quick Add Bar
+    
+    private var quickAddBar: some View {
+        HStack(spacing: 12) {
+            // Left Checkbox Placeholder
+            Image(systemName: "circle")
+                .font(.system(size: 18))
+                .foregroundColor(.secondary.opacity(0.4))
+            
+            // Title Input
+            TextField("Write a new task...", text: $newTaskTitle)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .focused($focusedField)
+            
+            Spacer()
+            
+            // Date Picker Button
+            Button(action: { showDatePicker = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: dueDate == nil ? "calendar" : "calendar.badge.clock")
+                        .font(.system(size: 14))
+                    
+                    if let date = dueDate {
+                        Text(formatDate(date))
+                            .font(.system(size: 13, weight: .medium))
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(dueDate == nil ? Color.clear : Color.primary.opacity(0.05))
+                )
+                .foregroundColor(dueDate == nil ? .secondary : .primary)
             }
-
-            Divider()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Title Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Title")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        TextField("What needs to be done?", text: $title)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 16, weight: .medium))
-                            .padding(12)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(8)
-                            .focused($isTitleFocused)
-                            .onAppear {
-                                isTitleFocused = true
-                            }
-                    }
-
-                    // Description Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        TextEditor(text: $notes)
-                            .font(.system(size: 14))
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 120)
-                            .padding(12)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(8)
-                    }
-
-                    // Due Date Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Due Date")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 12) {
-                            if let selectedDate = dueDate {
-                                Button(action: {
-                                    showDatePicker.toggle()
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "calendar")
-                                            .font(.system(size: 14))
-
-                                        Text(formatDate(selectedDate))
-                                            .font(.system(size: 14))
-
-                                        Spacer()
-
-                                        Button(action: {
-                                            dueDate = nil
-                                        }) {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .font(.system(size: 14))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .padding(12)
-                                    .background(Color(nsColor: .controlBackgroundColor))
-                                    .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                Button(action: {
-                                    showDatePicker.toggle()
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "calendar.badge.plus")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.secondary)
-
-                                        Text("Set due date")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.secondary)
-
-                                        Spacer()
-                                    }
-                                    .padding(12)
-                                    .background(Color(nsColor: .controlBackgroundColor))
-                                    .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-
-                        if showDatePicker {
-                            DatePicker(
-                                "",
-                                selection: Binding(
-                                    get: { dueDate ?? Date() },
-                                    set: { dueDate = $0 }
-                                ),
-                                displayedComponents: [.date]
-                            )
-                            .datePickerStyle(.graphical)
-                            .labelsHidden()
-                            .transition(.opacity)
-                        }
-                    }
-                }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showDatePicker, arrowEdge: .bottom) {
+                datePickerPopover
             }
-
-            Divider()
-
-            // Footer
-            HStack(spacing: 12) {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Text("Cancel")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
+            
+            // Add Button (Only visible when title is not empty)
+            if !newTaskTitle.isEmpty {
                 Button(action: createTodo) {
-                    HStack(spacing: 6) {
-                        Text("Create Task")
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Color.black)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.black)
                 }
                 .buttonStyle(.plain)
-                .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                .transition(.scale.combined(with: .opacity))
             }
         }
-        .padding(24)
-        .frame(width: 480, height: 600)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(nsColor: .controlBackgroundColor))
+                .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(focusedField ? Color.primary.opacity(0.1) : Color.clear, lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Date Picker Popover (Full Custom Calendar)
+    
+    private var datePickerPopover: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Schedule Task")
+                .font(.system(size: 14, weight: .semibold))
+                .padding(.horizontal, 4)
+            
+            // Quick Options
+            VStack(spacing: 4) {
+                quickDateOption(title: "Today", systemImage: "sun.max", date: Date())
+                quickDateOption(title: "Tomorrow", systemImage: "sunrise", date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!)
+                quickDateOption(title: "Next Week", systemImage: "calendar.badge.plus", date: Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date())!)
+            }
+            
+            Divider()
+            
+            // Full Custom Calendar
+            CustomCalendarView(selectedDate: Binding(
+                get: { dueDate ?? Date() },
+                set: { date in
+                    dueDate = Calendar.current.startOfDay(for: date)
+                    showDatePicker = false
+                }
+            ))
+            .frame(width: 280)
+            
+            if dueDate != nil {
+                Button(action: { dueDate = nil; showDatePicker = false }) {
+                    Text("Clear Date")
+                        .font(.system(size: 13))
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.05))
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .frame(width: 312)
+    }
+    
+    private func quickDateOption(title: String, systemImage: String, date: Date) -> some View {
+        Button(action: {
+            dueDate = Calendar.current.startOfDay(for: date)
+            showDatePicker = false
+        }) {
+            HStack {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12))
+                    .frame(width: 20)
+                Text(title)
+                    .font(.system(size: 13))
+                Spacer()
+                Text(formatDate(date))
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Helper Methods
 
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: date)
+        }
     }
 
     private func createTodo() {
-        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard !newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
         let newTodo = TodoItem(
-            title: title,
-            notes: notes,
+            title: newTaskTitle,
+            notes: newTaskNotes,
             dueDate: dueDate
         )
         modelContext.insert(newTodo)
-        dismiss()
+        
+        // Reset fields
+        newTaskTitle = ""
+        newTaskNotes = ""
+        dueDate = nil
+        focusedField = false
+    }
+}
+
+// MARK: - Full Custom Calendar View (Image 2 style)
+
+private struct CustomCalendarView: View {
+    @Binding var selectedDate: Date
+    @State private var currentMonth: Date = Date()
+    
+    private let calendar = Calendar.current
+    private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                Text(monthYearString(from: currentMonth))
+                    .font(.system(size: 15, weight: .semibold))
+                
+                Spacer()
+                
+                HStack(spacing: 20) {
+                    Button(action: { changeMonth(by: -1) }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: { changeMonth(by: 1) }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 8)
+            
+            // Days
+            HStack(spacing: 0) {
+                ForEach(daysOfWeek, id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Grid
+            let days = generateDaysInMonth(for: currentMonth)
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+            
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(days, id: \.self) { date in
+                    if let date = date {
+                        CalendarDayView(
+                            date: date,
+                            isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                            isToday: calendar.isDateInToday(date),
+                            isCurrentMonth: calendar.isDate(date, equalTo: currentMonth, toGranularity: .month),
+                            action: { selectedDate = date }
+                        )
+                    } else {
+                        Color.clear
+                            .frame(height: 32)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func monthYearString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func changeMonth(by value: Int) {
+        if let newMonth = calendar.date(byAdding: .month, value: value, to: currentMonth) {
+            currentMonth = newMonth
+        }
+    }
+    
+    private func generateDaysInMonth(for date: Date) -> [Date?] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
+              let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthInterval.start)) else {
+            return []
+        }
+        
+        let weekdayOfFirstDay = calendar.component(.weekday, from: firstDayOfMonth)
+        let numberOfDaysInMonth = calendar.range(of: .day, in: .month, for: firstDayOfMonth)!.count
+        
+        var days: [Date?] = Array(repeating: nil, count: weekdayOfFirstDay - 1)
+        
+        for day in 0..<numberOfDaysInMonth {
+            if let date = calendar.date(byAdding: .day, value: day, to: firstDayOfMonth) {
+                days.append(date)
+            }
+        }
+        
+        while days.count % 7 != 0 {
+            days.append(nil)
+        }
+        
+        return days
+    }
+}
+
+private struct CalendarDayView: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let isCurrentMonth: Bool
+    let action: () -> Void
+    
+    @State private var isHovering = false
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.black)
+                        .frame(width: 32, height: 32)
+                } else if isHovering {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                        .frame(width: 32, height: 32)
+                }
+                
+                VStack(spacing: 2) {
+                    Text("\(calendar.component(.day, from: date))")
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(isSelected ? .white : (isCurrentMonth ? .primary : .secondary.opacity(0.3)))
+                    
+                    if isToday && !isSelected {
+                        Circle()
+                            .fill(Color.black)
+                            .frame(width: 3, height: 3)
+                    }
+                }
+            }
+            .frame(height: 36)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovering = hovering
+        }
     }
 }
 
