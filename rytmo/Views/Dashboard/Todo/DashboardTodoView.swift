@@ -222,6 +222,7 @@ struct DashboardTodoView: View {
 private struct CustomCalendarView: View {
     @Binding var selectedDate: Date
     @State private var currentMonth: Date = Date()
+    @State private var daysInMonth: [Date?] = []
     
     private let calendar = Calendar.current
     private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -264,12 +265,11 @@ private struct CustomCalendarView: View {
             }
             
             // Grid
-            let days = generateDaysInMonth(for: currentMonth)
             let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
             
             LazyVGrid(columns: columns, spacing: 4) {
-                ForEach(days, id: \.self) { date in
-                    if let date = date {
+                ForEach(0..<daysInMonth.count, id: \.self) { index in
+                    if let date = daysInMonth[index] {
                         CalendarDayView(
                             date: date,
                             isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
@@ -283,7 +283,20 @@ private struct CustomCalendarView: View {
                     }
                 }
             }
+            .frame(minHeight: 216) // Fix height to prevent laggy jumps (6 rows * 36px)
         }
+        .onAppear {
+            updateDays()
+        }
+        .onChange(of: currentMonth) { _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                updateDays()
+            }
+        }
+    }
+    
+    private func updateDays() {
+        daysInMonth = generateDaysInMonth(for: currentMonth)
     }
     
     private func monthYearString(from date: Date) -> String {
