@@ -49,7 +49,8 @@ struct rytmoApp: App {
             let schema = Schema([
                 Playlist.self,
                 MusicTrack.self,
-                TodoItem.self
+                TodoItem.self,
+                FocusSession.self
             ])
             let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -75,6 +76,7 @@ struct rytmoApp: App {
                 }
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
+                    timerManager.setModelContext(modelContainer.mainContext)
                 }
         }
         // Window Size Settings
@@ -101,6 +103,7 @@ struct rytmoApp: App {
                 .modelContainer(modelContainer)
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
+                    timerManager.setModelContext(modelContainer.mainContext)
                 }
         } label: {
             // Menubar Label (Icon + Timer)

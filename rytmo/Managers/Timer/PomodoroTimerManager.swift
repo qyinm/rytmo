@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import UserNotifications
+import SwiftData
 
 // MARK: - Pomodoro Timer Manager
 
@@ -23,12 +24,21 @@ class PomodoroTimerManager: ObservableObject {
 
     private var timer: Timer?
     private var settings: PomodoroSettings
+    private var modelContext: ModelContext?
+    private var currentSessionStartTime: Date?
 
     // MARK: - Initialization
 
     init(settings: PomodoroSettings) {
         self.settings = settings
         self.session = PomodoroSession()
+    }
+    
+    // MARK: - Model Context Setup
+    
+    /// Set the SwiftData model context for persisting sessions
+    func setModelContext(_ context: ModelContext) {
+        self.modelContext = context
     }
 
     // MARK: - Public Methods
@@ -45,6 +55,9 @@ class PomodoroTimerManager: ObservableObject {
         // Calculate end time (for background operation)
         session.endDate = Date().addingTimeInterval(session.remainingTime)
         session.isRunning = true
+        
+        // Record session start time
+        currentSessionStartTime = Date()
 
         // Start timer (Update every second)
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -80,6 +93,9 @@ class PomodoroTimerManager: ObservableObject {
 
     /// Skip Timer (to next step)
     func skip() {
+        // Save partial session (time spent before skip)
+        savePartialSession()
+        
         // Event Tracking (Called before skip)
         AmplitudeManager.shared.trackTimerSkipped(
             sessionType: session.state.displayName,
@@ -130,6 +146,9 @@ class PomodoroTimerManager: ObservableObject {
 
     /// Timer termination processing
     private func timerDidFinish() {
+        // Save completed session to SwiftData
+        saveCompletedSession()
+        
         // Event Tracking (Called before state change)
         AmplitudeManager.shared.trackTimerCompleted(
             sessionType: session.state.displayName,
@@ -150,6 +169,81 @@ class PomodoroTimerManager: ObservableObject {
 
         // Automatically start next state
         start()
+    }
+    
+    /// Save completed session to SwiftData
+    private func saveCompletedSession() {
+        guard let context = modelContext,
+              let startTime = currentSessionStartTime else { return }
+        
+        let sessionType: SessionType
+        switch session.state {
+        case .focus:
+            sessionType = .focus
+        case .shortBreak:
+            sessionType = .shortBreak
+        case .longBreak:
+            sessionType = .longBreak
+        case .idle:
+            return
+        }
+        
+        let focusSession = FocusSession(
+            startTime: startTime,
+            durationSeconds: Int(session.totalDuration),
+            sessionType: sessionType
+        )
+        
+        context.insert(focusSession)
+        
+        do {
+            try context.save()
+            print("✅ Session saved: \(sessionType.displayName) - \(Int(session.totalDuration / 60))min")
+        } catch {
+            print("⚠️ Failed to save session: \(error)")
+        }
+        
+        currentSessionStartTime = nil
+    }
+    
+    /// Save partial session (when skipped or stopped early)
+    private func savePartialSession() {
+        guard let context = modelContext,
+              let startTime = currentSessionStartTime,
+              session.state != .idle else { return }
+        
+        let elapsedSeconds = Int(session.totalDuration - session.remainingTime)
+        
+        guard elapsedSeconds >= 10 else { return }
+        
+        let sessionType: SessionType
+        switch session.state {
+        case .focus:
+            sessionType = .focus
+        case .shortBreak:
+            sessionType = .shortBreak
+        case .longBreak:
+            sessionType = .longBreak
+        case .idle:
+            return
+        }
+        
+        let focusSession = FocusSession(
+            startTime: startTime,
+            durationSeconds: elapsedSeconds,
+            sessionType: sessionType
+        )
+        
+        context.insert(focusSession)
+        
+        do {
+            try context.save()
+            print("✅ Partial session saved: \(sessionType.displayName) - \(elapsedSeconds / 60)min \(elapsedSeconds % 60)sec")
+        } catch {
+            print("⚠️ Failed to save partial session: \(error)")
+        }
+        
+        currentSessionStartTime = nil
     }
 
     /// Update Menubar Title
