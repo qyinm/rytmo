@@ -66,6 +66,9 @@ struct DashboardTodoView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
                 .focused($focusedField)
+                .onChange(of: newTaskTitle) { newValue in
+                    parseDateFromText(newValue)
+                }
             
             Spacer()
             
@@ -185,6 +188,80 @@ struct DashboardTodoView: View {
     }
 
     // MARK: - Helper Methods
+
+    private func parseDateFromText(_ text: String) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        // Reset dueDate if text is empty or very short to avoid stale states
+        if text.trimmingCharacters(in: .whitespaces).isEmpty {
+            dueDate = nil
+            return
+        }
+        
+        // 1. Explicit short weekday check (Mon, Tue, Wed...)
+        let weekDays = [
+            ("sun", 1), ("mon", 2), ("tue", 3), ("wed", 4), ("thu", 5), ("fri", 6), ("sat", 7)
+        ]
+        
+        for (dayStr, weekdayIdx) in weekDays {
+            // Check for standalone word match
+            let pattern = "\\b\(dayStr)\\b"
+            if text.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil {
+                // Find next occurrence of this weekday
+                let currentWeekday = calendar.component(.weekday, from: today)
+                var daysToAdd = weekdayIdx - currentWeekday
+                
+                // If it's today (daysToAdd == 0), schedule for today.
+                // If it's past (daysToAdd < 0), schedule for next week.
+                if daysToAdd < 0 {
+                    daysToAdd += 7
+                }
+                
+                if let nextDate = calendar.date(byAdding: .day, value: daysToAdd, to: today) {
+                    dueDate = nextDate
+                    return // Found a match, stop parsing
+                }
+            }
+        }
+
+        // 2. Use NSDataDetector for natural language parsing
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue) else { return }
+        
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        let matches = detector.matches(in: text, options: [], range: range)
+        
+        if let match = matches.first, let date = match.date {
+            let targetDate = calendar.startOfDay(for: date)
+            
+            // Smart correction for past dates
+            if targetDate < today {
+                // If it's likely a weekday reference (within last 7 days), move to next week
+                if let daysDiff = calendar.dateComponents([.day], from: targetDate, to: today).day, daysDiff < 7 {
+                     if let nextOccurrence = calendar.date(byAdding: .day, value: 7, to: targetDate) {
+                        dueDate = nextOccurrence
+                    }
+                } else {
+                    // For specific past dates (e.g. "Jan 1" when it's June), user might mean next year
+                    // But simpler to just keep as-is or let user correct manually.
+                    // For now, we trust explicit dates unless they look like "last Friday"
+                    dueDate = targetDate
+                }
+            } else {
+                dueDate = targetDate
+            }
+        } else {
+            // No match found -> clear previously set date if it came from parsing?
+            // UX decision: For now, if user deletes the keyword, we clear the date.
+            // But checking "no match" is tricky because "Meeting" has no match but we want to keep "Fri" result?
+            // Actually, parseDateFromText is called on EVERY change.
+            // If we didn't find a match in THIS text, we should probably clear it IF the previous date came from text.
+            // But we don't know source. 
+            // Simple approach: If no match found in current text, clear dueDate.
+            // This allows removing date by deleting text.
+            dueDate = nil
+        }
+    }
 
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
