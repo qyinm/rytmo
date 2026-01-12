@@ -16,6 +16,7 @@ struct DashboardTodoView: View {
     @State private var newTaskNotes: String = ""
     @State private var dueDate: Date? = nil
     @State private var showDatePicker: Bool = false
+    @State private var showNoteInput: Bool = false
     
     @FocusState private var focusedField: Bool
 
@@ -55,60 +56,100 @@ struct DashboardTodoView: View {
     // MARK: - Quick Add Bar
     
     private var quickAddBar: some View {
-        HStack(spacing: 12) {
-            // Left Checkbox Placeholder
-            Image(systemName: "circle")
-                .font(.system(size: 18))
-                .foregroundColor(.secondary.opacity(0.4))
-            
-            // Title Input
-            TextField("Write a new task...", text: $newTaskTitle)
-                .textFieldStyle(.plain)
-                .font(.system(size: 16))
-                .focused($focusedField)
-                .onChange(of: newTaskTitle) { newValue in
-                    parseDateFromText(newValue)
-                }
-            
-            Spacer()
-            
-            // Date Picker Button
-            Button(action: { showDatePicker = true }) {
-                HStack(spacing: 6) {
-                    Image(systemName: dueDate == nil ? "calendar" : "calendar.badge.clock")
-                        .font(.system(size: 14))
-                    
-                    if let date = dueDate {
-                        Text(formatDate(date))
-                            .font(.system(size: 13, weight: .medium))
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Left Checkbox Placeholder
+                Image(systemName: "circle")
+                    .font(.system(size: 18))
+                    .foregroundColor(.secondary.opacity(0.4))
+                
+                // Title Input
+                TextField("Write a new task...", text: $newTaskTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16))
+                    .focused($focusedField)
+                    .onChange(of: newTaskTitle) { newValue in
+                        parseDateFromText(newValue)
                     }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(dueDate == nil ? Color.clear : Color.primary.opacity(0.05))
-                )
-                .foregroundColor(dueDate == nil ? .secondary : .primary)
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showDatePicker, arrowEdge: .bottom) {
-                datePickerPopover
-            }
-            
-            // Add Button (Only visible when title is not empty)
-            if !newTaskTitle.isEmpty {
-                Button(action: createTodo) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.black)
+                
+                Spacer()
+                
+                // Note Toggle Button
+                Button(action: {
+                    withAnimation(.snappy) { showNoteInput.toggle() }
+                }) {
+                    Image(systemName: "text.alignleft")
+                        .font(.system(size: 14))
+                        .foregroundColor(showNoteInput || !newTaskNotes.isEmpty ? .primary : .secondary)
+                        .padding(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(showNoteInput ? Color.primary.opacity(0.1) : Color.clear)
+                        )
                 }
                 .buttonStyle(.plain)
-                .transition(.scale.combined(with: .opacity))
+                
+                // Date Picker Button
+                Button(action: { showDatePicker = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: dueDate == nil ? "calendar" : "calendar.badge.clock")
+                            .font(.system(size: 14))
+                        
+                        if let date = dueDate {
+                            Text(formatDate(date))
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(dueDate == nil ? Color.clear : Color.primary.opacity(0.05))
+                    )
+                    .foregroundColor(dueDate == nil ? .secondary : .primary)
+                }
+                .buttonStyle(.plain)
+                .popover(isPresented: $showDatePicker, arrowEdge: .bottom) {
+                    datePickerPopover
+                }
+                
+                // Add Button (Only visible when title is not empty)
+                if !newTaskTitle.isEmpty {
+                    Button(action: createTodo) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.black)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            
+            // Expandable Note Input (WYSIWYG Style)
+            if showNoteInput {
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                ZStack(alignment: .topLeading) {
+                    if newTaskNotes.isEmpty {
+                        Text("Add notes... (supports rich text)")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .padding(.top, 0)
+                            .padding(.leading, 0)
+                            .allowsHitTesting(false)
+                    }
+                    
+                    WYSIWYGNoteEditor(text: $newTaskNotes, placeholder: "")
+                        .frame(minHeight: 60)
+                }
+                .padding(.horizontal, 16)
+                .padding(.leading, 30)
+                .padding(.vertical, 12)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(nsColor: .controlBackgroundColor))
@@ -118,6 +159,94 @@ struct DashboardTodoView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(focusedField ? Color.primary.opacity(0.1) : Color.clear, lineWidth: 1)
         )
+    }
+    
+    // MARK: - WYSIWYG Editor (NSTextView Wrapper)
+    
+    private struct WYSIWYGNoteEditor: NSViewRepresentable {
+        @Binding var text: String
+        var placeholder: String
+        
+        func makeNSView(context: Context) -> NSScrollView {
+            let scrollView = NSScrollView()
+            scrollView.drawsBackground = false
+            scrollView.borderType = .noBorder
+            scrollView.hasVerticalScroller = false
+            scrollView.hasHorizontalScroller = false
+            scrollView.autohidesScrollers = true
+            
+            let textView = CustomTextView()
+            textView.isRichText = true
+            textView.isEditable = true
+            textView.isSelectable = true
+            textView.allowsUndo = true
+            textView.font = .systemFont(ofSize: 14)
+            textView.textColor = .labelColor
+            textView.backgroundColor = .clear
+            textView.drawsBackground = false
+            textView.isVerticallyResizable = true
+            textView.isHorizontallyResizable = false
+            textView.textContainerInset = NSSize(width: 0, height: 0)
+            textView.textContainer?.lineFragmentPadding = 0
+            textView.textContainer?.widthTracksTextView = true
+            textView.textContainer?.containerSize = NSSize(width: 200, height: CGFloat.greatestFiniteMagnitude)
+            textView.delegate = context.coordinator
+            
+            // Fix text visibility and color consistency
+            textView.typingAttributes = [
+                .font: NSFont.systemFont(ofSize: 14),
+                .foregroundColor: NSColor.labelColor
+            ]
+            
+            scrollView.documentView = textView
+            return scrollView
+        }
+        
+        func updateNSView(_ nsView: NSScrollView, context: Context) {
+            guard let textView = nsView.documentView as? CustomTextView else { return }
+            
+            if textView.string != text {
+                textView.string = text
+            }
+            
+            // Sync current theme color
+            textView.textColor = .labelColor
+            textView.insertionPointColor = .labelColor
+        }
+        
+        func makeCoordinator() -> Coordinator {
+            Coordinator(self)
+        }
+        
+        class Coordinator: NSObject, NSTextViewDelegate {
+            var parent: WYSIWYGNoteEditor
+            
+            init(_ parent: WYSIWYGNoteEditor) {
+                self.parent = parent
+            }
+            
+            func textDidChange(_ notification: Notification) {
+                guard let textView = notification.object as? NSTextView else { return }
+                parent.text = textView.string
+            }
+        }
+    }
+    
+    // Custom NSTextView to handle intrinsic content size and better behavior
+    private class CustomTextView: NSTextView {
+        override var intrinsicContentSize: NSSize {
+            guard let container = textContainer, let manager = layoutManager else {
+                return .zero
+            }
+            manager.ensureLayout(for: container)
+            let usedRect = manager.usedRect(for: container)
+            return NSSize(width: NSView.noIntrinsicMetric, height: max(60, usedRect.height))
+        }
+        
+        override func didChangeText() {
+            super.didChangeText()
+            self.invalidateIntrinsicContentSize()
+        }
     }
     
     // MARK: - Date Picker Popover (Full Custom Calendar)
@@ -290,6 +419,7 @@ struct DashboardTodoView: View {
         newTaskTitle = ""
         newTaskNotes = ""
         dueDate = nil
+        showNoteInput = false
         focusedField = false
     }
 }
