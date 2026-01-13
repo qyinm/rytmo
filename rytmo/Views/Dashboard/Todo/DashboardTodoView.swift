@@ -520,12 +520,13 @@ private struct CustomCalendarView: View {
     
     private func generateDaysInMonth(for date: Date) -> [Date?] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: date),
-              let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthInterval.start)) else {
+              let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthInterval.start)),
+              let monthRange = calendar.range(of: .day, in: .month, for: firstDayOfMonth) else {
             return []
         }
         
         let weekdayOfFirstDay = calendar.component(.weekday, from: firstDayOfMonth)
-        let numberOfDaysInMonth = calendar.range(of: .day, in: .month, for: firstDayOfMonth)!.count
+        let numberOfDaysInMonth = monthRange.count
         
         var days: [Date?] = Array(repeating: nil, count: weekdayOfFirstDay - 1)
         
