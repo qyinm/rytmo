@@ -72,7 +72,7 @@ struct DashboardTodoView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 16))
                     .focused($focusedField)
-                    .onChange(of: newTaskTitle) { newValue in
+                    .onChange(of: newTaskTitle) { _, newValue in
                         parseDateFromText(newValue)
                     }
                 
@@ -499,7 +499,7 @@ private struct CustomCalendarView: View {
         .onAppear {
             updateDays()
         }
-        .onChange(of: currentMonth) { _ in
+        .onChange(of: currentMonth) {
             withAnimation(.easeInOut(duration: 0.2)) {
                 updateDays()
             }
