@@ -77,6 +77,15 @@ struct rytmoApp: App {
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
                     timerManager.setModelContext(modelContainer.mainContext)
+                    
+                    // Setup Notch Window
+                    appDelegate.setupNotchWindow(
+                        timerManager: timerManager,
+                        settings: settings,
+                        musicPlayer: musicPlayer,
+                        authManager: authManager,
+                        modelContainer: modelContainer
+                    )
                 }
         }
         // Window Size Settings
@@ -157,6 +166,13 @@ extension Notification.Name {
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    private var notchViewModel: NotchViewModel?
+    private var timerManagerRef: PomodoroTimerManager?
+    private var settingsRef: PomodoroSettings?
+    private var musicPlayerRef: MusicPlayerManager?
+    private var authManagerRef: AuthManager?
+    private var modelContainerRef: ModelContainer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Firebase initialization moved to App's init, so removed
@@ -172,6 +188,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Bring window to front on app launch
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    func setupNotchWindow(
+        timerManager: PomodoroTimerManager,
+        settings: PomodoroSettings,
+        musicPlayer: MusicPlayerManager,
+        authManager: AuthManager,
+        modelContainer: ModelContainer
+    ) {
+        self.timerManagerRef = timerManager
+        self.settingsRef = settings
+        self.musicPlayerRef = musicPlayer
+        self.authManagerRef = authManager
+        self.modelContainerRef = modelContainer
+        
+        let vm = NotchViewModel()
+        self.notchViewModel = vm
+        
+        let notchContent = NotchContentView(timerManager: timerManager)
+            .environmentObject(vm)
+            .environmentObject(timerManager)
+            .environmentObject(settings)
+            .environmentObject(musicPlayer)
+            .environmentObject(authManager)
+            .modelContainer(modelContainer)
+        
+        NotchWindowManager.shared.setup(with: notchContent)
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
