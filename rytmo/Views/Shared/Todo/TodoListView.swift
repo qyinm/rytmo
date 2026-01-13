@@ -8,6 +8,20 @@
 import SwiftUI
 import SwiftData
 
+private enum DateFormatters {
+    static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+    
+    static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
+    }()
+}
+
 struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
@@ -36,29 +50,6 @@ struct TodoListView: View {
                     
                     Spacer()
                 }
-            }
-            
-            // Input Field
-            HStack(spacing: 8) {
-                TextField("Add a new task...", text: $newTaskContent)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: compact ? 13 : 15))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, compact ? 6 : 10)
-                    .background(Color.primary.opacity(0.05))
-                    .cornerRadius(8)
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        addTodo()
-                    }
-                
-                Button(action: addTodo) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: compact ? 18 : 22))
-                        .foregroundColor(newTaskContent.isEmpty ? .secondary.opacity(0.5) : .primary)
-                }
-                .buttonStyle(.plain)
-                .disabled(newTaskContent.isEmpty)
             }
             
             // Todo List
@@ -92,8 +83,8 @@ struct TodoListView: View {
     
     private func addTodo() {
         guard !newTaskContent.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        
-        let newTodo = TodoItem(content: newTaskContent, orderIndex: todos.count)
+
+        let newTodo = TodoItem(title: newTaskContent, orderIndex: todos.count)
         modelContext.insert(newTodo)
         newTaskContent = ""
         isInputFocused = false
@@ -119,11 +110,30 @@ struct TodoRowView: View {
             }
             .buttonStyle(.plain)
             
-            Text(todo.content)
-                .font(.system(size: compact ? 13 : 15))
-                .strikethrough(todo.isCompleted)
-                .foregroundColor(todo.isCompleted ? .secondary : .primary)
-                .lineLimit(3)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(todo.title)
+                    .font(.system(size: compact ? 13 : 15))
+                    .strikethrough(todo.isCompleted)
+                    .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                    .lineLimit(3)
+
+                if !todo.notes.isEmpty {
+                    Text(todo.notes)
+                        .font(.system(size: compact ? 11 : 13))
+                        .foregroundColor(todo.isCompleted ? .secondary.opacity(0.6) : .secondary.opacity(0.8))
+                        .lineLimit(2)
+                }
+
+                if let dueDate = todo.dueDate {
+                    HStack(spacing: 4) {
+                        Image(systemName: isOverdue(dueDate) ? "calendar.badge.exclamationmark" : "calendar")
+                            .font(.system(size: compact ? 10 : 12))
+                        Text(formatDate(dueDate))
+                            .font(.system(size: compact ? 10 : 12))
+                    }
+                    .foregroundColor(isOverdue(dueDate) ? .red : .secondary)
+                }
+            }
             
             Spacer()
             
@@ -143,6 +153,23 @@ struct TodoRowView: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func isOverdue(_ date: Date) -> Bool {
+        date < Date() && !todo.isCompleted
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return DateFormatters.timeFormatter.string(from: date)
+        } else if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else {
+            return DateFormatters.dateFormatter.string(from: date)
         }
     }
 }

@@ -11,17 +11,21 @@ import SwiftData
 @Model
 class TodoItem {
     @Attribute(.unique) var id: UUID
-    var content: String
+    var title: String
+    var notes: String
     var isCompleted: Bool
     var createdAt: Date
     var completedAt: Date?
+    var dueDate: Date?
     var orderIndex: Int
-    
-    init(content: String, orderIndex: Int = 0) {
+
+    init(title: String, notes: String = "", dueDate: Date? = nil, orderIndex: Int = 0) {
         self.id = UUID()
-        self.content = content
+        self.title = title
+        self.notes = notes
         self.isCompleted = false
         self.createdAt = Date()
+        self.dueDate = dueDate
         self.orderIndex = orderIndex
     }
 }
