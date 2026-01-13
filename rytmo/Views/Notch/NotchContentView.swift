@@ -52,7 +52,7 @@ struct NotchContentView: View {
                         color: (vm.notchState == .open || isHovering) ? .black.opacity(0.7) : .clear,
                         radius: 6
                     )
-                    .frame(height: vm.notchState == .open ? vm.notchSize.height : nil)
+                    .frame(height: vm.notchState == .open ? vm.notchSize.height : vm.effectiveClosedNotchHeight)
                     .animation(animationSpring, value: vm.notchState)
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -94,6 +94,10 @@ struct NotchContentView: View {
             }
             
             guard vm.notchState == .closed else { return }
+            
+            if !vm.isMouseHovering() {
+                return
+            }
             
             hoverTask = Task {
                 try? await Task.sleep(for: .milliseconds(200))
