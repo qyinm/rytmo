@@ -19,6 +19,10 @@ struct DashboardTodoView: View {
     @State private var showNoteInput: Bool = false
     
     @FocusState private var focusedField: Bool
+    
+    private static let dateDetector: NSDataDetector? = {
+        try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue)
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -355,7 +359,7 @@ struct DashboardTodoView: View {
         }
 
         // 2. Use NSDataDetector for natural language parsing
-        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue) else { return }
+        guard let detector = Self.dateDetector else { return }
         
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         let matches = detector.matches(in: text, options: [], range: range)
