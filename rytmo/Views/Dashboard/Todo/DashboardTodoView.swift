@@ -118,7 +118,7 @@ struct DashboardTodoView: View {
                     Button(action: createTodo) {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
                     .transition(.scale.combined(with: .opacity))
@@ -559,7 +559,7 @@ private struct CalendarDayView: View {
             ZStack {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.black)
+                        .fill(Color.primary)
                         .frame(width: 32, height: 32)
                 } else if isHovering {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -574,7 +574,7 @@ private struct CalendarDayView: View {
                     
                     if isToday && !isSelected {
                         Circle()
-                            .fill(Color.black)
+                            .fill(Color.primary)
                             .frame(width: 3, height: 3)
                     }
                 }
