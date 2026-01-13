@@ -260,8 +260,8 @@ struct DashboardTodoView: View {
             // Quick Options
             VStack(spacing: 4) {
                 quickDateOption(title: "Today", systemImage: "sun.max", date: Date())
-                quickDateOption(title: "Tomorrow", systemImage: "sunrise", date: Calendar.current.date(byAdding: .day, value: 1, to: Date())!)
-                quickDateOption(title: "Next Week", systemImage: "calendar.badge.plus", date: Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date())!)
+                quickDateOption(title: "Tomorrow", systemImage: "sunrise", date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date())
+                quickDateOption(title: "Next Week", systemImage: "calendar.badge.plus", date: Calendar.current.date(byAdding: .weekOfYear, value: 1, to: Date()) ?? Date())
             }
             
             Divider()
