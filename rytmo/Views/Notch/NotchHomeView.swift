@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotchHomeView: View {
     @ObservedObject var timerManager: PomodoroTimerManager
+    @EnvironmentObject var musicPlayer: MusicPlayerManager
     @EnvironmentObject var vm: NotchViewModel
     
     var body: some View {
@@ -18,7 +19,26 @@ struct NotchHomeView: View {
                         ))
                     
                     Spacer()
-                    
+                }
+            }
+            
+            stateIcon
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(stateColor)
+                .scaleEffect(timerManager.session.isRunning ? 1.0 : 0.9)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: timerManager.session.isRunning)
+            
+            HStack(spacing: 0) {
+                Spacer()
+                
+                if musicPlayer.isPlaying || musicPlayer.currentTrack != nil {
+                    MusicVisualizerView(musicPlayer: musicPlayer)
+                        .padding(.trailing, 12)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                } else if timerManager.session.state.displayName != "Idle" {
                     runningIndicator
                         .opacity(timerManager.session.isRunning ? 1.0 : 0.4)
                         .padding(.trailing, 12)
@@ -28,16 +48,21 @@ struct NotchHomeView: View {
                         ))
                 }
             }
-            
-            stateIcon
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(stateColor)
-                .scaleEffect(timerManager.session.isRunning ? 1.0 : 0.9)
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: timerManager.session.isRunning)
         }
-        .frame(width: vm.closedNotchSize.width + (timerManager.session.state.displayName != "Idle" ? 100 : 0))
+        .frame(width: vm.closedNotchSize.width + expandedWidth)
         .frame(height: vm.effectiveClosedNotchHeight)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: timerManager.session.state.displayName)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: musicPlayer.isPlaying)
+    }
+    
+    private var expandedWidth: CGFloat {
+        let isTimerActive = timerManager.session.state.displayName != "Idle"
+        let isMusicActive = musicPlayer.isPlaying || musicPlayer.currentTrack != nil
+        
+        if isTimerActive || isMusicActive {
+            return 130
+        }
+        return 0
     }
     
     @ViewBuilder
