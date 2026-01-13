@@ -38,7 +38,7 @@ struct NotchContentView: View {
             VStack(spacing: 0) {
                 notchContent
                     .frame(alignment: .top)
-                    .padding(.horizontal, vm.notchState == .open ? cornerRadiusInsets.opened.bottom : cornerRadiusInsets.closed.bottom)
+                    .padding(.horizontal, vm.notchState == .open ? cornerRadiusInsets.opened.bottom : 0)
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
                     .background(.black)
                     .clipShape(currentNotchShape)
@@ -75,6 +75,7 @@ struct NotchContentView: View {
             NotchExpandedView(timerManager: timerManager)
         } else {
             NotchHomeView(timerManager: timerManager)
+                .fixedSize()
         }
     }
     

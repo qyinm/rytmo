@@ -1,10 +1,3 @@
-//
-//  NotchHomeView.swift
-//  rytmo
-//
-//  Created by hippoo on 1/13/26.
-//
-
 import SwiftUI
 
 struct NotchHomeView: View {
@@ -12,22 +5,39 @@ struct NotchHomeView: View {
     @EnvironmentObject var vm: NotchViewModel
     
     var body: some View {
-        HStack(spacing: 8) {
+        ZStack {
+            if timerManager.session.state.displayName != "Idle" {
+                HStack(spacing: 0) {
+                    Text(timerManager.session.formattedTime)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.leading, 12)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                    
+                    Spacer()
+                    
+                    runningIndicator
+                        .opacity(timerManager.session.isRunning ? 1.0 : 0.4)
+                        .padding(.trailing, 12)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
+            }
+            
             stateIcon
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(stateColor)
-            
-            if timerManager.session.state != .idle {
-                Text(timerManager.session.formattedTime)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.white)
-            }
-            
-            if timerManager.session.isRunning {
-                runningIndicator
-            }
+                .scaleEffect(timerManager.session.isRunning ? 1.0 : 0.9)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: timerManager.session.isRunning)
         }
+        .frame(width: vm.closedNotchSize.width + (timerManager.session.state.displayName != "Idle" ? 100 : 0))
         .frame(height: vm.effectiveClosedNotchHeight)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: timerManager.session.state.displayName)
     }
     
     @ViewBuilder
@@ -46,14 +56,14 @@ struct NotchHomeView: View {
     
     private var stateColor: Color {
         switch timerManager.session.state {
-        case .idle:
-            return .gray
         case .focus:
             return .orange
         case .shortBreak:
             return .green
         case .longBreak:
             return .blue
+        default:
+            return .gray
         }
     }
     
@@ -62,17 +72,5 @@ struct NotchHomeView: View {
         Circle()
             .fill(stateColor)
             .frame(width: 6, height: 6)
-            .opacity(timerManager.session.isRunning ? 1 : 0)
     }
-}
-
-#Preview {
-    let settings = PomodoroSettings()
-    let timerManager = PomodoroTimerManager(settings: settings)
-    let vm = NotchViewModel()
-    
-    return NotchHomeView(timerManager: timerManager)
-        .environmentObject(vm)
-        .frame(width: 200, height: 32)
-        .background(.black)
 }
