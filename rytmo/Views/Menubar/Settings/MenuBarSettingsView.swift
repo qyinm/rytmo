@@ -27,14 +27,12 @@ struct MenuBarSettingsView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // Header
-                header
-                
-                Divider()
-                    .padding(.bottom, 16)
-                
+        VStack(spacing: 0) {
+            header
+            
+            Divider()
+            
+            ScrollView {
                 VStack(spacing: 16) {
                     // Timer Settings (Compact)
                     timerSettingsSection
@@ -49,11 +47,9 @@ struct MenuBarSettingsView: View {
                     dashboardButton
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .padding(.vertical, 16)
             }
         }
-        .frame(width: 420)
-        .fixedSize(horizontal: false, vertical: true)
         .background(Color(nsColor: .windowBackgroundColor))
         .onAppear {
             checkNotificationAuthStatus()
