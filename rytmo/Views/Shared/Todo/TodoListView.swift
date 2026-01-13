@@ -8,6 +8,20 @@
 import SwiftUI
 import SwiftData
 
+private enum DateFormatters {
+    static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+    
+    static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
+    }()
+}
+
 struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
@@ -151,15 +165,11 @@ struct TodoRowView: View {
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
+            return DateFormatters.timeFormatter.string(from: date)
         } else if calendar.isDateInTomorrow(date) {
             return "Tomorrow"
         } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            return formatter.string(from: date)
+            return DateFormatters.dateFormatter.string(from: date)
         }
     }
 }
