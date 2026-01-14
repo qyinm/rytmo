@@ -299,38 +299,42 @@ struct SelectedDayEventsView: View {
     
     private func eventRow(_ event: CalendarEventProtocol) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .trailing, spacing: 2) {
+            // Color Indicator
+            RoundedRectangle(cornerRadius: 2)
+                .fill(event.eventColor)
+                .frame(width: 4, height: 36)
+            
+            // Time
+            VStack(alignment: .leading, spacing: 2) {
                 if let startDate = event.eventStartDate {
                     Text(startDate, style: .time)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                 }
                 if let endDate = event.eventEndDate {
                     Text(endDate, style: .time)
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
             }
-            .frame(width: 60)
+            .frame(width: 50, alignment: .leading)
             
-            Capsule()
-                .fill(event.eventColor)
-                .frame(width: 3)
-            
+            // Event Info
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.eventTitle ?? "Untitled")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .lineLimit(1)
                 
                 Text(event.sourceName)
-                    .font(.system(size: 11))
+                    .font(.system(size: 10))
                     .foregroundColor(.secondary)
             }
             
             Spacer()
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.03))
         )
     }

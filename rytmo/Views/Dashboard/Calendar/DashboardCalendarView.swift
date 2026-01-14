@@ -62,34 +62,23 @@ struct DashboardCalendarView: View {
                             .padding(.horizontal, 32)
                     }
                     
-                    // Main Content: Grid + Events
+                    // Main Content: Calendar (Left) + Events/Todos (Right)
                     HStack(alignment: .top, spacing: 24) {
                         // Calendar Grid (Left)
                         CalendarGridView(
                             calendarManager: calendarManager,
                             selectedDate: $selectedDate
                         )
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 500)
                         
-                        // Day Progress + Quick Stats (Right)
-                        VStack(spacing: 24) {
-                            DayProgressCard()
-                            QuickStatsCard(
-                                totalEvents: calendarManager.mergedEvents.count,
-                                googleConnected: calendarManager.googleManager.isAuthorized,
-                                systemConnected: calendarManager.isAuthorized
-                            )
-                        }
-                        .frame(width: 200)
+                        // Events + Todos (Right)
+                        SelectedDayEventsView(
+                            selectedDate: selectedDate,
+                            events: eventsForSelectedDate,
+                            todos: todosForSelectedDate
+                        )
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal, 32)
-                    
-                    // Selected Day Events + Todos
-                    SelectedDayEventsView(
-                        selectedDate: selectedDate,
-                        events: eventsForSelectedDate,
-                        todos: todosForSelectedDate
-                    )
                     .padding(.horizontal, 32)
                 }
                 .padding(.bottom, 32)
