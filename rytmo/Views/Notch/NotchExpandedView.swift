@@ -6,9 +6,10 @@ struct NotchExpandedView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @EnvironmentObject var vm: NotchViewModel
-
+    
     @State private var showingSettings: Bool = false
-
+    @State private var selectedTab: Int = 0
+    
     var body: some View {
         VStack(spacing: 0) {
             if authManager.isLoggedIn {
@@ -38,6 +39,18 @@ struct NotchExpandedView: View {
                 .padding(.top, 0)
                 .padding(.bottom, 8)
             
+            if selectedTab == 0 {
+                homeTabView
+            } else {
+                musicTabView
+            }
+            
+            Spacer(minLength: 0)
+        }
+    }
+    
+    private var homeTabView: some View {
+        VStack(spacing: 16) {
             HStack(spacing: 16) {
                 CompactTimerView()
                     .aspectRatio(1, contentMode: .fit)
@@ -46,14 +59,120 @@ struct NotchExpandedView: View {
                     .aspectRatio(1, contentMode: .fit)
             }
             .padding(.horizontal, 4)
+        }
+    }
+    
+    private var musicTabView: some View {
+        HStack(spacing: 20) {
+            // Left 60%: Music Controller
+            MenuBarMusicView()
+                .frame(width: 240)
             
-            if musicPlayer.currentTrack != nil {
-                MenuBarMusicView()
-                    .padding(.top, 12)
+            // Right 40%: Vertical Playlist List
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Playlists")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 2)
+                
+                NotchPlaylistListView()
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 12)
+    }
+    
+    // MARK: - Compact Playlist List for Notch
+    struct NotchPlaylistListView: View {
+        @EnvironmentObject var musicPlayer: MusicPlayerManager
+        @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
+        
+        var body: some View {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if playlists.isEmpty {
+                        Text("No playlists")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 10)
+                    } else {
+                        ForEach(playlists) { playlist in
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    musicPlayer.selectedPlaylist = playlist
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(Color(hex: playlist.themeColorHex))
+                                        .frame(width: 7, height: 7)
+                                    
+                                    Text(playlist.name)
+                                        .font(.system(size: 12, weight: musicPlayer.selectedPlaylist?.id == playlist.id ? .bold : .medium))
+                                        .foregroundColor(musicPlayer.selectedPlaylist?.id == playlist.id ? .primary : .secondary)
+                                        .lineLimit(1)
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(musicPlayer.selectedPlaylist?.id == playlist.id ? Color.primary.opacity(0.08) : Color.clear)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 180)
+        }
+    }
+    
+    private var headerView: some View {
+        HStack {
+            HStack(spacing: 16) {
+                Button(action: { selectedTab = 0 }) {
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(selectedTab == 0 ? .white : .secondary)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: { selectedTab = 1 }) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 14))
+                        .foregroundColor(selectedTab == 1 ? .white : .secondary)
+                }
+                .buttonStyle(.plain)
             }
             
-            Spacer(minLength: 0)
+            Spacer()
+            
+            HStack(spacing: 16) {
+                Button(action: {
+                    withAnimation {
+                        showingSettings = true
+                    }
+                }) {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: {
+                    authManager.signOut()
+                }) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(.bottom, 8)
     }
 
     // MARK: - Compact Timer View (Square Layout)
@@ -291,39 +410,6 @@ struct NotchExpandedView: View {
                 .padding(.vertical, 6)
             }
         }
-    }
-
-    private var headerView: some View {
-        HStack {
-            Text("Rytmo")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.white)
-
-            Spacer()
-
-            HStack(spacing: 16) {
-                Button(action: {
-                    withAnimation {
-                        showingSettings = true
-                    }
-                }) {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    authManager.signOut()
-                }) {
-                    Image(systemName: "rectangle.portrait.and.arrow.right")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.bottom, 8)
     }
 
     private var settingsContent: some View {
