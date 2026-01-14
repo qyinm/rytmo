@@ -35,6 +35,46 @@ struct DashboardCalendarView: View {
             
             ScrollView {
                 VStack(spacing: 32) {
+                    // Show Google Calendar error if any
+                    if let googleError = calendarManager.googleManager.error {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                            Text(googleError)
+                                .font(.subheadline)
+                            Spacer()
+                            Button("Retry") {
+                                calendarManager.googleManager.fetchEvents()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.red.opacity(0.1))
+                        )
+                        .padding(.horizontal, 32)
+                    }
+                    
+                    // Show loading indicator for Google Calendar
+                    if calendarManager.googleManager.isLoading {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Syncing Google Calendar...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.blue.opacity(0.05))
+                        )
+                        .padding(.horizontal, 32)
+                    }
+                    
                     if !calendarManager.isAuthorized || calendarManager.mergedEvents.isEmpty || !calendarManager.googleManager.isAuthorized {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
@@ -76,6 +116,7 @@ struct DashboardCalendarView: View {
                                         Label("Connect Google", systemImage: "g.circle.fill")
                                     }
                                     .buttonStyle(.borderedProminent)
+                                    .disabled(calendarManager.googleManager.isLoading)
                                 }
                                 
                                 Spacer()

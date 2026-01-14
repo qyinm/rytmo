@@ -58,7 +58,58 @@ struct CalendarSettingsView: View {
                     )
                 )
                 
-                if !googleCalendarManager.isAuthorized && calendarManager.showGoogle {
+                // Loading state
+                if googleCalendarManager.isLoading {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Connecting to Google Calendar...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.05))
+                }
+                // Error state
+                else if let error = googleCalendarManager.error {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(error)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Retry") {
+                            Task { await googleCalendarManager.requestAccess() }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .padding()
+                    .background(Color.red.opacity(0.1))
+                }
+                // Connected state with disconnect option
+                else if googleCalendarManager.isAuthorized && calendarManager.showGoogle {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Connected • \(googleCalendarManager.events.count) events")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Disconnect") {
+                            googleCalendarManager.disconnect()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.red)
+                        .font(.subheadline)
+                    }
+                    .padding()
+                    .background(Color.green.opacity(0.05))
+                }
+                // Not authorized - show connect prompt
+                else if !googleCalendarManager.isAuthorized && calendarManager.showGoogle {
                     permissionActionRow(
                         message: "Google Calendar API access required.",
                         buttonTitle: "Connect Google"
