@@ -376,38 +376,37 @@ struct NotchExpandedView: View {
             let todo: TodoItem
 
             var body: some View {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Button(action: {
-                        todo.isCompleted.toggle()
-                        todo.completedAt = todo.isCompleted ? Date() : nil
+                        withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
+                            todo.isCompleted.toggle()
+                            todo.completedAt = todo.isCompleted ? Date() : nil
+                        }
                     }) {
                         ZStack {
                             Circle()
-                                .stroke(todo.isCompleted ? Color.black : Color.black.opacity(0.15), lineWidth: 1.5)
-                                .frame(width: 16, height: 16)
+                                .stroke(todo.isCompleted ? Color.white.opacity(0.8) : Color.white.opacity(0.3), lineWidth: 1.5)
+                                .frame(width: 18, height: 18)
 
                             if todo.isCompleted {
                                 Circle()
-                                    .fill(Color.black)
-                                    .frame(width: 16, height: 16)
-
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .fill(Color.white.opacity(0.9))
+                                    .frame(width: 12, height: 12)
                             }
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
                     Text(todo.title)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(todo.isCompleted ? .secondary : .primary)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(todo.isCompleted ? .secondary : .white)
                         .strikethrough(todo.isCompleted)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
             }
         }
     }
