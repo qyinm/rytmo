@@ -24,7 +24,7 @@
 	<key>YoutubeDataAPIKey</key>
 	<string>$(YOUTUBE_DATA_API_KEY)</string>
 	<key>GIDClientID</key>
-	<string>936755055442-lnbvm5fbpgcsajsq0drto6mbba0cluvs.apps.googleusercontent.com</string>
+	<string>$(GOOGLE_CLIENT_ID)</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Rytmo needs access to your calendar to show your schedule in the dashboard and notch.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
