@@ -4,9 +4,13 @@ import EventKit
 struct DashboardCalendarView: View {
     @StateObject private var calendarManager = CalendarManager.shared
     @Environment(\.colorScheme) var colorScheme
+    @State private var selectedDate: Date = Date()
+    
+    private let calendar = Calendar.current
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Header
             HStack(spacing: 16) {
                 Text("Calendar")
                     .font(.system(size: 28, weight: .bold))
@@ -15,6 +19,7 @@ struct DashboardCalendarView: View {
                 
                 Button {
                     calendarManager.refresh()
+                    calendarManager.googleManager.fetchEvents()
                 } label: {
                     Label("Sync", systemImage: "arrow.clockwise")
                 }
@@ -34,246 +39,53 @@ struct DashboardCalendarView: View {
             .padding(.bottom, 24)
             
             ScrollView {
-                VStack(spacing: 32) {
-                    // Show Google Calendar error if any
+                VStack(spacing: 24) {
+                    // Error/Loading States
                     if let googleError = calendarManager.googleManager.error {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.red)
-                            Text(googleError)
-                                .font(.subheadline)
-                            Spacer()
-                            Button("Retry") {
-                                calendarManager.googleManager.fetchEvents()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        ErrorBannerView(message: googleError) {
+                            calendarManager.googleManager.fetchEvents()
                         }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.red.opacity(0.1))
-                        )
                         .padding(.horizontal, 32)
                     }
                     
-                    // Show loading indicator for Google Calendar
                     if calendarManager.googleManager.isLoading {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Syncing Google Calendar...")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.blue.opacity(0.05))
-                        )
-                        .padding(.horizontal, 32)
+                        LoadingBannerView(message: "Syncing Google Calendar...")
+                            .padding(.horizontal, 32)
                     }
                     
-                    if !calendarManager.isAuthorized || calendarManager.mergedEvents.isEmpty || !calendarManager.googleManager.isAuthorized {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text("Connect your Calendars")
-                                    .font(.headline)
-                                Spacer()
-                                if calendarManager.googleManager.isAuthorized {
-                                    Label("Google Connected", systemImage: "checkmark.seal.fill")
-                                        .font(.caption)
-                                        .foregroundColor(.green)
-                                }
-                            }
-                            
-                            Text("Rytmo supports Apple Calendar (System) and direct Google Calendar integration. Connect your accounts to see your full schedule.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 12) {
-                                Button {
-                                    Task { await calendarManager.requestAccess() }
-                                } label: {
-                                    Label(calendarManager.isAuthorized ? "Apple Authorized" : "Connect Apple", 
-                                          systemImage: "apple.logo")
-                                }
-                                .buttonStyle(.bordered)
-                                .disabled(calendarManager.isAuthorized)
-                                
-                                if calendarManager.googleManager.isAuthorized {
-                                    Button {
-                                        Task { await calendarManager.googleManager.requestAccess() }
-                                    } label: {
-                                        Label("Google Connected", systemImage: "g.circle.fill")
-                                    }
-                                    .buttonStyle(.bordered)
-                                } else {
-                                    Button {
-                                        Task { await calendarManager.googleManager.requestAccess() }
-                                    } label: {
-                                        Label("Connect Google", systemImage: "g.circle.fill")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .disabled(calendarManager.googleManager.isLoading)
-                                }
-                                
-                                Spacer()
-                                
-                                Button {
-                                    if let url = URL(string: "x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension") {
-                                        NSWorkspace.shared.open(url)
-                                    }
-                                } label: {
-                                    Label("System Settings", systemImage: "gear")
-                                }
-                                .buttonStyle(.plain)
-                                .font(.caption)
-                            }
-                        }
-                        .padding(24)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(boxBackgroundColor)
-                        )
-                        .padding(.horizontal, 32)
+                    // Connect Calendars Prompt (only when no calendars connected)
+                    if !calendarManager.isAuthorized && !calendarManager.googleManager.isAuthorized {
+                        ConnectCalendarsView(calendarManager: calendarManager)
+                            .padding(.horizontal, 32)
                     }
-
-                    HStack(spacing: 24) {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Today")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            let now = Date()
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(now, format: .dateTime.day().month().year())
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
-                                Text(now, format: .dateTime.weekday(.wide))
-                                    .font(.title3)
-                                    .foregroundColor(.accentColor)
-                            }
-                            
-                            Divider()
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                Label("\(calendarManager.mergedEvents.count) Events Today", systemImage: "calendar")
-                                    .font(.subheadline)
-                            }
-                        }
-                        .padding(24)
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(boxBackgroundColor)
+                    
+                    // Main Content: Grid + Events
+                    HStack(alignment: .top, spacing: 24) {
+                        // Calendar Grid (Left)
+                        CalendarGridView(
+                            calendarManager: calendarManager,
+                            selectedDate: $selectedDate
                         )
+                        .frame(maxWidth: .infinity)
                         
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Day Progress")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            let now = Date()
-                            let startOfDay = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
-                            let endOfDay = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: now)!
-                            let totalSeconds = endOfDay.timeIntervalSince(startOfDay)
-                            let currentSeconds = now.timeIntervalSince(startOfDay)
-                            let progress = min(max(currentSeconds / totalSeconds, 0), 1)
-                            
-                            VStack(alignment: .center, spacing: 8) {
-                                ZStack {
-                                    Circle()
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 8)
-                                    Circle()
-                                        .trim(from: 0, to: progress)
-                                        .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                                        .rotationEffect(.degrees(-90))
-                                    
-                                    Text("\(Int(progress * 100))%")
-                                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                                }
-                                .frame(width: 100, height: 100)
-                            }
-                            .frame(maxWidth: .infinity)
-                            
-                            Spacer()
+                        // Day Progress + Quick Stats (Right)
+                        VStack(spacing: 24) {
+                            DayProgressCard()
+                            QuickStatsCard(
+                                totalEvents: calendarManager.mergedEvents.count,
+                                googleConnected: calendarManager.googleManager.isAuthorized,
+                                systemConnected: calendarManager.isAuthorized
+                            )
                         }
-                        .padding(24)
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                        .background(
-                            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                .fill(boxBackgroundColor)
-                        )
+                        .frame(width: 200)
                     }
                     .padding(.horizontal, 32)
                     
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Schedule")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        if calendarManager.mergedEvents.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "calendar.badge.clock")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.secondary.opacity(0.5))
-                                Text("No events scheduled for the next 24 hours.")
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 60)
-                            .background(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(boxBackgroundColor)
-                            )
-                        } else {
-                            VStack(spacing: 12) {
-                                ForEach(calendarManager.mergedEvents, id: \.eventIdentifier) { event in
-                                    HStack(spacing: 16) {
-                                        VStack(alignment: .trailing, spacing: 4) {
-                                            if let startDate = event.eventStartDate {
-                                                Text(startDate, style: .time)
-                                                    .font(.system(size: 14, weight: .bold))
-                                            }
-                                            if let endDate = event.eventEndDate {
-                                                Text(endDate, style: .time)
-                                                    .font(.system(size: 12))
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-                                        .frame(width: 80)
-                                        
-                                        Capsule()
-                                            .fill(event.eventColor)
-                                            .frame(width: 4)
-                                            .padding(.vertical, 4)
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(event.eventTitle ?? "Untitled")
-                                                    .font(.system(size: 16, weight: .semibold))
-                                                Text("(\(event.sourceName))")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.secondary)
-                                            }
-                                        }
-                                        
-                                        Spacer()
-                                    }
-                                    .padding(16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                            .fill(Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.03))
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    // Selected Day Events
+                    SelectedDayEventsView(
+                        selectedDate: selectedDate,
+                        events: eventsForSelectedDate
+                    )
                     .padding(.horizontal, 32)
                 }
                 .padding(.bottom, 32)
@@ -285,7 +97,216 @@ struct DashboardCalendarView: View {
         }
     }
     
+    private var eventsForSelectedDate: [CalendarEventProtocol] {
+        calendarManager.mergedEvents.filter { event in
+            guard let eventDate = event.eventStartDate else { return false }
+            return calendar.isDate(eventDate, inSameDayAs: selectedDate)
+        }
+    }
+    
     private var boxBackgroundColor: Color {
         colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
     }
 }
+
+// MARK: - Supporting Views
+
+struct ErrorBannerView: View {
+    let message: String
+    let onRetry: () -> Void
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.red)
+            Text(message)
+                .font(.subheadline)
+            Spacer()
+            Button("Retry", action: onRetry)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.red.opacity(0.1))
+        )
+    }
+}
+
+struct LoadingBannerView: View {
+    let message: String
+    
+    var body: some View {
+        HStack {
+            ProgressView()
+                .scaleEffect(0.8)
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.blue.opacity(0.05))
+        )
+    }
+}
+
+struct ConnectCalendarsView: View {
+    @ObservedObject var calendarManager: CalendarManager
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Connect your Calendars")
+                    .font(.headline)
+                Spacer()
+                if calendarManager.googleManager.isAuthorized {
+                    Label("Google Connected", systemImage: "checkmark.seal.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+            }
+            
+            Text("Connect Apple Calendar or Google Calendar to see your schedule.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 12) {
+                Button {
+                    Task { await calendarManager.requestAccess() }
+                } label: {
+                    Label(calendarManager.isAuthorized ? "Apple Connected" : "Connect Apple",
+                          systemImage: "apple.logo")
+                }
+                .buttonStyle(.bordered)
+                .disabled(calendarManager.isAuthorized)
+                
+                if calendarManager.googleManager.isAuthorized {
+                    Button {
+                        Task { await calendarManager.googleManager.requestAccess() }
+                    } label: {
+                        Label("Google Connected", systemImage: "g.circle.fill")
+                    }
+                    .buttonStyle(.bordered)
+                } else {
+                    Button {
+                        Task { await calendarManager.googleManager.requestAccess() }
+                    } label: {
+                        Label("Connect Google", systemImage: "g.circle.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(calendarManager.googleManager.isLoading)
+                }
+                
+                Spacer()
+            }
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(boxBackgroundColor)
+        )
+    }
+    
+    private var boxBackgroundColor: Color {
+        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
+    }
+}
+
+struct DayProgressCard: View {
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        let now = Date()
+        let calendar = Calendar.current
+        let startOfDay = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
+        let endOfDay = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now)!
+        let totalSeconds = endOfDay.timeIntervalSince(startOfDay)
+        let currentSeconds = now.timeIntervalSince(startOfDay)
+        let progress = min(max(currentSeconds / totalSeconds, 0), 1)
+        
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Day Progress")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+            
+            ZStack {
+                Circle()
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 6)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+            }
+            .frame(width: 80, height: 80)
+            .frame(maxWidth: .infinity)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(boxBackgroundColor)
+        )
+    }
+    
+    private var boxBackgroundColor: Color {
+        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
+    }
+}
+
+struct QuickStatsCard: View {
+    let totalEvents: Int
+    let googleConnected: Bool
+    let systemConnected: Bool
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Quick Stats")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar")
+                        .foregroundColor(.accentColor)
+                    Text("\(totalEvents) events")
+                        .font(.system(size: 13))
+                }
+                
+                HStack(spacing: 8) {
+                    Image(systemName: googleConnected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(googleConnected ? .green : .secondary)
+                    Text("Google")
+                        .font(.system(size: 13))
+                        .foregroundColor(googleConnected ? .primary : .secondary)
+                }
+                
+                HStack(spacing: 8) {
+                    Image(systemName: systemConnected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(systemConnected ? .green : .secondary)
+                    Text("System")
+                        .font(.system(size: 13))
+                        .foregroundColor(systemConnected ? .primary : .secondary)
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(boxBackgroundColor)
+        )
+    }
+    
+    private var boxBackgroundColor: Color {
+        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
+    }
+}
+
