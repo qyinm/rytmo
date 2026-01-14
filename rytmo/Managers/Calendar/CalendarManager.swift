@@ -7,9 +7,9 @@ import SwiftUI
 class CalendarManager: ObservableObject {
     static let shared = CalendarManager()
     
-    private let eventStore = EKEventStore()
-    private let localManager = LocalCalendarManager.shared
-    private let googleManager = GoogleCalendarManager.shared
+    let eventStore = EKEventStore()
+    let localManager = LocalCalendarManager.shared
+    let googleManager = GoogleCalendarManager.shared
     
     @Published var mergedEvents: [CalendarEventProtocol] = []
     @Published var isAuthorized: Bool = false

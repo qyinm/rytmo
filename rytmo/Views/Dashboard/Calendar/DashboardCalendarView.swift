@@ -7,7 +7,7 @@ struct DashboardCalendarView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: 16) {
                 Text("Calendar")
                     .font(.system(size: 28, weight: .bold))
                 
@@ -16,10 +16,17 @@ struct DashboardCalendarView: View {
                 Button {
                     calendarManager.refresh()
                 } label: {
-                    Label("Sync Now", systemImage: "arrow.clockwise")
-                        .font(.system(size: 13, weight: .medium))
+                    Label("Sync", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                Button {
+                    NotificationCenter.default.post(name: NSNotification.Name("switchToCalendarSettings"), object: nil)
+                } label: {
+                    Label("Connect Accounts", systemImage: "plus.circle")
+                }
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
             .padding(.horizontal, 32)
@@ -28,12 +35,20 @@ struct DashboardCalendarView: View {
             
             ScrollView {
                 VStack(spacing: 32) {
-                    if !calendarManager.isAuthorized || calendarManager.mergedEvents.isEmpty {
+                    if !calendarManager.isAuthorized || calendarManager.mergedEvents.isEmpty || !calendarManager.googleManager.isAuthorized {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Connect your Calendars")
-                                .font(.headline)
+                            HStack {
+                                Text("Connect your Calendars")
+                                    .font(.headline)
+                                Spacer()
+                                if calendarManager.googleManager.isAuthorized {
+                                    Label("Google Connected", systemImage: "checkmark.seal.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                            }
                             
-                            Text("Rytmo uses macOS system calendars. To see your Google or Apple calendars, ensure they are added to your Mac's Internet Accounts.")
+                            Text("Rytmo supports Apple Calendar (System) and direct Google Calendar integration. Connect your accounts to see your full schedule.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
@@ -41,20 +56,39 @@ struct DashboardCalendarView: View {
                                 Button {
                                     Task { await calendarManager.requestAccess() }
                                 } label: {
-                                    Label(calendarManager.isAuthorized ? "Authorized" : "Grant Permission", 
-                                          systemImage: calendarManager.isAuthorized ? "checkmark.circle.fill" : "lock.fill")
+                                    Label(calendarManager.isAuthorized ? "Apple Authorized" : "Connect Apple", 
+                                          systemImage: "apple.logo")
                                 }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.bordered)
                                 .disabled(calendarManager.isAuthorized)
+                                
+                                if calendarManager.googleManager.isAuthorized {
+                                    Button {
+                                        Task { await calendarManager.googleManager.requestAccess() }
+                                    } label: {
+                                        Label("Google Connected", systemImage: "g.circle.fill")
+                                    }
+                                    .buttonStyle(.bordered)
+                                } else {
+                                    Button {
+                                        Task { await calendarManager.googleManager.requestAccess() }
+                                    } label: {
+                                        Label("Connect Google", systemImage: "g.circle.fill")
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                }
+                                
+                                Spacer()
                                 
                                 Button {
                                     if let url = URL(string: "x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension") {
                                         NSWorkspace.shared.open(url)
                                     }
                                 } label: {
-                                    Label("Open System Settings", systemImage: "gear")
+                                    Label("System Settings", systemImage: "gear")
                                 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.plain)
+                                .font(.caption)
                             }
                         }
                         .padding(24)

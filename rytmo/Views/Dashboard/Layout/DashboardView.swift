@@ -1,10 +1,3 @@
-//
-//  DashboardView.swift
-//  rytmo
-//
-//  Created by hippoo on 12/7/25.
-//
-
 import SwiftUI
 import SwiftData
 import FirebaseAuth
@@ -31,7 +24,6 @@ struct DashboardView: View {
     
     var body: some View {
         HStack(spacing: 0) {
-            // MARK: - Side Rail (Visible when Sidebar is hidden)
             if columnVisibility == .detailOnly {
                 SideRailView(selection: $selection)
                     .transition(.move(edge: .leading).combined(with: .opacity))
@@ -40,7 +32,6 @@ struct DashboardView: View {
             NavigationSplitView(columnVisibility: $columnVisibility) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        // Profile Section
                         HStack(spacing: 12) {
                             UserProfileImage(size: 32)
                             
@@ -58,7 +49,6 @@ struct DashboardView: View {
                         .padding(.horizontal, 8)
                         .padding(.top, 8)
                         
-                        // Menu Section
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Menu")
                                 .font(.system(size: 11, weight: .bold))
@@ -186,10 +176,6 @@ struct DashboardView: View {
                                     }
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 8)
-                                    // Highlight 'Playlists' header only if allPlaylists is selected OR a child playlist is NOT selected (optional logic, sticking to simple selection check)
-                                    // Actually, usually headers aren't selectable in the same way, but user had it selectable.
-                                    // Let's keep it selectable but maybe different visual if it acts as a header.
-                                    // Based on previous code: NavigationLink(value: .allPlaylists)
                                     .background(
                                         RoundedRectangle(cornerRadius: 6)
                                             .fill(selection == .allPlaylists ? Color.primary.opacity(0.1) : Color.clear)
@@ -199,7 +185,7 @@ struct DashboardView: View {
                                 .buttonStyle(.plain)
                             }
                             .foregroundStyle(.primary)
-                            .accentColor(.primary) // Chevron color
+                            .accentColor(.primary)
                         }
                     }
                     .padding(.horizontal, 12)
@@ -255,7 +241,7 @@ struct DashboardView: View {
                         PlaylistDetailView(playlist: playlist, onBack: {
                             selection = .allPlaylists
                         })
-                        .id(playlist.id) // Force update when switching playlists via sidebar
+                        .id(playlist.id)
                         
                     case .settings:
                         DashboardSettingsView()
@@ -268,14 +254,9 @@ struct DashboardView: View {
                 }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("switchToCalendarSettings"))) { _ in
+            selection = .settings
+            UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+        }
     }
-}
-
-
-
-
-#Preview {
-    DashboardView()
-        .environmentObject(AuthManager())
-        .frame(width: 1000, height: 700)
 }

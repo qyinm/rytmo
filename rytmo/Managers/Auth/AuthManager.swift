@@ -54,6 +54,16 @@ class AuthManager: ObservableObject {
         authStateHandler = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 self?.currentUser = user
+                
+                // If user is Google user, restore previous sign in to refresh tokens/scopes
+                if let user = user, user.providerData.contains(where: { $0.providerID == "google.com" }) {
+                    do {
+                        _ = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+                        GoogleCalendarManager.shared.checkPermission()
+                    } catch {
+                        print("ℹ️ Google restore sign-in failed or not needed: \(error.localizedDescription)")
+                    }
+                }
             }
         }
     }
