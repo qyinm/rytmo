@@ -1,9 +1,12 @@
 import SwiftUI
 import EventKit
+import SwiftData
 
 struct DashboardCalendarView: View {
     @StateObject private var calendarManager = CalendarManager.shared
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
     @State private var selectedDate: Date = Date()
     
     private let calendar = Calendar.current
@@ -81,10 +84,11 @@ struct DashboardCalendarView: View {
                     }
                     .padding(.horizontal, 32)
                     
-                    // Selected Day Events
+                    // Selected Day Events + Todos
                     SelectedDayEventsView(
                         selectedDate: selectedDate,
-                        events: eventsForSelectedDate
+                        events: eventsForSelectedDate,
+                        todos: todosForSelectedDate
                     )
                     .padding(.horizontal, 32)
                 }
@@ -101,6 +105,13 @@ struct DashboardCalendarView: View {
         calendarManager.mergedEvents.filter { event in
             guard let eventDate = event.eventStartDate else { return false }
             return calendar.isDate(eventDate, inSameDayAs: selectedDate)
+        }
+    }
+    
+    private var todosForSelectedDate: [TodoItem] {
+        allTodos.filter { todo in
+            guard let dueDate = todo.dueDate else { return false }
+            return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
     
