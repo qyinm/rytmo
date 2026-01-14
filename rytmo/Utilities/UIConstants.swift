@@ -16,8 +16,8 @@ struct UIConstants {
     }
     
     struct Notch {
-        static let openWidth: CGFloat = 440
-        static let openHeight: CGFloat = 360
+        static var openWidth: CGFloat { openNotchSize.width }
+        static var openHeight: CGFloat { openNotchSize.height }
         static let shadowPadding: CGFloat = 20
         
         static var windowSize: CGSize {

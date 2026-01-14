@@ -129,12 +129,14 @@ class NotchWindowManager: NSObject, ObservableObject {
     }
     
     func updateWindowSize(_ size: CGSize) {
-        guard let window = window else { return }
+        guard let window = window, let screen = window.screen else { return }
         
+        let screenFrame = screen.frame
         var frame = window.frame
         let oldHeight = frame.height
         
         frame.size = size
+        frame.origin.x = screenFrame.origin.x + (screenFrame.width / 2) - (size.width / 2)
         frame.origin.y += oldHeight - size.height
         
         window.setFrame(frame, display: true, animate: false)

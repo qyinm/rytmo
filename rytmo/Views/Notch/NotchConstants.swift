@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - Notch Sizing Constants
 
 let shadowPadding: CGFloat = 20
-let openNotchSize: CGSize = .init(width: 440, height: 360)
+let openNotchSize: CGSize = .init(width: 600, height: 320)
 let windowSize: CGSize = .init(width: openNotchSize.width, height: openNotchSize.height + shadowPadding)
 
 let cornerRadiusInsets: (opened: (top: CGFloat, bottom: CGFloat), closed: (top: CGFloat, bottom: CGFloat)) = (

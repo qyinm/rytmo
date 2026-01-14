@@ -51,36 +51,41 @@ struct NotchExpandedView: View {
     
     private var homeTabView: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 16) {
+            HStack(spacing: 24) {
                 CompactTimerView()
                     .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: 240)
 
                 CompactTodoView()
                     .aspectRatio(1, contentMode: .fit)
+                    .frame(maxWidth: 240)
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 8)
         }
     }
     
     private var musicTabView: some View {
-        HStack(spacing: 20) {
-            // Left 60%: Music Controller
-            MenuBarMusicView()
-                .frame(width: 240)
-            
-            // Right 40%: Vertical Playlist List
+        HStack(alignment: .center, spacing: 24) {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Playlists")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.secondary)
-                    .padding(.bottom, 2)
+                    .padding(.horizontal, 4)
                 
                 NotchPlaylistListView()
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(16)
+            .frame(width: 200, height: 200)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+            )
+            
+            MenuBarMusicView()
+                .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 12)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
     
     // MARK: - Compact Playlist List for Notch
@@ -90,7 +95,7 @@ struct NotchExpandedView: View {
         
         var body: some View {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     if playlists.isEmpty {
                         Text("No playlists")
                             .font(.system(size: 11))
@@ -103,14 +108,14 @@ struct NotchExpandedView: View {
                                     musicPlayer.selectedPlaylist = playlist
                                 }
                             }) {
-                                HStack(spacing: 8) {
+                                HStack(spacing: 6) {
                                     Circle()
                                         .fill(Color(hex: playlist.themeColorHex))
-                                        .frame(width: 7, height: 7)
+                                        .frame(width: 6, height: 6)
                                     
                                     Text(playlist.name)
                                         .font(.system(size: 12, weight: musicPlayer.selectedPlaylist?.id == playlist.id ? .bold : .medium))
-                                        .foregroundColor(musicPlayer.selectedPlaylist?.id == playlist.id ? .primary : .secondary)
+                                        .foregroundColor(musicPlayer.selectedPlaylist?.id == playlist.id ? .white : .secondary)
                                         .lineLimit(1)
                                 }
                                 .padding(.vertical, 6)
@@ -118,7 +123,7 @@ struct NotchExpandedView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .fill(musicPlayer.selectedPlaylist?.id == playlist.id ? Color.primary.opacity(0.08) : Color.clear)
+                                        .fill(musicPlayer.selectedPlaylist?.id == playlist.id ? Color.white.opacity(0.1) : Color.clear)
                                 )
                             }
                             .buttonStyle(.plain)
@@ -126,7 +131,7 @@ struct NotchExpandedView: View {
                     }
                 }
             }
-            .frame(maxHeight: 180)
+            .frame(maxHeight: 160)
         }
     }
     
@@ -237,7 +242,7 @@ struct NotchExpandedView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(8)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
         }
@@ -367,7 +372,7 @@ struct NotchExpandedView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
         }
