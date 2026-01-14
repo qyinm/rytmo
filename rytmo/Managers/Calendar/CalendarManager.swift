@@ -9,12 +9,14 @@ class CalendarManager: ObservableObject {
     
     private let eventStore = EKEventStore()
     private let localManager = LocalCalendarManager.shared
+    private let googleManager = GoogleCalendarManager.shared
     
     @Published var mergedEvents: [CalendarEventProtocol] = []
     @Published var isAuthorized: Bool = false
     
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
+    @AppStorage("calendar_show_google") var showGoogle: Bool = true
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -36,6 +38,12 @@ class CalendarManager: ObservableObject {
                 self?.refresh()
             }
             .store(in: &cancellables)
+            
+        googleManager.$events
+            .sink { [weak self] _ in
+                self?.refresh()
+            }
+            .store(in: &cancellables)
     }
     
     func checkPermission() {
@@ -43,10 +51,12 @@ class CalendarManager: ObservableObject {
         switch status {
         case .authorized, .fullAccess:
             self.isAuthorized = true
-            refresh()
         default:
             self.isAuthorized = false
         }
+        
+        googleManager.checkPermission()
+        refresh()
     }
     
     func requestAccess() async {
@@ -59,12 +69,9 @@ class CalendarManager: ObservableObject {
             }
             
             self.isAuthorized = granted
-            if granted {
-                refresh()
-            }
+            refresh()
         } catch {
-            print("❌ Calendar access request failed: \(error.localizedDescription)")
-            self.isAuthorized = false
+            print("❌ System Calendar access failed: \(error.localizedDescription)")
         }
     }
     
@@ -73,6 +80,10 @@ class CalendarManager: ObservableObject {
         
         if showLocal {
             allEvents.append(contentsOf: localManager.events.map { $0 as CalendarEventProtocol })
+        }
+        
+        if showGoogle && googleManager.isAuthorized {
+            allEvents.append(contentsOf: googleManager.events.map { $0 as CalendarEventProtocol })
         }
         
         if showSystem && isAuthorized {
@@ -84,14 +95,16 @@ class CalendarManager: ObservableObject {
             allEvents.append(contentsOf: systemEvents.map { $0 as CalendarEventProtocol })
         }
         
+        // Final sort and deduplication by title/start
         self.mergedEvents = allEvents.sorted { 
             ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
         }
     }
     
-    func toggleSource(system: Bool? = nil, local: Bool? = nil) {
+    func toggleSource(system: Bool? = nil, local: Bool? = nil, google: Bool? = nil) {
         if let system = system { self.showSystem = system }
         if let local = local { self.showLocal = local }
+        if let google = google { self.showGoogle = google }
         refresh()
     }
 }

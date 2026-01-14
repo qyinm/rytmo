@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CalendarSettingsView: View {
     @StateObject private var calendarManager = CalendarManager.shared
+    @StateObject private var googleCalendarManager = GoogleCalendarManager.shared
+    @EnvironmentObject var authManager: AuthManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -10,6 +12,7 @@ struct CalendarSettingsView: View {
                 .fontWeight(.bold)
             
             VStack(spacing: 0) {
+                // 1. Rytmo Local Calendar
                 ToggleRow(
                     title: "Rytmo Calendar",
                     subtitle: "Internal app events",
@@ -22,40 +25,72 @@ struct CalendarSettingsView: View {
                 
                 Divider()
                 
+                // 2. Apple / System Calendar
                 ToggleRow(
                     title: "System Calendar",
-                    subtitle: "Apple Calendar events",
+                    subtitle: "Apple Calendar / Native account events",
                     icon: "apple.logo",
                     isOn: Binding(
                         get: { calendarManager.showSystem },
                         set: { calendarManager.toggleSource(system: $0) }
                     )
                 )
+                
+                if !calendarManager.isAuthorized && calendarManager.showSystem {
+                    permissionActionRow(
+                        message: "System calendar access not granted.",
+                        buttonTitle: "Grant Access"
+                    ) {
+                        Task { await calendarManager.requestAccess() }
+                    }
+                }
+                
+                Divider()
+                
+                // 3. Direct Google Calendar Integration
+                ToggleRow(
+                    title: "Google Calendar",
+                    subtitle: "Direct integration with Google API",
+                    icon: "g.circle.fill",
+                    isOn: Binding(
+                        get: { calendarManager.showGoogle },
+                        set: { calendarManager.toggleSource(google: $0) }
+                    )
+                )
+                
+                if !googleCalendarManager.isAuthorized && calendarManager.showGoogle {
+                    permissionActionRow(
+                        message: "Google Calendar API access required.",
+                        buttonTitle: "Connect Google"
+                    ) {
+                        Task { await googleCalendarManager.requestAccess() }
+                    }
+                }
             }
             .background(Color.primary.opacity(0.03))
             .cornerRadius(12)
             
-            if !calendarManager.isAuthorized && calendarManager.showSystem {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    Text("System calendar access is not granted.")
-                        .font(.subheadline)
-                    Spacer()
-                    Button("Grant Access") {
-                        Task { await calendarManager.requestAccess() }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-                .padding()
-                .background(Color.orange.opacity(0.1))
-                .cornerRadius(8)
-            }
-            
             Spacer()
         }
         .padding(32)
+    }
+    
+    @ViewBuilder
+    private func permissionActionRow(message: String, buttonTitle: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+            Text(message)
+                .font(.subheadline)
+            Spacer()
+            Button(buttonTitle) {
+                action()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding()
+        .background(Color.orange.opacity(0.1))
     }
     
     struct ToggleRow: View {

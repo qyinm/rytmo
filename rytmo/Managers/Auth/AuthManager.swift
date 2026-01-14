@@ -115,8 +115,13 @@ class AuthManager: ObservableObject {
                 ])
             }
 
-            // 4. Execute Google Sign-In
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
+            // 4. Execute Google Sign-In with Calendar Scope
+            let calendarScope = "https://www.googleapis.com/auth/calendar.readonly"
+            let result = try await GIDSignIn.sharedInstance.signIn(
+                withPresenting: window,
+                hint: nil,
+                additionalScopes: [calendarScope]
+            )
 
             // 5. Get ID Token and Access Token
             guard let idToken = result.user.idToken?.tokenString else {
