@@ -50,7 +50,8 @@ struct rytmoApp: App {
                 Playlist.self,
                 MusicTrack.self,
                 TodoItem.self,
-                FocusSession.self
+                FocusSession.self,
+                LocalCalendarEvent.self
             ])
             let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -77,6 +78,7 @@ struct rytmoApp: App {
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
                     timerManager.setModelContext(modelContainer.mainContext)
+                    LocalCalendarManager.shared.setModelContext(modelContainer.mainContext)
                     
                     // Setup Notch Window
                     appDelegate.setupNotchWindow(

@@ -12,6 +12,8 @@ import YouTubePlayerKit
 
 enum DashboardSelection: Hashable {
     case home
+    case calendar
+    case calendarSettings
     case tasks
     case allPlaylists
     case playlist(Playlist)
@@ -79,6 +81,26 @@ struct DashboardView: View {
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
                                         .fill(selection == .home ? Color.primary.opacity(0.1) : Color.clear)
+                                )
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
+                                selection = .calendar
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selection == .calendar ? "calendar.circle.fill" : "calendar")
+                                        .font(.system(size: 14))
+                                    Text("Calendar")
+                                        .font(.system(size: 14))
+                                    Spacer()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(selection == .calendar ? Color.primary.opacity(0.1) : Color.clear)
                                 )
                                 .contentShape(Rectangle())
                             }
@@ -221,6 +243,8 @@ struct DashboardView: View {
                     switch selection {
                     case .home, .none:
                         HomeView()
+                    case .calendar:
+                        DashboardCalendarView()
                     case .tasks:
                         DashboardTodoView()
                     case .allPlaylists:
@@ -236,6 +260,8 @@ struct DashboardView: View {
                     case .settings:
                         DashboardSettingsView()
                             .environmentObject(authManager)
+                    case .calendarSettings:
+                        CalendarSettingsView()
                     }
                     
                     MusicPlayerBar()
