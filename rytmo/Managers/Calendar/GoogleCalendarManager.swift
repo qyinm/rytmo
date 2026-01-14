@@ -2,6 +2,7 @@ import Foundation
 import GoogleSignIn
 import Combine
 import SwiftUI
+import FirebaseCore
 
 @MainActor
 class GoogleCalendarManager: ObservableObject {
@@ -28,6 +29,12 @@ class GoogleCalendarManager: ObservableObject {
     
     func requestAccess() async {
         guard let window = NSApplication.shared.windows.first else { return }
+        
+        if GIDSignIn.sharedInstance.configuration == nil {
+            if let clientID = FirebaseApp.app()?.options.clientID {
+                GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
+            }
+        }
         
         do {
             let result = try await GIDSignIn.sharedInstance.signIn(

@@ -114,7 +114,6 @@ class AuthManager: ObservableObject {
                 ])
             }
 
-            // 2. Set GIDConfiguration
             let config = GIDConfiguration(clientID: clientID)
             GIDSignIn.sharedInstance.configuration = config
 
