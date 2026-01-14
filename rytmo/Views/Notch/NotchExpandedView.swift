@@ -40,11 +40,9 @@ struct NotchExpandedView: View {
             
             HStack(spacing: 16) {
                 CompactTimerView()
-                    .frame(maxWidth: .infinity)
                     .aspectRatio(1, contentMode: .fit)
 
                 CompactTodoView()
-                    .frame(maxWidth: .infinity)
                     .aspectRatio(1, contentMode: .fit)
             }
             .padding(.horizontal, 4)
@@ -64,12 +62,11 @@ struct NotchExpandedView: View {
         @EnvironmentObject var settings: PomodoroSettings
 
         var body: some View {
-            VStack(spacing: 8) {
-                // Progress Circle
+            VStack(spacing: 4) {
                 ZStack {
                     Circle()
                         .stroke(Color.gray.opacity(0.15), lineWidth: 3)
-                        .frame(width: 80, height: 80)
+                        .frame(width: 65, height: 65)
 
                     Circle()
                         .trim(from: 0, to: timerManager.session.progress)
@@ -77,52 +74,51 @@ struct NotchExpandedView: View {
                             progressColor,
                             style: StrokeStyle(lineWidth: 3, lineCap: .round)
                         )
-                        .frame(width: 80, height: 80)
+                        .frame(width: 65, height: 65)
                         .rotationEffect(.degrees(-90))
                         .animation(.linear(duration: 0.5), value: timerManager.session.progress)
 
-                    // State Icon
                     Image(systemName: stateIcon)
-                        .font(.system(size: 18))
+                        .font(.system(size: 16))
                         .foregroundColor(progressColor)
                 }
+                .padding(.top, 4)
 
-                // Time Display
-                Text(timerManager.session.formattedTime)
-                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.primary)
+                VStack(spacing: 0) {
+                    Text(timerManager.session.formattedTime)
+                        .font(.system(size: 20, weight: .bold, design: .monospaced))
+                        .foregroundColor(.primary)
 
-                Text(timerManager.session.state.displayName)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
+                    Text(timerManager.session.state.displayName)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
 
-                // Session Dots
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     ForEach(0..<settings.sessionsBeforeLongBreak, id: \.self) { index in
                         Circle()
                             .fill(index < timerManager.session.sessionCount ? progressColor : Color.gray.opacity(0.3))
-                            .frame(width: 4, height: 4)
+                            .frame(width: 3.5, height: 3.5)
                     }
                 }
-                .padding(.top, 2)
 
-                // Controls
                 HStack(spacing: 12) {
-                    compactControlButton(icon: "arrow.counterclockwise", size: 24) {
+                    compactControlButton(icon: "arrow.counterclockwise", size: 22) {
                         withAnimation { timerManager.reset() }
                     }
 
-                    compactPlayButton()
+                    compactPlayButton(size: 32)
 
-                    compactControlButton(icon: "forward.fill", size: 24) {
+                    compactControlButton(icon: "forward.fill", size: 22) {
                         withAnimation { timerManager.skip() }
                     }
                 }
-                .padding(.top, 4)
+                .padding(.top, 2)
             }
-            .padding(12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(8)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
         }
@@ -148,7 +144,7 @@ struct NotchExpandedView: View {
         private func compactControlButton(icon: String, size: CGFloat, action: @escaping () -> Void) -> some View {
             Button(action: action) {
                 Image(systemName: icon)
-                    .font(.system(size: size * 0.35, weight: .semibold))
+                    .font(.system(size: size * 0.4, weight: .semibold))
                     .foregroundStyle(.primary)
                     .frame(width: size, height: size)
                     .background(
@@ -159,7 +155,7 @@ struct NotchExpandedView: View {
             .buttonStyle(.plain)
         }
 
-        private func compactPlayButton() -> some View {
+        private func compactPlayButton(size: CGFloat) -> some View {
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     if timerManager.session.isRunning {
@@ -170,9 +166,9 @@ struct NotchExpandedView: View {
                 }
             }) {
                 Image(systemName: timerManager.session.isRunning ? "pause.fill" : "play.fill")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: size * 0.45, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
+                    .frame(width: size, height: size)
                     .background(
                         Circle()
                             .fill(Color.black)
@@ -232,11 +228,11 @@ struct NotchExpandedView: View {
                                     .foregroundColor(.secondary)
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 30)
+                            .padding(.top, 40)
                         } else {
                             ForEach(Array(todos.prefix(5).enumerated()), id: \.element.id) { index, todo in
                                 CompactTodoRow(todo: todo)
-
+                                
                                 if index < min(todos.count, 5) - 1 {
                                     Rectangle()
                                         .fill(Color.black.opacity(0.04))
@@ -247,10 +243,12 @@ struct NotchExpandedView: View {
                         }
                     }
                 }
-                .frame(height: 100)
+                
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
         }
