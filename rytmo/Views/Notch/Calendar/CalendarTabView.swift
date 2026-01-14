@@ -1,37 +1,35 @@
 import SwiftUI
 import EventKit
+import SwiftData
 
 struct CalendarTabView: View {
     @StateObject private var calendarManager = CalendarManager.shared
+    @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
+    @State private var selectedDate: Date = Date()
+    
+    private let calendar = Calendar.current
     
     var body: some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Upcoming")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
-                
-                NotchCalendarListView()
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Left: Compact Calendar Grid
+            NotchCalendarGridView(
+                calendarManager: calendarManager,
+                selectedDate: $selectedDate
+            )
+            .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Today")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
-                
-                NotchCalendarTimelineView()
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Right: Events + Todos for Selected Date
+            NotchEventsAndTodosView(
+                selectedDate: selectedDate,
+                events: eventsForSelectedDate,
+                todos: todosForSelectedDate
+            )
+            .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -43,114 +41,260 @@ struct CalendarTabView: View {
             calendarManager.checkPermission()
         }
     }
-}
-
-struct NotchCalendarListView: View {
-    @ObservedObject var calendarManager = CalendarManager.shared
     
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 2) {
-                if !calendarManager.isAuthorized && calendarManager.showSystem {
-                    Button("Grant Access") {
-                        Task { await calendarManager.requestAccess() }
-                    }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.accentColor)
-                    .padding(.top, 10)
-                } else if calendarManager.mergedEvents.isEmpty {
-                    Text("No events today")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                        .padding(.top, 10)
-                } else {
-                    ForEach(calendarManager.mergedEvents.prefix(4), id: \.eventIdentifier) { event in
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Capsule()
-                                    .fill(event.eventColor)
-                                    .frame(width: 3, height: 12)
-                                
-                                Text(event.eventTitle ?? "Untitled")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                            }
-                            
-                            HStack {
-                                if let startDate = event.eventStartDate {
-                                    Text(startDate, style: .time)
-                                }
-                                Text("•")
-                                Text(event.sourceName)
-                            }
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 9)
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
+    private var eventsForSelectedDate: [CalendarEventProtocol] {
+        calendarManager.mergedEvents.filter { event in
+            guard let eventDate = event.eventStartDate else { return false }
+            return calendar.isDate(eventDate, inSameDayAs: selectedDate)
+        }
+    }
+    
+    private var todosForSelectedDate: [TodoItem] {
+        allTodos.filter { todo in
+            guard let dueDate = todo.dueDate else { return false }
+            return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
 }
 
-struct NotchCalendarTimelineView: View {
-    @ObservedObject var calendarManager = CalendarManager.shared
+// MARK: - Notch Compact Calendar Grid
+
+struct NotchCalendarGridView: View {
+    @ObservedObject var calendarManager: CalendarManager
+    @Binding var selectedDate: Date
+    
+    @State private var displayedMonth: Date = Date()
+    
+    private let calendar = Calendar.current
+    private let weekdaySymbols = ["S", "M", "T", "W", "T", "F", "S"]
     
     var body: some View {
-        VStack(spacing: 12) {
-            let now = Date()
-            let hour = Calendar.current.component(.hour, from: now)
-            
-            VStack(spacing: 4) {
-                Text("\(hour):\(String(format: "%02d", Calendar.current.component(.minute, from: now)))")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+        VStack(spacing: 6) {
+            // Header
+            HStack {
+                Button {
+                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
+                
+                Text(displayedMonth, format: .dateTime.month(.abbreviated).year())
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text(now, format: .dateTime.weekday(.wide).month().day())
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
+                Spacer()
+                
+                Button {
+                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
             }
+            .padding(.horizontal, 8)
             .padding(.top, 10)
             
-            Spacer()
-            
-            let startOfDay = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
-            let endOfDay = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: now)!
-            let totalSeconds = endOfDay.timeIntervalSince(startOfDay)
-            let currentSeconds = now.timeIntervalSince(startOfDay)
-            let progress = min(max(currentSeconds / totalSeconds, 0), 1)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("Work Day")
-                        .font(.system(size: 9, weight: .bold))
+            // Weekday Labels
+            HStack(spacing: 0) {
+                ForEach(weekdaySymbols, id: \.self) { symbol in
+                    Text(symbol)
+                        .font(.system(size: 8, weight: .medium))
                         .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.accentColor)
+                        .frame(maxWidth: .infinity)
                 }
-                
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.1))
-                            .frame(height: 4)
-                        
-                        Capsule()
-                            .fill(Color.accentColor)
-                            .frame(width: geo.size.width * progress, height: 4)
+            }
+            .padding(.horizontal, 4)
+            
+            // Days Grid
+            let days = generateDaysInMonth(for: displayedMonth)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 2) {
+                ForEach(days, id: \.self) { date in
+                    NotchDayCellView(
+                        date: date,
+                        isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                        isToday: calendar.isDateInToday(date),
+                        isCurrentMonth: calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month),
+                        hasEvents: hasEvents(for: date)
+                    )
+                    .onTapGesture {
+                        selectedDate = date
                     }
                 }
-                .frame(height: 4)
             }
-            .padding(.bottom, 10)
+            .padding(.horizontal, 4)
+            
+            Spacer(minLength: 0)
+        }
+    }
+    
+    private func generateDaysInMonth(for date: Date) -> [Date] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
+              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
+              let monthLastWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.end - 1) else {
+            return []
+        }
+        
+        var dates: [Date] = []
+        var current = monthFirstWeek.start
+        
+        while current < monthLastWeek.end {
+            dates.append(current)
+            current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
+        }
+        
+        return dates
+    }
+    
+    private func hasEvents(for date: Date) -> Bool {
+        calendarManager.mergedEvents.contains { event in
+            guard let eventDate = event.eventStartDate else { return false }
+            return calendar.isDate(eventDate, inSameDayAs: date)
         }
     }
 }
+
+struct NotchDayCellView: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let isCurrentMonth: Bool
+    let hasEvents: Bool
+    
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        VStack(spacing: 1) {
+            ZStack {
+                if isSelected {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 18, height: 18)
+                } else if isToday {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.5), lineWidth: 1)
+                        .frame(width: 18, height: 18)
+                }
+                
+                Text("\(calendar.component(.day, from: date))")
+                    .font(.system(size: 9, weight: isToday || isSelected ? .bold : .regular))
+                    .foregroundColor(dayTextColor)
+            }
+            
+            if hasEvents && !isSelected {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 3, height: 3)
+            } else {
+                Spacer().frame(height: 3)
+            }
+        }
+        .frame(height: 24)
+        .contentShape(Rectangle())
+    }
+    
+    private var dayTextColor: Color {
+        if isSelected {
+            return .black
+        } else if !isCurrentMonth {
+            return .secondary.opacity(0.3)
+        } else {
+            return .white
+        }
+    }
+}
+
+// MARK: - Notch Events and Todos View
+
+struct NotchEventsAndTodosView: View {
+    let selectedDate: Date
+    let events: [CalendarEventProtocol]
+    let todos: [TodoItem]
+    @Environment(\.modelContext) private var modelContext
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Date Header
+            Text(selectedDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 6) {
+                    // Events
+                    ForEach(events.prefix(3), id: \.eventIdentifier) { event in
+                        HStack(spacing: 6) {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(event.eventColor)
+                                .frame(width: 3, height: 24)
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(event.eventTitle ?? "Untitled")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                
+                                if let startDate = event.eventStartDate {
+                                    Text(startDate, style: .time)
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 10)
+                    }
+                    
+                    // Todos
+                    ForEach(todos.prefix(3)) { todo in
+                        HStack(spacing: 8) {
+                            Button {
+                                todo.isCompleted.toggle()
+                                todo.completedAt = todo.isCompleted ? Date() : nil
+                            } label: {
+                                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(todo.isCompleted ? .green : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Text(todo.title)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(todo.isCompleted ? .secondary : .white)
+                                .strikethrough(todo.isCompleted)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal, 10)
+                    }
+                    
+                    // Empty State
+                    if events.isEmpty && todos.isEmpty {
+                        VStack(spacing: 6) {
+                            Image(systemName: "calendar.badge.checkmark")
+                                .font(.system(size: 18))
+                                .foregroundColor(.secondary.opacity(0.4))
+                            Text("No events")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 20)
+                    }
+                }
+                .padding(.bottom, 12)
+            }
+        }
+    }
+}
+
