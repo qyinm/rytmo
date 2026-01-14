@@ -101,7 +101,9 @@ struct rytmoApp: App {
             }
         }
 
+        /*
         // 2) MenuBar Extra (Popover UI - Includes Settings)
+        // Disabled in favor of Notch UI (Migration to Dynamic Island experience)
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerManager)
@@ -141,6 +143,7 @@ struct rytmoApp: App {
             .background(ReopenHandler())
         }
         .menuBarExtraStyle(.window)
+        */
     }
 }
 
