@@ -4,16 +4,6 @@ import Combine
 import SwiftUI
 import EventKit
 
-// Unified protocol for all calendar sources
-protocol CalendarEventProtocol {
-    var eventIdentifier: String { get }
-    var eventTitle: String? { get }
-    var eventStartDate: Date? { get }
-    var eventEndDate: Date? { get }
-    var eventColor: Color { get }
-    var sourceName: String { get }
-}
-
 @MainActor
 class LocalCalendarManager: ObservableObject {
     static let shared = LocalCalendarManager()
@@ -59,34 +49,4 @@ class LocalCalendarManager: ObservableObject {
         context.insert(newEvent)
         fetchEvents()
     }
-}
-
-// Wrapper for EKEvent to ensure protocol conformance
-struct SystemCalendarEvent: CalendarEventProtocol {
-    private let event: EKEvent
-    
-    init(event: EKEvent) {
-        self.event = event
-    }
-    
-    var eventIdentifier: String { event.eventIdentifier }
-    var eventTitle: String? { event.title }
-    var eventStartDate: Date? { event.startDate }
-    var eventEndDate: Date? { event.endDate }
-    var eventColor: Color {
-        if let cgColor = event.calendar?.cgColor {
-            return Color(cgColor: cgColor)
-        }
-        return .blue
-    }
-    var sourceName: String { "System" }
-}
-
-extension LocalCalendarEvent: CalendarEventProtocol {
-    var eventIdentifier: String { self.id.uuidString }
-    var eventTitle: String? { self.title }
-    var eventStartDate: Date? { self.startDate }
-    var eventEndDate: Date? { self.endDate }
-    var eventColor: Color { Color(hex: self.colorHex) }
-    var sourceName: String { "Rytmo" }
 }
