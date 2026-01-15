@@ -8,6 +8,7 @@
 import XCTest
 @testable import rytmo
 
+@MainActor
 final class PomodoroSessionTests: XCTestCase {
     
     // MARK: - Initialization Tests
@@ -182,3 +183,4 @@ final class PomodoroSessionTests: XCTestCase {
         return PomodoroSettings()
     }
 }
+

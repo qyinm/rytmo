@@ -8,6 +8,7 @@
 import XCTest
 @testable import rytmo
 
+@MainActor
 final class TimerStateTests: XCTestCase {
     
     // MARK: - displayName Tests
