@@ -4,6 +4,15 @@ import Combine
 import SwiftUI
 import FirebaseCore
 
+// MARK: - Constants
+
+private enum GoogleCalendarAPI {
+    static let scope = "https://www.googleapis.com/auth/calendar.readonly"
+    static let baseURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+    static let signInErrorDomain = "com.google.GIDSignIn"
+    static let cancelledErrorCode = -5
+}
+
 @MainActor
 class GoogleCalendarManager: ObservableObject {
     static let shared = GoogleCalendarManager()
@@ -13,8 +22,6 @@ class GoogleCalendarManager: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
     
-    private let calendarScope = "https://www.googleapis.com/auth/calendar.readonly"
-    
     private init() {}
     
     // MARK: - Permission Check
@@ -22,7 +29,7 @@ class GoogleCalendarManager: ObservableObject {
     func checkPermission() {
         if let user = GIDSignIn.sharedInstance.currentUser {
             let grantedScopes = user.grantedScopes ?? []
-            self.isAuthorized = grantedScopes.contains(calendarScope)
+            self.isAuthorized = grantedScopes.contains(GoogleCalendarAPI.scope)
             if self.isAuthorized {
                 // Automatically fetch events when permission is confirmed
                 fetchEvents()
@@ -80,10 +87,10 @@ class GoogleCalendarManager: ObservableObject {
             let result = try await GIDSignIn.sharedInstance.signIn(
                 withPresenting: window,
                 hint: nil,
-                additionalScopes: [calendarScope]
+                additionalScopes: [GoogleCalendarAPI.scope]
             )
             
-            self.isAuthorized = result.user.grantedScopes?.contains(calendarScope) ?? false
+            self.isAuthorized = result.user.grantedScopes?.contains(GoogleCalendarAPI.scope) ?? false
             
             if self.isAuthorized {
                 print("✅ Google Calendar access granted")
@@ -93,7 +100,7 @@ class GoogleCalendarManager: ObservableObject {
             }
         } catch let error as NSError {
             // Handle cancellation gracefully
-            if error.domain == "com.google.GIDSignIn" && error.code == -5 {
+            if error.domain == GoogleCalendarAPI.signInErrorDomain && error.code == GoogleCalendarAPI.cancelledErrorCode {
                 print("ℹ️ Google Calendar sign-in cancelled")
                 // Don't set error for user cancellation
             } else {
@@ -137,7 +144,7 @@ class GoogleCalendarManager: ObservableObject {
             }
             
             let accessToken = user.accessToken.tokenString
-            let urlString = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+            let urlString = GoogleCalendarAPI.baseURL
             
             // Fetch events for the next 24 hours
             let start = Date()
