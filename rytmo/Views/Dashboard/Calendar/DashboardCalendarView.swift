@@ -224,8 +224,8 @@ struct DayProgressCard: View {
     var body: some View {
         let now = Date()
         let calendar = Calendar.current
-        let startOfDay = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now)!
-        let endOfDay = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now)!
+        let startOfDay = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now) ?? now
+        let endOfDay = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now) ?? now.addingTimeInterval(9 * 3600)
         let totalSeconds = endOfDay.timeIntervalSince(startOfDay)
         let currentSeconds = now.timeIntervalSince(startOfDay)
         let progress = min(max(currentSeconds / totalSeconds, 0), 1)
