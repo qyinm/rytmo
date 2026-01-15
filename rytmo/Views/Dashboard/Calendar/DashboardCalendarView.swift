@@ -99,8 +99,17 @@ struct DashboardCalendarView: View {
     
     private var todosForSelectedDate: [TodoItem] {
         allTodos.filter { todo in
-            // Include todos with no due date or todos matching selected date
-            guard let dueDate = todo.dueDate else { return true }
+            // 완료된 항목은 해당 날짜에서만 표시
+            if todo.isCompleted {
+                guard let dueDate = todo.dueDate else { return false }
+                return calendar.isDate(dueDate, inSameDayAs: selectedDate)
+            }
+            
+            // 미완료 + 날짜 미설정: 오늘만 표시
+            guard let dueDate = todo.dueDate else {
+                return calendar.isDateInToday(selectedDate)
+            }
+            
             return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }

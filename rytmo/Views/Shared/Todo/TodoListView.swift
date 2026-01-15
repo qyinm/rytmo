@@ -83,8 +83,7 @@ struct TodoRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: {
-                todo.isCompleted.toggle()
-                todo.completedAt = todo.isCompleted ? Date() : nil
+                toggleCompletion()
             }) {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: compact ? 16 : 18))
@@ -136,6 +135,12 @@ struct TodoRowView: View {
         .onHover { hovering in
             isHovering = hovering
         }
+    }
+
+    // MARK: - Actions
+    
+    private func toggleCompletion() {
+        todo.toggleCompletion()
     }
 
     // MARK: - Helper Methods

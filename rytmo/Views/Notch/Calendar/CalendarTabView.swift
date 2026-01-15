@@ -51,8 +51,17 @@ struct CalendarTabView: View {
     
     private var todosForSelectedDate: [TodoItem] {
         allTodos.filter { todo in
-            // Include todos with no due date or todos matching selected date
-            guard let dueDate = todo.dueDate else { return true }
+            // 완료된 항목은 해당 날짜에서만 표시
+            if todo.isCompleted {
+                guard let dueDate = todo.dueDate else { return false }
+                return calendar.isDate(dueDate, inSameDayAs: selectedDate)
+            }
+            
+            // 미완료 + 날짜 미설정: 오늘만 표시
+            guard let dueDate = todo.dueDate else {
+                return calendar.isDateInToday(selectedDate)
+            }
+            
             return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
@@ -187,8 +196,7 @@ struct NotchEventsAndTodosView: View {
                     ForEach(todos.prefix(3)) { todo in
                         HStack(spacing: 8) {
                             Button {
-                                todo.isCompleted.toggle()
-                                todo.completedAt = todo.isCompleted ? Date() : nil
+                                todo.toggleCompletion()
                             } label: {
                                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 12))
