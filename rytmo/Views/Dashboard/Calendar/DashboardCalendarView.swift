@@ -104,10 +104,6 @@ struct DashboardCalendarView: View {
             return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
-    
-    private var boxBackgroundColor: Color {
-        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
-    }
 }
 
 // MARK: - Supporting Views
