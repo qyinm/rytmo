@@ -189,6 +189,7 @@ struct ConnectCalendarsView: View {
                         Label("Google Connected", systemImage: "g.circle.fill")
                     }
                     .buttonStyle(.bordered)
+                    .disabled(true)
                 } else {
                     Button {
                         Task { await calendarManager.googleManager.requestAccess() }
