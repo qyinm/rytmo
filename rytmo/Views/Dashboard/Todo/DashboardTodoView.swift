@@ -286,7 +286,11 @@ struct DashboardTodoView: View {
             .frame(width: 280)
             
             if dueDate != nil {
-                Button(action: { dueDate = nil; dateSetManually = false; showDatePicker = false }) {
+                Button(action: {
+                    dueDate = nil
+                    dateSetManually = false
+                    showDatePicker = false
+                }) {
                     Text("Clear Date")
                         .font(.system(size: 13))
                         .foregroundColor(.red)
