@@ -3,7 +3,7 @@ import EventKit
 import SwiftData
 
 struct DashboardCalendarView: View {
-    @StateObject private var calendarManager = CalendarManager.shared
+    @ObservedObject private var calendarManager = CalendarManager.shared
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
