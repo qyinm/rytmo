@@ -1,11 +1,10 @@
-## Summary
+## Problem
+<!-- Describe the problem this PR addresses -->
 
-## Related Issue
-Issue: 
-## Screenshots
-| Before | After |
-| :---: | :---: |
-| | |
+## Solution
+<!-- Describe the solution implemented -->
 
-## Checklist
-- [ ] Build Check
+## Changes
+| file_name | changes |
+|-----------|---------|
+|           |         |
