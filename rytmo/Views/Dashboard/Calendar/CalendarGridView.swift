@@ -40,7 +40,7 @@ struct CalendarGridView: View {
                         isToday: CalendarUtils.calendar.isDateInToday(date),
                         isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
                         events: CalendarUtils.events(for: date, from: calendarManager.mergedEvents),
-                        colorScheme: colorScheme
+                        variant: .dashboard
                     )
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.15)) {
@@ -113,69 +113,6 @@ struct CalendarHeaderView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-        }
-    }
-}
-
-// MARK: - Day Cell View
-
-struct DayCellView: View {
-    let date: Date
-    let isSelected: Bool
-    let isToday: Bool
-    let isCurrentMonth: Bool
-    let events: [CalendarEventProtocol]
-    let colorScheme: ColorScheme
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            // Day Number
-            ZStack {
-                if isSelected {
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 32, height: 32)
-                } else if isToday {
-                    Circle()
-                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
-                        .frame(width: 32, height: 32)
-                }
-                
-                Text("\(CalendarUtils.calendar.component(.day, from: date))")
-                    .font(.system(size: 14, weight: isToday || isSelected ? .semibold : .regular))
-                    .foregroundColor(dayTextColor)
-            }
-            .frame(width: 36, height: 36)
-            
-            // Event Dots
-            if !events.isEmpty {
-                HStack(spacing: 3) {
-                    ForEach(events.prefix(3), id: \.eventIdentifier) { event in
-                        Circle()
-                            .fill(event.eventColor)
-                            .frame(width: 5, height: 5)
-                    }
-                }
-                .frame(height: 6)
-            } else {
-                Spacer()
-                    .frame(height: 6)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-    }
-    
-    private var dayTextColor: Color {
-        if isSelected {
-            return .white
-        } else if !isCurrentMonth {
-            return .secondary.opacity(0.4)
-        } else if isToday {
-            return .accentColor
-        } else {
-            return .primary
         }
     }
 }

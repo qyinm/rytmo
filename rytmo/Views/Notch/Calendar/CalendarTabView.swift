@@ -119,7 +119,7 @@ struct NotchCalendarGridView: View {
             let days = CalendarUtils.generateDaysInMonth(for: displayedMonth)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 2) {
                 ForEach(days, id: \.self) { date in
-                    NotchDayCellView(
+                    DayCellView(
                         date: date,
                         isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
                         isToday: CalendarUtils.calendar.isDateInToday(date),
@@ -138,55 +138,8 @@ struct NotchCalendarGridView: View {
     }
 }
 
-struct NotchDayCellView: View {
-    let date: Date
-    let isSelected: Bool
-    let isToday: Bool
-    let isCurrentMonth: Bool
-    let hasEvents: Bool
-    
-    var body: some View {
-        VStack(spacing: 1) {
-            ZStack {
-                if isSelected {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 18, height: 18)
-                } else if isToday {
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.5), lineWidth: 1)
-                        .frame(width: 18, height: 18)
-                }
-                
-                Text("\(CalendarUtils.calendar.component(.day, from: date))")
-                    .font(.system(size: 9, weight: isToday || isSelected ? .bold : .regular))
-                    .foregroundColor(dayTextColor)
-            }
-            
-            if hasEvents && !isSelected {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 3, height: 3)
-            } else {
-                Spacer().frame(height: 3)
-            }
-        }
-        .frame(height: 24)
-        .contentShape(Rectangle())
-    }
-    
-    private var dayTextColor: Color {
-        if isSelected {
-            return .black
-        } else if !isCurrentMonth {
-            return .secondary.opacity(0.3)
-        } else {
-            return .white
-        }
-    }
-}
-
 // MARK: - Notch Events and Todos View
+
 
 struct NotchEventsAndTodosView: View {
     let selectedDate: Date
