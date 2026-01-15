@@ -20,9 +20,6 @@ struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
     
-    @State private var newTaskContent: String = ""
-    @FocusState private var isInputFocused: Bool
-    
     var showHeader: Bool = true
     var compact: Bool = false
     
@@ -73,15 +70,6 @@ struct TodoListView: View {
                 .cornerRadius(10)
             }
         }
-    }
-    
-    private func addTodo() {
-        guard !newTaskContent.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-
-        let newTodo = TodoItem(title: newTaskContent, orderIndex: todos.count)
-        modelContext.insert(newTodo)
-        newTaskContent = ""
-        isInputFocused = false
     }
 }
 
