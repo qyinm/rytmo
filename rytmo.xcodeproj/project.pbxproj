@@ -39,6 +39,16 @@
 		41CF671A2EE69E8F00636347 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF67192EE69E8F00636347 /* Sparkle */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		416B3C7B2F18899500E967C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 41CD3D062EE06FAE00FF66E0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 41CD3D0D2EE06FAE00FF66E0;
+			remoteInfo = rytmo;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		41CF685D2EE87A7600636347 /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -53,6 +63,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		416B3C772F18899500E967C3 /* rytmoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = rytmoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		41CD3D0E2EE06FAE00FF66E0 /* rytmo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = rytmo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		41CF64E42EE2997900636347 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -68,6 +79,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		416B3C782F18899500E967C3 /* rytmoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = rytmoTests;
+			sourceTree = "<group>";
+		};
 		41CD3D102EE06FAE00FF66E0 /* rytmo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -79,6 +95,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		416B3C742F18899500E967C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		41CD3D0B2EE06FAE00FF66E0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -123,6 +146,7 @@
 			children = (
 				41CF64E42EE2997900636347 /* Config.xcconfig */,
 				41CD3D102EE06FAE00FF66E0 /* rytmo */,
+				416B3C782F18899500E967C3 /* rytmoTests */,
 				41CF65CE2EE30C6D00636347 /* Frameworks */,
 				41CD3D0F2EE06FAE00FF66E0 /* Products */,
 			);
@@ -132,6 +156,7 @@
 			isa = PBXGroup;
 			children = (
 				41CD3D0E2EE06FAE00FF66E0 /* rytmo.app */,
+				416B3C772F18899500E967C3 /* rytmoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -146,6 +171,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		416B3C762F18899500E967C3 /* rytmoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 416B3C7D2F18899500E967C3 /* Build configuration list for PBXNativeTarget "rytmoTests" */;
+			buildPhases = (
+				416B3C732F18899500E967C3 /* Sources */,
+				416B3C742F18899500E967C3 /* Frameworks */,
+				416B3C752F18899500E967C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				416B3C7C2F18899500E967C3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				416B3C782F18899500E967C3 /* rytmoTests */,
+			);
+			name = rytmoTests;
+			packageProductDependencies = (
+			);
+			productName = rytmoTests;
+			productReference = 416B3C772F18899500E967C3 /* rytmoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		41CD3D0D2EE06FAE00FF66E0 /* rytmo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 41CD3D192EE06FAF00FF66E0 /* Build configuration list for PBXNativeTarget "rytmo" */;
@@ -208,6 +256,10 @@
 				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
+					416B3C762F18899500E967C3 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 41CD3D0D2EE06FAE00FF66E0;
+					};
 					41CD3D0D2EE06FAE00FF66E0 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
@@ -235,11 +287,19 @@
 			projectRoot = "";
 			targets = (
 				41CD3D0D2EE06FAE00FF66E0 /* rytmo */,
+				416B3C762F18899500E967C3 /* rytmoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		416B3C752F18899500E967C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		41CD3D0C2EE06FAE00FF66E0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -251,6 +311,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		416B3C732F18899500E967C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		41CD3D0A2EE06FAE00FF66E0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -260,7 +327,55 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		416B3C7C2F18899500E967C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 41CD3D0D2EE06FAE00FF66E0 /* rytmo */;
+			targetProxy = 416B3C7B2F18899500E967C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		416B3C7E2F18899500E967C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MCP4D3M7XK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dievas.rytmoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rytmo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rytmo";
+			};
+			name = Debug;
+		};
+		416B3C7F2F18899500E967C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MCP4D3M7XK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dievas.rytmoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/rytmo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/rytmo";
+			};
+			name = Release;
+		};
 		41CD3D172EE06FAF00FF66E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 41CF64E42EE2997900636347 /* Config.xcconfig */;
@@ -482,6 +597,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		416B3C7D2F18899500E967C3 /* Build configuration list for PBXNativeTarget "rytmoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				416B3C7E2F18899500E967C3 /* Debug */,
+				416B3C7F2F18899500E967C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		41CD3D092EE06FAE00FF66E0 /* Build configuration list for PBXProject "rytmo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
