@@ -10,7 +10,6 @@ struct CalendarGridView: View {
     
     @State private var displayedMonth: Date = Date()
     
-    private let calendar = Calendar.current
     private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
     
     var body: some View {
@@ -32,15 +31,15 @@ struct CalendarGridView: View {
             }
             
             // Calendar Grid
-            let days = generateDaysInMonth(for: displayedMonth)
+            let days = CalendarUtils.generateDaysInMonth(for: displayedMonth)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 8) {
                 ForEach(days, id: \.self) { date in
                     DayCellView(
                         date: date,
-                        isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
-                        isToday: calendar.isDateInToday(date),
-                        isCurrentMonth: calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month),
-                        events: eventsForDate(date),
+                        isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
+                        isToday: CalendarUtils.calendar.isDateInToday(date),
+                        isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
+                        events: CalendarUtils.events(for: date, from: calendarManager.mergedEvents),
                         colorScheme: colorScheme
                     )
                     .onTapGesture {
@@ -61,34 +60,6 @@ struct CalendarGridView: View {
     private var boxBackgroundColor: Color {
         colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
     }
-    
-    private func generateDaysInMonth(for date: Date) -> [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
-              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-              let monthLastWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.end - 1) else {
-            return []
-        }
-        
-        let startDate = monthFirstWeek.start
-        let endDate = monthLastWeek.end
-        
-        var dates: [Date] = []
-        var current = startDate
-        
-        while current < endDate {
-            dates.append(current)
-            current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
-        }
-        
-        return dates
-    }
-    
-    private func eventsForDate(_ date: Date) -> [CalendarEventProtocol] {
-        calendarManager.mergedEvents.filter { event in
-            guard let eventDate = event.eventStartDate else { return false }
-            return calendar.isDate(eventDate, inSameDayAs: date)
-        }
-    }
 }
 
 // MARK: - Calendar Header View
@@ -97,15 +68,13 @@ struct CalendarHeaderView: View {
     @Binding var displayedMonth: Date
     let onTodayTapped: () -> Void
     
-    private let calendar = Calendar.current
-    
     var body: some View {
         HStack {
             // Month/Year Display with Navigation
             HStack(spacing: 8) {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                        displayedMonth = CalendarUtils.calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
                     }
                 } label: {
                     Image(systemName: "chevron.left")
@@ -120,7 +89,7 @@ struct CalendarHeaderView: View {
                 
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                        displayedMonth = CalendarUtils.calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
                     }
                 } label: {
                     Image(systemName: "chevron.right")
@@ -158,8 +127,6 @@ struct DayCellView: View {
     let events: [CalendarEventProtocol]
     let colorScheme: ColorScheme
     
-    private let calendar = Calendar.current
-    
     var body: some View {
         VStack(spacing: 4) {
             // Day Number
@@ -174,7 +141,7 @@ struct DayCellView: View {
                         .frame(width: 32, height: 32)
                 }
                 
-                Text("\(calendar.component(.day, from: date))")
+                Text("\(CalendarUtils.calendar.component(.day, from: date))")
                     .font(.system(size: 14, weight: isToday || isSelected ? .semibold : .regular))
                     .foregroundColor(dayTextColor)
             }
@@ -221,8 +188,6 @@ struct SelectedDayEventsView: View {
     var todos: [TodoItem] = []
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) private var modelContext
-    
-    private let calendar = Calendar.current
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {

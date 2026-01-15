@@ -66,15 +66,17 @@ struct NotchCalendarGridView: View {
     
     @State private var displayedMonth: Date = Date()
     
-    private let calendar = Calendar.current
-    private let weekdaySymbols = ["S", "M", "T", "W", "T", "F", "S"]
+    /// Use single-letter weekday symbols from locale
+    private var weekdaySymbols: [String] {
+        CalendarUtils.calendar.veryShortWeekdaySymbols
+    }
     
     var body: some View {
         VStack(spacing: 6) {
             // Header
             HStack {
                 Button {
-                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                    displayedMonth = CalendarUtils.calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 8, weight: .bold))
@@ -91,7 +93,7 @@ struct NotchCalendarGridView: View {
                 Spacer()
                 
                 Button {
-                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                    displayedMonth = CalendarUtils.calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
                 } label: {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 8, weight: .bold))
@@ -114,15 +116,15 @@ struct NotchCalendarGridView: View {
             .padding(.horizontal, 4)
             
             // Days Grid
-            let days = generateDaysInMonth(for: displayedMonth)
+            let days = CalendarUtils.generateDaysInMonth(for: displayedMonth)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 2) {
                 ForEach(days, id: \.self) { date in
                     NotchDayCellView(
                         date: date,
-                        isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
-                        isToday: calendar.isDateInToday(date),
-                        isCurrentMonth: calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month),
-                        hasEvents: hasEvents(for: date)
+                        isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
+                        isToday: CalendarUtils.calendar.isDateInToday(date),
+                        isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
+                        hasEvents: CalendarUtils.hasEvents(for: date, in: calendarManager.mergedEvents)
                     )
                     .onTapGesture {
                         selectedDate = date
@@ -134,31 +136,6 @@ struct NotchCalendarGridView: View {
             Spacer(minLength: 0)
         }
     }
-    
-    private func generateDaysInMonth(for date: Date) -> [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
-              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-              let monthLastWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.end - 1) else {
-            return []
-        }
-        
-        var dates: [Date] = []
-        var current = monthFirstWeek.start
-        
-        while current < monthLastWeek.end {
-            dates.append(current)
-            current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
-        }
-        
-        return dates
-    }
-    
-    private func hasEvents(for date: Date) -> Bool {
-        calendarManager.mergedEvents.contains { event in
-            guard let eventDate = event.eventStartDate else { return false }
-            return calendar.isDate(eventDate, inSameDayAs: date)
-        }
-    }
 }
 
 struct NotchDayCellView: View {
@@ -167,8 +144,6 @@ struct NotchDayCellView: View {
     let isToday: Bool
     let isCurrentMonth: Bool
     let hasEvents: Bool
-    
-    private let calendar = Calendar.current
     
     var body: some View {
         VStack(spacing: 1) {
@@ -183,7 +158,7 @@ struct NotchDayCellView: View {
                         .frame(width: 18, height: 18)
                 }
                 
-                Text("\(calendar.component(.day, from: date))")
+                Text("\(CalendarUtils.calendar.component(.day, from: date))")
                     .font(.system(size: 9, weight: isToday || isSelected ? .bold : .regular))
                     .foregroundColor(dayTextColor)
             }
