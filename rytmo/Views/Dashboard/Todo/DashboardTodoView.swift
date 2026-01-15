@@ -15,6 +15,7 @@ struct DashboardTodoView: View {
     @State private var newTaskTitle: String = ""
     @State private var newTaskNotes: String = ""
     @State private var dueDate: Date? = nil
+    @State private var dateSetManually: Bool = false
     @State private var showDatePicker: Bool = false
     @State private var showNoteInput: Bool = false
     
@@ -72,6 +73,9 @@ struct DashboardTodoView: View {
                     .textFieldStyle(.plain)
                     .font(.system(size: 16))
                     .focused($focusedField)
+                    .onSubmit {
+                        createTodo()
+                    }
                     .onChange(of: newTaskTitle) { _, newValue in
                         parseDateFromText(newValue)
                     }
@@ -275,13 +279,14 @@ struct DashboardTodoView: View {
                 get: { dueDate ?? Date() },
                 set: { date in
                     dueDate = Calendar.current.startOfDay(for: date)
+                    dateSetManually = true
                     showDatePicker = false
                 }
             ))
             .frame(width: 280)
             
             if dueDate != nil {
-                Button(action: { dueDate = nil; showDatePicker = false }) {
+                Button(action: { dueDate = nil; dateSetManually = false; showDatePicker = false }) {
                     Text("Clear Date")
                         .font(.system(size: 13))
                         .foregroundColor(.red)
@@ -300,6 +305,7 @@ struct DashboardTodoView: View {
     private func quickDateOption(title: String, systemImage: String, date: Date) -> some View {
         Button(action: {
             dueDate = Calendar.current.startOfDay(for: date)
+            dateSetManually = true
             showDatePicker = false
         }) {
             HStack {
@@ -323,6 +329,11 @@ struct DashboardTodoView: View {
     // MARK: - Helper Methods
 
     private func parseDateFromText(_ text: String) {
+        // Skip parsing if date was manually set by user
+        if dateSetManually {
+            return
+        }
+        
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
@@ -423,6 +434,7 @@ struct DashboardTodoView: View {
         newTaskTitle = ""
         newTaskNotes = ""
         dueDate = nil
+        dateSetManually = false
         showNoteInput = false
         focusedField = false
     }

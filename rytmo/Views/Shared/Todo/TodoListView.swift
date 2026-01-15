@@ -165,7 +165,7 @@ struct TodoRowView: View {
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return DateFormatters.timeFormatter.string(from: date)
+            return "Today"
         } else if calendar.isDateInTomorrow(date) {
             return "Tomorrow"
         } else {
