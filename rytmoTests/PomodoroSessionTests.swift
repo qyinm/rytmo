@@ -179,8 +179,27 @@ final class PomodoroSessionTests: XCTestCase {
     
     // MARK: - Helpers
     
-    private func createMockSettings() -> PomodoroSettings {
-        return PomodoroSettings()
+    struct MockPomodoroSettings: PomodoroSettingsProtocol {
+        var sessionsBeforeLongBreak: Int = 4
+        var focusDuration: Int = 25
+        var shortBreakDuration: Int = 5
+        var longBreakDuration: Int = 15
+        
+        func focusDurationInSeconds() -> TimeInterval {
+            Double(focusDuration * 60)
+        }
+        
+        func shortBreakDurationInSeconds() -> TimeInterval {
+            Double(shortBreakDuration * 60)
+        }
+        
+        func longBreakDurationInSeconds() -> TimeInterval {
+            Double(longBreakDuration * 60)
+        }
+    }
+    
+    private func createMockSettings() -> MockPomodoroSettings {
+        return MockPomodoroSettings()
     }
 }
 

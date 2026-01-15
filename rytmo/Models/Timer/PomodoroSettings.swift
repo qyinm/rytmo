@@ -10,8 +10,18 @@ import Combine
 
 // MARK: - Pomodoro Settings
 
+// MARK: - Pomodoro Settings Protocol
+
+/// Protocol for Pomodoro Settings to allow mocking in tests
+protocol PomodoroSettingsProtocol {
+    var sessionsBeforeLongBreak: Int { get }
+    func focusDurationInSeconds() -> TimeInterval
+    func shortBreakDurationInSeconds() -> TimeInterval
+    func longBreakDurationInSeconds() -> TimeInterval
+}
+
 /// Pomodoro Timer Settings
-class PomodoroSettings: ObservableObject {
+class PomodoroSettings: ObservableObject, PomodoroSettingsProtocol {
 
     // MARK: - Published Properties
 

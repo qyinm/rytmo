@@ -78,7 +78,7 @@ struct PomodoroSession {
     }
 
     /// Determine next state
-    mutating func moveToNextState(settings: PomodoroSettings) {
+    mutating func moveToNextState(settings: PomodoroSettingsProtocol) {
         switch state {
         case .idle:
             state = .focus
