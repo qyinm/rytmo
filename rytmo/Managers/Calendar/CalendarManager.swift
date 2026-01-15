@@ -3,6 +3,13 @@ import EventKit
 import Combine
 import SwiftUI
 
+// MARK: - Calendar Configuration
+
+private enum CalendarConfig {
+    /// Default event fetch range in hours
+    static let defaultEventRangeHours = 24
+}
+
 @MainActor
 class CalendarManager: ObservableObject {
     static let shared = CalendarManager()
@@ -17,6 +24,7 @@ class CalendarManager: ObservableObject {
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
+    @AppStorage("calendar_event_range_hours") var eventRangeHours: Int = CalendarConfig.defaultEventRangeHours
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -88,7 +96,7 @@ class CalendarManager: ObservableObject {
         
         if showSystem && isAuthorized {
             let start = Date()
-            let end = Calendar.current.date(byAdding: .hour, value: 24, to: start) ?? start.addingTimeInterval(24 * 3600)
+            let end = Calendar.current.date(byAdding: .hour, value: eventRangeHours, to: start) ?? start.addingTimeInterval(Double(eventRangeHours) * 3600)
             let calendars = eventStore.calendars(for: .event)
             let predicate = eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
             let systemEvents = eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }

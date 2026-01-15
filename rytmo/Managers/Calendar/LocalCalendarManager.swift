@@ -10,6 +10,7 @@ class LocalCalendarManager: ObservableObject {
     
     private var modelContext: ModelContext?
     @Published var events: [LocalCalendarEvent] = []
+    @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
     
     private init() {}
     
@@ -22,7 +23,7 @@ class LocalCalendarManager: ObservableObject {
         guard let context = modelContext else { return }
         
         let start = Date()
-        let end = Calendar.current.date(byAdding: .hour, value: 24, to: start) ?? start.addingTimeInterval(24 * 3600)
+        let end = Calendar.current.date(byAdding: .hour, value: eventRangeHours, to: start) ?? start.addingTimeInterval(Double(eventRangeHours) * 3600)
         
         let descriptor = FetchDescriptor<LocalCalendarEvent>(
             predicate: #Predicate { $0.startDate < end && $0.endDate > start },

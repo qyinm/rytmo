@@ -21,6 +21,7 @@ class GoogleCalendarManager: ObservableObject {
     @Published var isAuthorized: Bool = false
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
+    @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
     
     private init() {}
     
@@ -146,9 +147,9 @@ class GoogleCalendarManager: ObservableObject {
             let accessToken = user.accessToken.tokenString
             let urlString = GoogleCalendarAPI.baseURL
             
-            // Fetch events for the next 24 hours
+            // Fetch events for the configured time range
             let start = Date()
-            let end = Calendar.current.date(byAdding: .hour, value: 24, to: start) ?? start.addingTimeInterval(24 * 3600)
+            let end = Calendar.current.date(byAdding: .hour, value: eventRangeHours, to: start) ?? start.addingTimeInterval(Double(eventRangeHours) * 3600)
             
             let isoFormatter = ISO8601DateFormatter()
             let timeMin = isoFormatter.string(from: start)
