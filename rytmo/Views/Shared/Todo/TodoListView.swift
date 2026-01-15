@@ -83,8 +83,7 @@ struct TodoRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Button(action: {
-                todo.isCompleted.toggle()
-                todo.completedAt = todo.isCompleted ? Date() : nil
+                toggleCompletion()
             }) {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: compact ? 16 : 18))
@@ -135,6 +134,18 @@ struct TodoRowView: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+        }
+    }
+
+    // MARK: - Actions
+    
+    private func toggleCompletion() {
+        todo.isCompleted.toggle()
+        todo.completedAt = todo.isCompleted ? Date() : nil
+        
+        // 날짜 미설정 Todo가 완료되면, 완료한 날짜에 귀속
+        if todo.isCompleted && todo.dueDate == nil {
+            todo.dueDate = todo.completedAt
         }
     }
 
