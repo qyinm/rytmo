@@ -196,8 +196,7 @@ struct NotchEventsAndTodosView: View {
                     ForEach(todos.prefix(3)) { todo in
                         HStack(spacing: 8) {
                             Button {
-                                todo.isCompleted.toggle()
-                                todo.completedAt = todo.isCompleted ? Date() : nil
+                                todo.toggleCompletion()
                             } label: {
                                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                                     .font(.system(size: 12))

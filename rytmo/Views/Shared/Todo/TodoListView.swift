@@ -140,13 +140,7 @@ struct TodoRowView: View {
     // MARK: - Actions
     
     private func toggleCompletion() {
-        todo.isCompleted.toggle()
-        todo.completedAt = todo.isCompleted ? Date() : nil
-        
-        // 날짜 미설정 Todo가 완료되면, 완료한 날짜에 귀속
-        if todo.isCompleted && todo.dueDate == nil {
-            todo.dueDate = todo.completedAt
-        }
+        todo.toggleCompletion()
     }
 
     // MARK: - Helper Methods

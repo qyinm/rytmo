@@ -28,5 +28,13 @@ class TodoItem {
         self.dueDate = dueDate
         self.orderIndex = orderIndex
     }
+    
+    func toggleCompletion() {
+        isCompleted.toggle()
+        completedAt = isCompleted ? Date() : nil
+        if isCompleted && dueDate == nil {
+            dueDate = completedAt
+        }
+    }
 }
 
