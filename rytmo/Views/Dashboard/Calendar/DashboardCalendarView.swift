@@ -99,7 +99,8 @@ struct DashboardCalendarView: View {
     
     private var todosForSelectedDate: [TodoItem] {
         allTodos.filter { todo in
-            guard let dueDate = todo.dueDate else { return false }
+            // Include todos with no due date or todos matching selected date
+            guard let dueDate = todo.dueDate else { return true }
             return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
