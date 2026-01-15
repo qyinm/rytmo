@@ -23,6 +23,12 @@
 	<string>$(SUPublicEDKey)</string>
 	<key>YoutubeDataAPIKey</key>
 	<string>$(YOUTUBE_DATA_API_KEY)</string>
+	<key>GIDClientID</key>
+	<string>$(GOOGLE_CLIENT_ID)</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Rytmo needs access to your calendar to show your schedule in the dashboard and notch.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Rytmo needs full access to your calendar to show your schedule in the dashboard and notch.</string>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
 </dict>

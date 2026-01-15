@@ -12,7 +12,7 @@ struct DashboardSettingsView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var settings: PomodoroSettings
     
-    @State private var selectedTab: Int = 0
+    @State private var selectedTab: Int = UserDefaults.standard.integer(forKey: "lastSettingsTab")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -30,16 +30,26 @@ struct DashboardSettingsView: View {
             HStack(spacing: 8) {
                 DashboardTabButton(title: "General", isSelected: selectedTab == 0) {
                     selectedTab = 0
+                    UserDefaults.standard.set(0, forKey: "lastSettingsTab")
                 }
                 
                 DashboardTabButton(title: "Focus time", isSelected: selectedTab == 1) {
                     selectedTab = 1
+                    UserDefaults.standard.set(1, forKey: "lastSettingsTab")
+                }
+
+                DashboardTabButton(title: "Calendars", isSelected: selectedTab == 2) {
+                    selectedTab = 2
+                    UserDefaults.standard.set(2, forKey: "lastSettingsTab")
                 }
                 
                 Spacer()
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 16)
+            .onAppear {
+                selectedTab = UserDefaults.standard.integer(forKey: "lastSettingsTab")
+            }
 
             Divider()
 
@@ -47,8 +57,10 @@ struct DashboardSettingsView: View {
             Group {
                 if selectedTab == 0 {
                     GeneralSettingsView()
-                } else {
+                } else if selectedTab == 1 {
                     FocusTimeSettingsView()
+                } else {
+                    CalendarSettingsView()
                 }
             }
         }

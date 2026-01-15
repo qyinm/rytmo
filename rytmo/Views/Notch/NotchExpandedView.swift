@@ -39,10 +39,15 @@ struct NotchExpandedView: View {
                 .padding(.top, 0)
                 .padding(.bottom, 8)
             
-            if selectedTab == 0 {
+            switch selectedTab {
+            case 0:
                 homeTabView
-            } else {
+            case 1:
                 musicTabView
+            case 2:
+                CalendarTabView()
+            default:
+                homeTabView
             }
             
             Spacer(minLength: 0)
@@ -88,55 +93,9 @@ struct NotchExpandedView: View {
         .padding(.top, 8)
     }
     
-    // MARK: - Compact Playlist List for Notch
-    struct NotchPlaylistListView: View {
-        @EnvironmentObject var musicPlayer: MusicPlayerManager
-        @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
-        
-        var body: some View {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 2) {
-                    if playlists.isEmpty {
-                        Text("No playlists")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .padding(.top, 10)
-                    } else {
-                        ForEach(playlists) { playlist in
-                            Button(action: {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    musicPlayer.selectedPlaylist = playlist
-                                }
-                            }) {
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(Color(hex: playlist.themeColorHex))
-                                        .frame(width: 6, height: 6)
-                                    
-                                    Text(playlist.name)
-                                        .font(.system(size: 12, weight: musicPlayer.selectedPlaylist?.id == playlist.id ? .bold : .medium))
-                                        .foregroundColor(musicPlayer.selectedPlaylist?.id == playlist.id ? .white : .secondary)
-                                        .lineLimit(1)
-                                }
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 8)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(musicPlayer.selectedPlaylist?.id == playlist.id ? Color.white.opacity(0.1) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-            .frame(maxHeight: 160)
-        }
-    }
-    
     private var headerView: some View {
         HStack {
+            // Tab Switcher
             HStack(spacing: 16) {
                 Button(action: { selectedTab = 0 }) {
                     Image(systemName: "house.fill")
@@ -149,6 +108,13 @@ struct NotchExpandedView: View {
                     Image(systemName: "music.note")
                         .font(.system(size: 14))
                         .foregroundColor(selectedTab == 1 ? .white : .secondary)
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: { selectedTab = 2 }) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 14))
+                        .foregroundColor(selectedTab == 2 ? .white : .secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -413,6 +379,53 @@ struct NotchExpandedView: View {
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
             }
+        }
+    }
+
+    // MARK: - Compact Playlist List for Notch
+    struct NotchPlaylistListView: View {
+        @EnvironmentObject var musicPlayer: MusicPlayerManager
+        @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
+        
+        var body: some View {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 2) {
+                    if playlists.isEmpty {
+                        Text("No playlists")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 10)
+                    } else {
+                        ForEach(playlists) { playlist in
+                            Button(action: {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    musicPlayer.selectedPlaylist = playlist
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(Color(hex: playlist.themeColorHex))
+                                        .frame(width: 6, height: 6)
+                                    
+                                    Text(playlist.name)
+                                        .font(.system(size: 12, weight: musicPlayer.selectedPlaylist?.id == playlist.id ? .bold : .medium))
+                                        .foregroundColor(musicPlayer.selectedPlaylist?.id == playlist.id ? .white : .secondary)
+                                        .lineLimit(1)
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(musicPlayer.selectedPlaylist?.id == playlist.id ? Color.white.opacity(0.1) : Color.clear)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 160)
         }
     }
 

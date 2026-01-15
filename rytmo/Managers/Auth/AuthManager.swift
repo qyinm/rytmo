@@ -54,6 +54,16 @@ class AuthManager: ObservableObject {
         authStateHandler = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task { @MainActor in
                 self?.currentUser = user
+                
+                // If user is Google user, restore previous sign in to refresh tokens/scopes
+                if let user = user, user.providerData.contains(where: { $0.providerID == "google.com" }) {
+                    do {
+                        _ = try await GIDSignIn.sharedInstance.restorePreviousSignIn()
+                        GoogleCalendarManager.shared.checkPermission()
+                    } catch {
+                        print("ℹ️ Google restore sign-in failed or not needed: \(error.localizedDescription)")
+                    }
+                }
             }
         }
     }
@@ -104,7 +114,6 @@ class AuthManager: ObservableObject {
                 ])
             }
 
-            // 2. Set GIDConfiguration
             let config = GIDConfiguration(clientID: clientID)
             GIDSignIn.sharedInstance.configuration = config
 
@@ -115,8 +124,13 @@ class AuthManager: ObservableObject {
                 ])
             }
 
-            // 4. Execute Google Sign-In
-            let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: window)
+            // 4. Execute Google Sign-In with Calendar Scope
+            let calendarScope = "https://www.googleapis.com/auth/calendar.readonly"
+            let result = try await GIDSignIn.sharedInstance.signIn(
+                withPresenting: window,
+                hint: nil,
+                additionalScopes: [calendarScope]
+            )
 
             // 5. Get ID Token and Access Token
             guard let idToken = result.user.idToken?.tokenString else {

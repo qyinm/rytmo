@@ -9,12 +9,6 @@ import SwiftUI
 import SwiftData
 
 private enum DateFormatters {
-    static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }()
-    
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -25,9 +19,6 @@ private enum DateFormatters {
 struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
-    
-    @State private var newTaskContent: String = ""
-    @FocusState private var isInputFocused: Bool
     
     var showHeader: Bool = true
     var compact: Bool = false
@@ -79,15 +70,6 @@ struct TodoListView: View {
                 .cornerRadius(10)
             }
         }
-    }
-    
-    private func addTodo() {
-        guard !newTaskContent.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-
-        let newTodo = TodoItem(title: newTaskContent, orderIndex: todos.count)
-        modelContext.insert(newTodo)
-        newTaskContent = ""
-        isInputFocused = false
     }
 }
 
@@ -165,7 +147,7 @@ struct TodoRowView: View {
     private func formatDate(_ date: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(date) {
-            return DateFormatters.timeFormatter.string(from: date)
+            return "Today"
         } else if calendar.isDateInTomorrow(date) {
             return "Tomorrow"
         } else {
