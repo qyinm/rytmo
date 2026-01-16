@@ -33,14 +33,17 @@ struct FullMonthGridView: View {
             
             VStack(spacing: 0) {
                 ForEach(0..<rows, id: \.self) { row in
+                    let weekDays = Array(days[row * 7 ..< (row + 1) * 7])
+                    let slottedEvents = CalendarUtils.arrangeEventsInSlots(for: weekDays, events: calendarManager.mergedEvents)
+                    
                     HStack(spacing: 0) {
                         ForEach(0..<7, id: \.self) { column in
-                            let date = days[row * 7 + column]
+                            let date = weekDays[column]
                             MonthViewCell(
                                 date: date,
                                 isToday: calendar.isDateInToday(date),
                                 isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
-                                events: CalendarUtils.events(for: date, from: calendarManager.mergedEvents),
+                                events: slottedEvents[date] ?? [],
                                 todos: todosForDate(date)
                             )
                         }
