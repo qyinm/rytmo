@@ -25,8 +25,45 @@ class GoogleCalendarManager: ObservableObject {
     @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
     
     private var fetchTask: Task<Void, Never>?
+    private let cacheFileName = "google_events_cache.json"
     
-    private init() {}
+    private init() {
+        loadEventsFromCache()
+    }
+    
+    // MARK: - Caching
+    
+    private func getCacheURL() -> URL? {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        return documentsDirectory.appendingPathComponent(cacheFileName)
+    }
+    
+    private func saveEventsToCache(_ events: [GoogleCalendarEvent]) {
+        guard let url = getCacheURL() else { return }
+        
+        Task.detached(priority: .background) {
+            do {
+                let data = try JSONEncoder().encode(events)
+                try data.write(to: url)
+            } catch {
+                print("❌ Failed to save Google Calendar cache: \(error)")
+            }
+        }
+    }
+    
+    private func loadEventsFromCache() {
+        guard let url = getCacheURL(),
+              FileManager.default.fileExists(atPath: url.path) else { return }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let cachedEvents = try JSONDecoder().decode([GoogleCalendarEvent].self, from: data)
+            self.events = cachedEvents
+            print("✅ Loaded \(cachedEvents.count) cached Google events")
+        } catch {
+            print("❌ Failed to load Google Calendar cache: \(error)")
+        }
+    }
     
     // MARK: - Permission Check
     
@@ -173,7 +210,8 @@ class GoogleCalendarManager: ObservableObject {
                 URLQueryItem(name: "timeMin", value: timeMin),
                 URLQueryItem(name: "timeMax", value: timeMax),
                 URLQueryItem(name: "singleEvents", value: "true"),
-                URLQueryItem(name: "orderBy", value: "startTime")
+                URLQueryItem(name: "orderBy", value: "startTime"),
+                URLQueryItem(name: "fields", value: "items(id,summary,start,end,colorId,htmlLink)")
             ]
             
             var request = URLRequest(url: components.url!)
@@ -210,6 +248,7 @@ class GoogleCalendarManager: ObservableObject {
                 
                 await MainActor.run {
                     self.events = newEvents
+                    self.saveEventsToCache(newEvents)
                     self.isLoading = false
                     self.error = nil
                     print("✅ Fetched \(self.events.count) Google Calendar events")
