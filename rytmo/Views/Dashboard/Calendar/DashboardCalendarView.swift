@@ -178,16 +178,6 @@ struct CalendarLeftSidebarOptimized: View {
             .padding(.horizontal, 16)
             
             Spacer()
-            
-            HStack(spacing: 16) {
-                Image(systemName: "square.split.2x2")
-                Image(systemName: "paperplane")
-                Spacer()
-                Image(systemName: "questionmark.circle")
-            }
-            .font(.system(size: 14))
-            .foregroundColor(.secondary)
-            .padding(16)
         }
         .frame(width: 260)
         .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
