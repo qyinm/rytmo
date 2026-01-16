@@ -44,18 +44,37 @@ struct rytmoApp: App {
         _timerManager = StateObject(wrappedValue: PomodoroTimerManager(settings: settings))
         _authManager = StateObject(wrappedValue: AuthManager())
 
-        // SwiftData container setup
+        // SwiftData container setup with automatic lightweight migration
         do {
             let schema = Schema([
                 Playlist.self,
                 MusicTrack.self,
-                TodoItem.self,
+                TodoItem.self,  // SwiftData will auto-migrate "content" -> "title" via @Attribute(originalName:)
                 FocusSession.self,
                 LocalCalendarEvent.self
             ])
-            let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            modelContainer = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let modelConfiguration = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false
+            )
+
+            print("📦 Initializing SwiftData ModelContainer with automatic migration...")
+
+            // SwiftData automatically handles lightweight migration
+            // when @Attribute(originalName:) is used
+            modelContainer = try ModelContainer(
+                for: schema,
+                configurations: [modelConfiguration]
+            )
+
+            print("✅ ModelContainer initialization complete")
         } catch {
+            // Detailed error logging before crash
+            print("❌ FATAL: ModelContainer initialization failed")
+            print("❌ Error: \(error.localizedDescription)")
+            print("❌ Details: \(error)")
+
+            // This will crash the app, but with clear logs for debugging
             fatalError("Could not create ModelContainer: \(error)")
         }
     }

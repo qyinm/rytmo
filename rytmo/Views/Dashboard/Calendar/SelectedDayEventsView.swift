@@ -149,8 +149,8 @@ struct SelectedDayEventsView: View {
                     .foregroundColor(todo.isCompleted ? .secondary : .primary)
                     .lineLimit(1)
                 
-                if !todo.notes.isEmpty {
-                    Text(todo.notes)
+                if let notes = todo.notes, !notes.isEmpty {
+                    Text(notes)
                         .font(.system(size: 11))
                         .foregroundColor(.secondary)
                         .lineLimit(1)

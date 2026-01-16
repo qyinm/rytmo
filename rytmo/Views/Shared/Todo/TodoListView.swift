@@ -98,8 +98,8 @@ struct TodoRowView: View {
                     .foregroundColor(todo.isCompleted ? .secondary : .primary)
                     .lineLimit(3)
 
-                if !todo.notes.isEmpty {
-                    Text(todo.notes)
+                if let notes = todo.notes, !notes.isEmpty {
+                    Text(notes)
                         .font(.system(size: compact ? 11 : 13))
                         .foregroundColor(todo.isCompleted ? .secondary.opacity(0.6) : .secondary.opacity(0.8))
                         .lineLimit(2)
