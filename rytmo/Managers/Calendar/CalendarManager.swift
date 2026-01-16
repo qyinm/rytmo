@@ -84,6 +84,10 @@ class CalendarManager: ObservableObject {
     }
     
     func refresh() {
+        refresh(date: Date())
+    }
+    
+    func refresh(date: Date) {
         var allEvents: [CalendarEventProtocol] = []
         
         if showLocal {
@@ -95,8 +99,10 @@ class CalendarManager: ObservableObject {
         }
         
         if showSystem && isAuthorized {
-            let start = Date()
-            let end = Calendar.current.date(byAdding: .hour, value: eventRangeHours, to: start) ?? start.addingTimeInterval(Double(eventRangeHours) * 3600)
+            guard let monthRange = Calendar.current.dateInterval(of: .month, for: date) else { return }
+            let start = monthRange.start
+            let end = monthRange.end
+            
             let calendars = eventStore.calendars(for: .event)
             let predicate = eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
             let systemEvents = eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }

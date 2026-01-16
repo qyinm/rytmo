@@ -35,15 +35,15 @@ enum CalendarUtils {
         return dates
     }
     
-    /// Filter events for a specific date
-    /// - Parameters:
-    ///   - date: Target date to filter events
-    ///   - events: Array of calendar events to filter
-    /// - Returns: Events occurring on the specified date
     static func events(for date: Date, from events: [CalendarEventProtocol]) -> [CalendarEventProtocol] {
-        events.filter { event in
-            guard let eventDate = event.eventStartDate else { return false }
-            return calendar.isDate(eventDate, inSameDayAs: date)
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        return events.filter { event in
+            guard let startDate = event.eventStartDate,
+                  let endDate = event.eventEndDate else { return false }
+            
+            return startDate < endOfDay && endDate > startOfDay
         }
     }
     

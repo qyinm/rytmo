@@ -49,6 +49,7 @@ struct DashboardCalendarView: View {
                         Button {
                             withAnimation {
                                 displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                                calendarManager.refresh(date: displayedMonth)
                             }
                         } label: {
                             Image(systemName: "chevron.left")
@@ -58,12 +59,14 @@ struct DashboardCalendarView: View {
                             withAnimation {
                                 displayedMonth = Date()
                                 selectedDate = Date()
+                                calendarManager.refresh(date: displayedMonth)
                             }
                         }
                         
                         Button {
                             withAnimation {
                                 displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                                calendarManager.refresh(date: displayedMonth)
                             }
                         } label: {
                             Image(systemName: "chevron.right")
