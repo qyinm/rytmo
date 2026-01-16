@@ -7,111 +7,118 @@ struct DashboardCalendarView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
+    
     @State private var selectedDate: Date = Date()
     @State private var displayedMonth: Date = Date()
+    @State private var selectedEvent: CalendarEventProtocol? // New selection state
     
     private let calendar = Calendar.current
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack(spacing: 16) {
-                HStack(spacing: 8) {
-                    Text(displayedMonth, format: .dateTime.year().month(.wide))
-                        .font(.system(size: 28, weight: .bold))
-                    
-                    Button {
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 14, weight: .bold))
-                    }
-                    .buttonStyle(.plain)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 12) {
-                    HStack(spacing: 0) {
-                        Button {
-                            withAnimation {
-                                displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
-                                calendarManager.currentReferenceDate = displayedMonth
-                                calendarManager.refresh(date: displayedMonth)
-                            }
-                        } label: {
-                            Image(systemName: "chevron.left")
-                        }
-                        
-                        Button("Today") {
-                            withAnimation {
-                                displayedMonth = Date()
-                                selectedDate = Date()
-                                calendarManager.currentReferenceDate = displayedMonth
-                                calendarManager.refresh(date: displayedMonth)
-                            }
-                        }
-                        
-                        Button {
-                            withAnimation {
-                                displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
-                                calendarManager.currentReferenceDate = displayedMonth
-                                calendarManager.refresh(date: displayedMonth)
-                            }
-                        } label: {
-                            Image(systemName: "chevron.right")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    
-                    Button {
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 32)
-            .padding(.bottom, 24)
+        HStack(spacing: 0) {
+            // 1. Left Sidebar (Navigation & Filters)
+            CalendarLeftSidebar(
+                calendarManager: calendarManager,
+                selectedDate: $selectedDate
+            )
             
-            ScrollView {
-                VStack(spacing: 24) {
-                    FullMonthGridView(
-                        calendarManager: calendarManager,
-                        displayedMonth: $displayedMonth
-                    )
-                    .padding(.horizontal, 32)
+            Divider()
+            
+            // 2. Main Calendar Area
+            VStack(alignment: .leading, spacing: 0) {
+                // Header
+                HStack(spacing: 16) {
+                    HStack(spacing: 8) {
+                        Text(displayedMonth, format: .dateTime.year().month(.wide))
+                            .font(.system(size: 24, weight: .bold))
+                        
+                        Button {
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 12) {
+                        HStack(spacing: 0) {
+                            Button {
+                                withAnimation {
+                                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                                    calendarManager.currentReferenceDate = displayedMonth
+                                    calendarManager.refresh(date: displayedMonth)
+                                }
+                            } label: {
+                                Image(systemName: "chevron.left")
+                            }
+                            
+                            Button("Today") {
+                                withAnimation {
+                                    displayedMonth = Date()
+                                    selectedDate = Date()
+                                    calendarManager.currentReferenceDate = displayedMonth
+                                    calendarManager.refresh(date: displayedMonth)
+                                }
+                            }
+                            
+                            Button {
+                                withAnimation {
+                                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                                    calendarManager.currentReferenceDate = displayedMonth
+                                    calendarManager.refresh(date: displayedMonth)
+                                }
+                            } label: {
+                                Image(systemName: "chevron.right")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        
+                        Button {
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
                 }
-                .padding(.bottom, 32)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                
+                Divider()
+                
+                // Full Month Grid
+                FullMonthGridView(
+                    calendarManager: calendarManager,
+                    displayedMonth: $displayedMonth,
+                    onEventSelected: { event in
+                        selectedEvent = event
+                        if let date = event.eventStartDate {
+                            selectedDate = date
+                        }
+                    },
+                    onDateSelected: { date in
+                        selectedDate = date
+                        selectedEvent = nil
+                    }
+                )
             }
+            .frame(maxWidth: .infinity)
+            .background(colorScheme == .dark ? Color.black : Color.white)
+            
+            Divider()
+            
+            // 3. Right Sidebar (Inspector)
+            CalendarRightSidebar(
+                selectedDate: selectedDate,
+                selectedEvent: selectedEvent
+            )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             calendarManager.checkPermission()
-        }
-    }
-    
-    private var eventsForSelectedDate: [CalendarEventProtocol] {
-        CalendarUtils.events(for: selectedDate, from: calendarManager.mergedEvents)
-            .sorted { ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast) }
-    }
-    
-    private var todosForSelectedDate: [TodoItem] {
-        allTodos.filter { todo in
-            // 완료된 항목은 해당 날짜에서만 표시
-            if todo.isCompleted {
-                guard let dueDate = todo.dueDate else { return false }
-                return calendar.isDate(dueDate, inSameDayAs: selectedDate)
-            }
-            
-            // 미완료 + 날짜 미설정: 오늘만 표시
-            guard let dueDate = todo.dueDate else {
-                return calendar.isDateInToday(selectedDate)
-            }
-            
-            return calendar.isDate(dueDate, inSameDayAs: selectedDate)
         }
     }
 }

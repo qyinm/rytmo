@@ -6,6 +6,7 @@ struct MonthViewCell: View {
     let isCurrentMonth: Bool
     let events: [CalendarEventProtocol?]
     let todos: [TodoItem]
+    var onEventSelected: ((CalendarEventProtocol) -> Void)?
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -44,6 +45,9 @@ struct MonthViewCell: View {
                             isStart: isEventStart(event),
                             isEnd: isEventEnd(event)
                         )
+                        .onTapGesture {
+                            onEventSelected?(event)
+                        }
                     } else {
                         Color.clear.frame(height: 16)
                     }

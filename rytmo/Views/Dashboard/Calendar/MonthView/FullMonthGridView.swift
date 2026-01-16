@@ -6,6 +6,9 @@ struct FullMonthGridView: View {
     @Binding var displayedMonth: Date
     @Query private var allTodos: [TodoItem]
     
+    var onEventSelected: ((CalendarEventProtocol) -> Void)?
+    var onDateSelected: ((Date) -> Void)?
+    
     private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
     private let calendar = CalendarUtils.calendar
     
@@ -44,8 +47,12 @@ struct FullMonthGridView: View {
                                 isToday: calendar.isDateInToday(date),
                                 isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
                                 events: slottedEvents[date] ?? [],
-                                todos: todosForDate(date)
+                                todos: todosForDate(date),
+                                onEventSelected: onEventSelected
                             )
+                            .onTapGesture {
+                                onDateSelected?(date)
+                            }
                         }
                     }
                 }
