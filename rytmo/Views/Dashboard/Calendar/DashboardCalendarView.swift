@@ -5,323 +5,288 @@ import SwiftData
 struct DashboardCalendarView: View {
     @ObservedObject private var calendarManager = CalendarManager.shared
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
+    @Query private var allTodos: [TodoItem]
     
     @State private var selectedDate: Date = Date()
     @State private var displayedMonth: Date = Date()
-    @State private var selectedEvent: CalendarEventProtocol? // New selection state
+    @State private var cachedTodosByDate: [Date: [TodoItem]] = [:]
     
     private let calendar = Calendar.current
     
     var body: some View {
         HStack(spacing: 0) {
-            // 1. Left Sidebar (Navigation & Filters)
-            CalendarLeftSidebar(
-                calendarManager: calendarManager,
-                selectedDate: $selectedDate
+            CalendarLeftSidebarOptimized(
+                selectedDate: $selectedDate,
+                showLocal: calendarManager.showLocal,
+                showGoogle: calendarManager.showGoogle,
+                showSystem: calendarManager.showSystem,
+                onToggleLocal: { calendarManager.toggleSource(local: $0) },
+                onToggleGoogle: { calendarManager.toggleSource(google: $0) },
+                onToggleSystem: { calendarManager.toggleSource(system: $0) }
             )
             
             Divider()
             
-            // 2. Main Calendar Area
             VStack(alignment: .leading, spacing: 0) {
-                // Header
-                HStack(spacing: 16) {
-                    HStack(spacing: 8) {
-                        Text(displayedMonth, format: .dateTime.year().month(.wide))
-                            .font(.system(size: 24, weight: .bold))
-                        
-                        Button {
-                        } label: {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 14, weight: .bold))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 12) {
-                        HStack(spacing: 0) {
-                            Button {
-                                withAnimation {
-                                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
-                                    calendarManager.currentReferenceDate = displayedMonth
-                                    calendarManager.refresh(date: displayedMonth)
-                                }
-                            } label: {
-                                Image(systemName: "chevron.left")
-                            }
-                            
-                            Button("Today") {
-                                withAnimation {
-                                    displayedMonth = Date()
-                                    selectedDate = Date()
-                                    calendarManager.currentReferenceDate = displayedMonth
-                                    calendarManager.refresh(date: displayedMonth)
-                                }
-                            }
-                            
-                            Button {
-                                withAnimation {
-                                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
-                                    calendarManager.currentReferenceDate = displayedMonth
-                                    calendarManager.refresh(date: displayedMonth)
-                                }
-                            } label: {
-                                Image(systemName: "chevron.right")
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        
-                        Button {
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
+                CalendarHeaderView(
+                    displayedMonth: displayedMonth,
+                    onPrevMonth: { navigateMonth(-1) },
+                    onNextMonth: { navigateMonth(1) },
+                    onToday: { navigateToToday() }
+                )
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 
                 Divider()
                 
-                // Full Month Grid
                 FullMonthGridView(
-                    calendarManager: calendarManager,
-                    displayedMonth: $displayedMonth,
+                    days: calendarManager.currentMonthDays,
+                    eventSlots: calendarManager.eventSlots,
+                    displayedMonth: displayedMonth,
+                    todosByDate: cachedTodosByDate,
                     onEventSelected: { event in
-                        selectedEvent = event
                         if let date = event.eventStartDate {
                             selectedDate = date
                         }
                     },
                     onDateSelected: { date in
                         selectedDate = date
-                        selectedEvent = nil
                     }
                 )
+                .padding(16)
             }
             .frame(maxWidth: .infinity)
             .background(colorScheme == .dark ? Color.black : Color.white)
             
             Divider()
             
-            // 3. Right Sidebar (Inspector)
-            CalendarRightSidebar(
-                selectedDate: selectedDate,
-                selectedEvent: selectedEvent
-            )
+            CalendarRightSidebar(selectedDate: selectedDate)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             calendarManager.checkPermission()
+            updateTodosCache()
         }
+        .onChange(of: allTodos) { _, _ in
+            updateTodosCache()
+        }
+    }
+    
+    private func navigateMonth(_ delta: Int) {
+        displayedMonth = calendar.date(byAdding: .month, value: delta, to: displayedMonth) ?? displayedMonth
+        calendarManager.currentReferenceDate = displayedMonth
+        calendarManager.refresh(date: displayedMonth)
+    }
+    
+    private func navigateToToday() {
+        displayedMonth = Date()
+        selectedDate = Date()
+        calendarManager.currentReferenceDate = displayedMonth
+        calendarManager.refresh(date: displayedMonth)
+    }
+    
+    private func updateTodosCache() {
+        var dict: [Date: [TodoItem]] = [:]
+        for todo in allTodos {
+            guard let dueDate = todo.dueDate else { continue }
+            let startOfDay = calendar.startOfDay(for: dueDate)
+            dict[startOfDay, default: []].append(todo)
+        }
+        cachedTodosByDate = dict
     }
 }
 
-// MARK: - Supporting Views
-
-struct ErrorBannerView: View {
-    let message: String
-    let onRetry: () -> Void
+struct CalendarHeaderView: View {
+    let displayedMonth: Date
+    let onPrevMonth: () -> Void
+    let onNextMonth: () -> Void
+    let onToday: () -> Void
     
     var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.red)
-            Text(message)
-                .font(.subheadline)
+        HStack(spacing: 16) {
+            HStack(spacing: 8) {
+                Text(displayedMonth, format: .dateTime.year().month(.wide))
+                    .font(.system(size: 24, weight: .bold))
+                
+                Button {} label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .buttonStyle(.plain)
+            }
+            
             Spacer()
-            Button("Retry", action: onRetry)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+            
+            HStack(spacing: 0) {
+                Button(action: onPrevMonth) {
+                    Image(systemName: "chevron.left")
+                }
+                
+                Button("Today", action: onToday)
+                
+                Button(action: onNextMonth) {
+                    Image(systemName: "chevron.right")
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.red.opacity(0.1))
-        )
     }
 }
 
-struct LoadingBannerView: View {
-    let message: String
+struct CalendarLeftSidebarOptimized: View {
+    @Binding var selectedDate: Date
+    let showLocal: Bool
+    let showGoogle: Bool
+    let showSystem: Bool
+    let onToggleLocal: (Bool) -> Void
+    let onToggleGoogle: (Bool) -> Void
+    let onToggleSystem: (Bool) -> Void
     
-    var body: some View {
-        HStack {
-            ProgressView()
-                .scaleEffect(0.8)
-            Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.blue.opacity(0.05))
-        )
-    }
-}
-
-struct ConnectCalendarsView: View {
-    @ObservedObject var calendarManager: CalendarManager
     @Environment(\.colorScheme) var colorScheme
+    @State private var localToggle: Bool = true
+    @State private var googleToggle: Bool = true
+    @State private var systemToggle: Bool = true
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 24) {
+            MiniCalendarView(selectedDate: $selectedDate)
+                .padding(.horizontal, 8)
+            
+            Divider()
+                .padding(.horizontal, 16)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "link")
+                        .foregroundColor(.secondary)
+                    Text("일정 잡기")
+                        .font(.system(size: 13, weight: .medium))
+                    Spacer()
+                    Image(systemName: "eye")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 12))
+                }
+                .padding(.horizontal, 16)
+            }
+            
+            VStack(alignment: .leading, spacing: 16) {
+                SourceToggleRow(name: "Rytmo", color: .blue, isOn: $localToggle)
+                SourceToggleRow(name: "Google", color: .red, isOn: $googleToggle)
+                SourceToggleRow(name: "System", color: .purple, isOn: $systemToggle)
+            }
+            .padding(.horizontal, 16)
+            
+            Spacer()
+            
+            HStack(spacing: 16) {
+                Image(systemName: "square.split.2x2")
+                Image(systemName: "paperplane")
+                Spacer()
+                Image(systemName: "questionmark.circle")
+            }
+            .font(.system(size: 14))
+            .foregroundColor(.secondary)
+            .padding(16)
+        }
+        .frame(width: 260)
+        .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .onAppear {
+            localToggle = showLocal
+            googleToggle = showGoogle
+            systemToggle = showSystem
+        }
+        .onChange(of: localToggle) { _, v in onToggleLocal(v) }
+        .onChange(of: googleToggle) { _, v in onToggleGoogle(v) }
+        .onChange(of: systemToggle) { _, v in onToggleSystem(v) }
+    }
+}
+
+struct MiniCalendarView: View {
+    @Binding var selectedDate: Date
+    @State private var displayedMonth: Date = Date()
+    
+    private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
+    private let calendar = Calendar.current
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+    
+    var body: some View {
+        VStack(spacing: 12) {
             HStack {
-                Text("Connect your Calendars")
-                    .font(.headline)
-                Spacer()
-                if calendarManager.googleManager.isAuthorized {
-                    Label("Google Connected", systemImage: "checkmark.seal.fill")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                }
-            }
-            
-            Text("Connect Apple Calendar or Google Calendar to see your schedule.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            
-            HStack(spacing: 12) {
                 Button {
-                    Task { await calendarManager.requestAccess() }
+                    displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
                 } label: {
-                    Label(calendarManager.isAuthorized ? "Apple Connected" : "Connect Apple",
-                          systemImage: "apple.logo")
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 10, weight: .semibold))
                 }
-                .buttonStyle(.bordered)
-                .disabled(calendarManager.isAuthorized)
-                
-                if calendarManager.googleManager.isAuthorized {
-                    Button {
-                        Task { await calendarManager.googleManager.requestAccess() }
-                    } label: {
-                        Label("Google Connected", systemImage: "g.circle.fill")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(true)
-                } else {
-                    Button {
-                        Task { await calendarManager.googleManager.requestAccess() }
-                    } label: {
-                        Label("Connect Google", systemImage: "g.circle.fill")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(calendarManager.googleManager.isLoading)
-                }
+                .buttonStyle(.plain)
                 
                 Spacer()
+                
+                Text(displayedMonth, format: .dateTime.month(.abbreviated).year())
+                    .font(.system(size: 13, weight: .semibold))
+                
+                Spacer()
+                
+                Button {
+                    displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+            }
+            
+            HStack(spacing: 0) {
+                ForEach(weekdaySymbols, id: \.self) { symbol in
+                    Text(String(symbol.prefix(1)))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            let days = CalendarUtils.generateDaysInMonth(for: displayedMonth)
+            LazyVGrid(columns: Self.columns, spacing: 4) {
+                ForEach(days, id: \.timeIntervalSince1970) { date in
+                    let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+                    let isToday = calendar.isDateInToday(date)
+                    let isCurrentMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
+                    
+                    Text("\(calendar.component(.day, from: date))")
+                        .font(.system(size: 11, weight: isToday ? .bold : .regular))
+                        .foregroundColor(isCurrentMonth ? (isSelected ? .white : .primary) : .secondary.opacity(0.3))
+                        .frame(width: 24, height: 24)
+                        .background(isSelected ? Color.blue : Color.clear)
+                        .clipShape(Circle())
+                        .onTapGesture { selectedDate = date }
+                }
             }
         }
-        .padding(24)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(boxBackgroundColor)
-        )
-    }
-    
-    private var boxBackgroundColor: Color {
-        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
+        .padding(12)
     }
 }
 
-struct DayProgressCard: View {
-    @Environment(\.colorScheme) var colorScheme
+struct SourceToggleRow: View {
+    let name: String
+    let color: Color
+    @Binding var isOn: Bool
     
     var body: some View {
-        let now = Date()
-        let calendar = Calendar.current
-        let startOfDay = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: now) ?? now
-        let endOfDay = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: now) ?? now.addingTimeInterval(9 * 3600)
-        let totalSeconds = endOfDay.timeIntervalSince(startOfDay)
-        let currentSeconds = now.timeIntervalSince(startOfDay)
-        let progress = min(max(currentSeconds / totalSeconds, 0), 1)
-        
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Day Progress")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
+        HStack {
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .controlSize(.mini)
+                .toggleStyle(CheckboxToggleStyle())
             
-            ZStack {
-                Circle()
-                    .stroke(Color.primary.opacity(0.1), lineWidth: 6)
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-            }
-            .frame(width: 80, height: 80)
-            .frame(maxWidth: .infinity)
+            RoundedRectangle(cornerRadius: 2)
+                .fill(color)
+                .frame(width: 12, height: 12)
+            
+            Text(name)
+                .font(.system(size: 13))
+            
+            Spacer()
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(boxBackgroundColor)
-        )
-    }
-    
-    private var boxBackgroundColor: Color {
-        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
     }
 }
-
-struct QuickStatsCard: View {
-    let totalEvents: Int
-    let googleConnected: Bool
-    let systemConnected: Bool
-    @Environment(\.colorScheme) var colorScheme
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Stats")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "calendar")
-                        .foregroundColor(.accentColor)
-                    Text("\(totalEvents) events")
-                        .font(.system(size: 13))
-                }
-                
-                HStack(spacing: 8) {
-                    Image(systemName: googleConnected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(googleConnected ? .green : .secondary)
-                    Text("Google")
-                        .font(.system(size: 13))
-                        .foregroundColor(googleConnected ? .primary : .secondary)
-                }
-                
-                HStack(spacing: 8) {
-                    Image(systemName: systemConnected ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(systemConnected ? .green : .secondary)
-                    Text("System")
-                        .font(.system(size: 13))
-                        .foregroundColor(systemConnected ? .primary : .secondary)
-                }
-            }
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(boxBackgroundColor)
-        )
-    }
-    
-    private var boxBackgroundColor: Color {
-        colorScheme == .dark ? Color(nsColor: .controlBackgroundColor).opacity(0.5) : Color.black.opacity(0.03)
-    }
-}
-

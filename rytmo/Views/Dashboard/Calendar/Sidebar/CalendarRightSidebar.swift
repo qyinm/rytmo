@@ -2,20 +2,27 @@ import SwiftUI
 
 struct CalendarRightSidebar: View {
     let selectedDate: Date
-    let selectedEvent: CalendarEventProtocol?
     @Environment(\.colorScheme) var colorScheme
+    
+    @State private var eventTitle: String = ""
+    @State private var startDate: Date = Date()
+    @State private var endDate: Date = Date().addingTimeInterval(3600)
+    @State private var isAllDay: Bool = false
+    @State private var location: String = ""
+    @State private var notes: String = ""
+    @State private var selectedCalendar: String = "Rytmo"
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header (Date)
+            // Header
             HStack {
-                Text(selectedDate, format: .dateTime.month(.wide).day())
+                Text("일정 만들기")
                     .font(.system(size: 16, weight: .bold))
                 
                 Spacer()
                 
                 Button {
-                    // Close inspector action (optional)
+                    // Close sidebar action (optional)
                 } label: {
                     Image(systemName: "sidebar.right")
                         .foregroundColor(.secondary)
@@ -26,110 +33,133 @@ struct CalendarRightSidebar: View {
             
             Divider()
             
-            if let event = selectedEvent {
-                // Event Details Mode
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        // Title & Calendar
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
-                                Circle()
-                                    .fill(event.eventColor)
-                                    .frame(width: 12, height: 12)
-                                
-                                Text(event.sourceName) // e.g. qusseun@gmail.com
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Text(event.eventTitle ?? "No Title")
-                                .font(.system(size: 20, weight: .bold))
-                        }
+            // Event Creation Form
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Title
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("제목")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         
-                        // Time Info
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "clock")
-                                .foregroundColor(.secondary)
-                                .frame(width: 20)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                if let start = event.eventStartDate {
-                                    Text(start, format: .dateTime.month().day().weekday().hour().minute())
-                                }
-                                if let end = event.eventEndDate {
-                                    Text(end, format: .dateTime.month().day().weekday().hour().minute())
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .font(.system(size: 14))
-                        }
-                        
-                        // Participants (Placeholder)
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "person.2")
-                                .foregroundColor(.secondary)
-                                .frame(width: 20)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("참가자")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Me")
-                                    .font(.system(size: 14))
-                            }
-                        }
-                        
-                        // Location (Placeholder)
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundColor(.secondary)
-                                .frame(width: 20)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("위치")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Add location")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
-                        // Description (Placeholder)
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: "text.alignleft")
-                                .foregroundColor(.secondary)
-                                .frame(width: 20)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("설명")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("Add description")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                        TextField("일정 제목", text: $eventTitle)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 16))
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
                     }
-                    .padding(16)
-                }
-            } else {
-                // Empty / Day Summary Mode
-                VStack(spacing: 16) {
-                    Spacer()
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.3))
                     
-                    Text("Select an event to see details")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Spacer()
+                    // Date & Time
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("날짜 및 시간")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("종일", isOn: $isAllDay)
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
+                        
+                        DatePicker("시작", selection: $startDate, displayedComponents: isAllDay ? [.date] : [.date, .hourAndMinute])
+                            .datePickerStyle(.compact)
+                        
+                        DatePicker("종료", selection: $endDate, displayedComponents: isAllDay ? [.date] : [.date, .hourAndMinute])
+                            .datePickerStyle(.compact)
+                    }
+                    
+                    // Calendar Selection
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("캘린더")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: $selectedCalendar) {
+                            Text("Rytmo").tag("Rytmo")
+                            Text("qusseun@gmail.com").tag("Google")
+                            Text("System").tag("System")
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    
+                    // Location
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("위치")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        TextField("위치 추가", text: $location)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
+                    }
+                    
+                    // Notes
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("메모")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        TextEditor(text: $notes)
+                            .font(.system(size: 14))
+                            .frame(minHeight: 100)
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
+                    }
+                    
+                    // Action Buttons
+                    HStack(spacing: 12) {
+                        Button("취소") {
+                            clearForm()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        
+                        Button("저장") {
+                            createEvent()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(eventTitle.isEmpty)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .padding(16)
             }
         }
         .frame(width: 280)
         .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color.white)
+        .onAppear {
+            startDate = selectedDate
+            endDate = selectedDate.addingTimeInterval(3600)
+        }
+        .onChange(of: selectedDate) { _, newDate in
+            startDate = newDate
+            endDate = newDate.addingTimeInterval(3600)
+        }
+    }
+    
+    private func clearForm() {
+        eventTitle = ""
+        location = ""
+        notes = ""
+        startDate = selectedDate
+        endDate = selectedDate.addingTimeInterval(3600)
+        isAllDay = false
+    }
+    
+    private func createEvent() {
+        // TODO: Implement event creation logic
+        // This will integrate with CalendarManager to create events
+        print("Creating event: \(eventTitle)")
+        clearForm()
     }
 }

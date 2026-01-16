@@ -203,8 +203,10 @@ class GoogleCalendarManager: ObservableObject {
                     }
                 }
                 
-                let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
-                let newEvents = calendarResponse.items ?? []
+                let newEvents = try await Task.detached(priority: .userInitiated) {
+                    let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
+                    return calendarResponse.items ?? []
+                }.value
                 
                 await MainActor.run {
                     self.events = newEvents

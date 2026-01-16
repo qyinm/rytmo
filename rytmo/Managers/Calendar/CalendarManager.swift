@@ -24,6 +24,10 @@ class CalendarManager: ObservableObject {
     
     @Published var currentReferenceDate: Date = Date()
     
+    @Published var currentMonthDays: [Date] = []
+    @Published var eventSlots: [Date: [CalendarEventProtocol?]] = [:]
+    @Published var eventsByDate: [Date: [CalendarEventProtocol]] = [:]
+    
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
@@ -31,6 +35,7 @@ class CalendarManager: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var systemFetchTask: Task<Void, Never>?
+    private var aggregateDebounceTask: Task<Void, Never>?
     
     private init() {
         setupObservers()
@@ -110,6 +115,7 @@ class CalendarManager: ObservableObject {
         }
         
         aggregateEvents()
+        computeOptimizedData()
     }
     
     private func fetchSystemEvents(date: Date) {
@@ -137,23 +143,59 @@ class CalendarManager: ObservableObject {
     }
     
     private func aggregateEvents() {
-        var allEvents: [CalendarEventProtocol] = []
+        aggregateDebounceTask?.cancel()
         
-        if showLocal {
-            allEvents.append(contentsOf: localManager.events.map { $0 as CalendarEventProtocol })
+        aggregateDebounceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            
+            if Task.isCancelled { return }
+            
+            var events: [CalendarEventProtocol] = []
+            
+            if self.showLocal {
+                events.append(contentsOf: self.localManager.events.map { $0 as CalendarEventProtocol })
+            }
+            
+            if self.showGoogle && self.googleManager.isAuthorized {
+                events.append(contentsOf: self.googleManager.events.map { $0 as CalendarEventProtocol })
+            }
+            
+            if self.showSystem && self.isAuthorized {
+                events.append(contentsOf: self.systemEvents)
+            }
+            
+            let sortedEvents = await Task.detached(priority: .userInitiated) {
+                events.sorted {
+                    ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
+                }
+            }.value
+            
+            if Task.isCancelled { return }
+            
+            self.mergedEvents = sortedEvents
+            self.computeOptimizedData()
+        }
+    }
+    
+    private func computeOptimizedData() {
+        let days = CalendarUtils.generateDaysInMonth(for: currentReferenceDate)
+        let slots = CalendarUtils.arrangeEventsInSlotsForMonth(allDays: days, events: mergedEvents)
+        
+        var byDate: [Date: [CalendarEventProtocol]] = [:]
+        for day in days {
+            let calendar = Calendar.current
+            let startOfDay = calendar.startOfDay(for: day)
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            
+            byDate[startOfDay] = mergedEvents.filter { event in
+                guard let start = event.eventStartDate, let end = event.eventEndDate else { return false }
+                return start < endOfDay && end > startOfDay
+            }
         }
         
-        if showGoogle && googleManager.isAuthorized {
-            allEvents.append(contentsOf: googleManager.events.map { $0 as CalendarEventProtocol })
-        }
-        
-        if showSystem && isAuthorized {
-            allEvents.append(contentsOf: systemEvents)
-        }
-        
-        self.mergedEvents = allEvents.sorted { 
-            ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
-        }
+        self.currentMonthDays = days
+        self.eventSlots = slots
+        self.eventsByDate = byDate
     }
     
     func toggleSource(system: Bool? = nil, local: Bool? = nil, google: Bool? = nil) {

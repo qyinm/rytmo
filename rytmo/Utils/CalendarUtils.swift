@@ -64,6 +64,81 @@ enum CalendarUtils {
         calendar.isDate(date, equalTo: otherDate, toGranularity: .month)
     }
     
+    /// Arranges events into visual slots for all weeks in a month (optimized version)
+    /// - Parameters:
+    ///   - allDays: All dates in the month grid
+    ///   - events: All events to consider
+    /// - Returns: A dictionary mapping each Date to a list of events (with nil for empty slots)
+    static func arrangeEventsInSlotsForMonth(allDays: [Date], events: [CalendarEventProtocol]) -> [Date: [CalendarEventProtocol?]] {
+        guard !allDays.isEmpty else { return [:] }
+        
+        let monthStart = allDays.first!
+        let monthEnd = allDays.last!
+        let nextDayAfterMonth = calendar.date(byAdding: .day, value: 1, to: monthEnd)!
+        
+        let relevantEvents = events.filter { event in
+            guard let start = event.eventStartDate, let end = event.eventEndDate else { return false }
+            return start < nextDayAfterMonth && end > monthStart
+        }.sorted { e1, e2 in
+            let s1 = e1.eventStartDate ?? Date.distantPast
+            let s2 = e2.eventStartDate ?? Date.distantPast
+            if s1 != s2 { return s1 < s2 }
+            
+            let d1 = (e1.eventEndDate ?? s1).timeIntervalSince(s1)
+            let d2 = (e2.eventEndDate ?? s2).timeIntervalSince(s2)
+            return d1 > d2
+        }
+        
+        var slots: [Date: [CalendarEventProtocol?]] = [:]
+        for day in allDays { slots[day] = [] }
+        
+        var eventSlots: [String: Int] = [:]
+        
+        for event in relevantEvents {
+            let start = event.eventStartDate ?? monthStart
+            let end = event.eventEndDate ?? monthEnd
+            
+            let overlappingDays = allDays.filter { day in
+                let dayStart = calendar.startOfDay(for: day)
+                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
+                return start < dayEnd && end > dayStart
+            }
+            
+            guard !overlappingDays.isEmpty else { continue }
+            
+            let firstDay = overlappingDays[0]
+            let weekIndex = allDays.firstIndex(of: firstDay)! / 7
+            
+            var slotIndex = 0
+            while true {
+                var isAvailable = true
+                for day in overlappingDays {
+                    let daySlots = slots[day]!
+                    if slotIndex < daySlots.count && daySlots[slotIndex] != nil {
+                        isAvailable = false
+                        break
+                    }
+                }
+                
+                if isAvailable {
+                    break
+                }
+                slotIndex += 1
+            }
+            
+            for day in overlappingDays {
+                var daySlots = slots[day]!
+                while daySlots.count <= slotIndex {
+                    daySlots.append(nil)
+                }
+                daySlots[slotIndex] = event
+                slots[day] = daySlots
+            }
+        }
+        
+        return slots
+    }
+    
     /// Arranges events into visual slots for a specific week (row)
     /// - Parameters:
     ///   - days: Array of 7 dates representing the week
