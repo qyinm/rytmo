@@ -19,6 +19,7 @@ class CalendarManager: ObservableObject {
     let googleManager = GoogleCalendarManager.shared
     
     @Published var mergedEvents: [CalendarEventProtocol] = []
+    @Published var systemEvents: [CalendarEventProtocol] = []
     @Published var isAuthorized: Bool = false
     
     @Published var currentReferenceDate: Date = Date()
@@ -29,6 +30,7 @@ class CalendarManager: ObservableObject {
     @AppStorage("calendar_event_range_hours") var eventRangeHours: Int = CalendarConfig.defaultEventRangeHours
     
     private var cancellables = Set<AnyCancellable>()
+    private var systemFetchTask: Task<Void, Never>?
     
     private init() {
         setupObservers()
@@ -37,22 +39,27 @@ class CalendarManager: ObservableObject {
     private func setupObservers() {
         NotificationCenter.default.publisher(for: .EKEventStoreChanged)
             .sink { [weak self] _ in
+                guard let self = self else { return }
                 Task { @MainActor in
-                    self?.refresh()
+                    self.fetchSystemEvents(date: self.currentReferenceDate)
                 }
             }
             .store(in: &cancellables)
             
+        // Trigger aggregation when any source changes
         localManager.$events
-            .sink { [weak self] _ in
-                self?.refresh()
-            }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.aggregateEvents() }
             .store(in: &cancellables)
             
         googleManager.$events
-            .sink { [weak self] _ in
-                self?.refresh()
-            }
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.aggregateEvents() }
+            .store(in: &cancellables)
+            
+        $systemEvents
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.aggregateEvents() }
             .store(in: &cancellables)
     }
     
@@ -66,7 +73,7 @@ class CalendarManager: ObservableObject {
         }
         
         googleManager.checkPermission()
-        refresh()
+        loadEvents(for: Date())
     }
     
     func requestAccess() async {
@@ -79,33 +86,36 @@ class CalendarManager: ObservableObject {
             }
             
             self.isAuthorized = granted
-            refresh()
+            loadEvents(for: currentReferenceDate)
         } catch {
             print("❌ System Calendar access failed: \(error.localizedDescription)")
         }
     }
     
-    func refresh() {
-        refresh(date: currentReferenceDate)
-    }
+    // MARK: - Data Loading & Aggregation
     
     func refresh(date: Date) {
+        loadEvents(for: date)
+    }
+    
+    func loadEvents(for date: Date) {
         self.currentReferenceDate = date
-        var allEvents: [CalendarEventProtocol] = []
-        
-        if showLocal {
-            allEvents.append(contentsOf: localManager.events.map { $0 as CalendarEventProtocol })
-        }
         
         if showGoogle && googleManager.isAuthorized {
-            Task {
-                await googleManager.fetchEvents(date: date)
-            }
-            
-            allEvents.append(contentsOf: googleManager.events.map { $0 as CalendarEventProtocol })
+            googleManager.fetchEvents(date: date)
         }
         
         if showSystem && isAuthorized {
+            fetchSystemEvents(date: date)
+        }
+        
+        aggregateEvents()
+    }
+    
+    private func fetchSystemEvents(date: Date) {
+        systemFetchTask?.cancel()
+        
+        systemFetchTask = Task {
             let calendar = Calendar.current
             guard let monthRange = calendar.dateInterval(of: .month, for: date) else { return }
             
@@ -113,13 +123,34 @@ class CalendarManager: ObservableObject {
             let start = monthDays.first ?? monthRange.start
             let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthRange.end) ?? monthRange.end
             
-            let calendars = eventStore.calendars(for: .event)
-            let predicate = eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
-            let systemEvents = eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }
-            allEvents.append(contentsOf: systemEvents.map { $0 as CalendarEventProtocol })
+            let events = await Task.detached(priority: .userInitiated) { [weak self] () -> [CalendarEventProtocol] in
+                guard let self = self else { return [] }
+                let calendars = self.eventStore.calendars(for: .event)
+                let predicate = self.eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
+                return self.eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }
+            }.value
+            
+            if !Task.isCancelled {
+                self.systemEvents = events
+            }
+        }
+    }
+    
+    private func aggregateEvents() {
+        var allEvents: [CalendarEventProtocol] = []
+        
+        if showLocal {
+            allEvents.append(contentsOf: localManager.events.map { $0 as CalendarEventProtocol })
         }
         
-        // Final sort and deduplication by title/start
+        if showGoogle && googleManager.isAuthorized {
+            allEvents.append(contentsOf: googleManager.events.map { $0 as CalendarEventProtocol })
+        }
+        
+        if showSystem && isAuthorized {
+            allEvents.append(contentsOf: systemEvents)
+        }
+        
         self.mergedEvents = allEvents.sorted { 
             ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
         }
@@ -129,6 +160,6 @@ class CalendarManager: ObservableObject {
         if let system = system { self.showSystem = system }
         if let local = local { self.showLocal = local }
         if let google = google { self.showGoogle = google }
-        refresh()
+        loadEvents(for: currentReferenceDate)
     }
 }

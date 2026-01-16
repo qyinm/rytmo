@@ -24,6 +24,8 @@ class GoogleCalendarManager: ObservableObject {
     @Published var error: String? = nil
     @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
     
+    private var fetchTask: Task<Void, Never>?
+    
     private init() {}
     
     // MARK: - Permission Check
@@ -129,33 +131,35 @@ class GoogleCalendarManager: ObservableObject {
     func fetchEvents(date: Date = Date()) {
         guard isAuthorized else { return }
         
+        fetchTask?.cancel()
+        
         self.isLoading = true
         self.error = nil
         
-        Task {
+        fetchTask = Task {
             // Refresh token before making API call
             guard await refreshTokenIfNeeded() else {
-                self.isLoading = false
+                if !Task.isCancelled { self.isLoading = false }
                 return
             }
             
             guard let user = GIDSignIn.sharedInstance.currentUser else {
-                self.isLoading = false
-                self.error = "User not found"
+                if !Task.isCancelled {
+                    self.isLoading = false
+                    self.error = "User not found"
+                }
                 return
             }
             
             let accessToken = user.accessToken.tokenString
             let urlString = GoogleCalendarAPI.baseURL
             
-            // Fetch events for the full month of the provided date
             let calendar = Calendar.current
             guard let monthInterval = calendar.dateInterval(of: .month, for: date) else {
-                self.isLoading = false
+                if !Task.isCancelled { self.isLoading = false }
                 return
             }
             
-            // Extend range to include padding days for grid view (start of first week to end of last week)
             let monthDays = CalendarUtils.generateDaysInMonth(for: date)
             let start = monthDays.first ?? monthInterval.start
             let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthInterval.end) ?? monthInterval.end
@@ -175,37 +179,46 @@ class GoogleCalendarManager: ObservableObject {
             var request = URLRequest(url: components.url!)
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             
+            if Task.isCancelled { return }
+            
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 
-                // Check for HTTP errors
+                if Task.isCancelled { return }
+                
                 if let httpResponse = response as? HTTPURLResponse {
                     if httpResponse.statusCode == 401 {
-                        // Token might be invalid, try to refresh and retry once
-                        self.isAuthorized = false
-                        self.error = "Session expired. Please reconnect Google Calendar."
-                        self.isLoading = false
+                        await MainActor.run {
+                            self.isAuthorized = false
+                            self.error = "Session expired. Please reconnect Google Calendar."
+                            self.isLoading = false
+                        }
                         return
                     } else if httpResponse.statusCode != 200 {
-                        self.error = "Failed to fetch events (HTTP \(httpResponse.statusCode))"
-                        self.isLoading = false
+                        await MainActor.run {
+                            self.error = "Failed to fetch events (HTTP \(httpResponse.statusCode))"
+                            self.isLoading = false
+                        }
                         return
                     }
                 }
                 
                 let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
+                let newEvents = calendarResponse.items ?? []
                 
                 await MainActor.run {
-                    self.events = calendarResponse.items ?? []
+                    self.events = newEvents
                     self.isLoading = false
                     self.error = nil
                     print("✅ Fetched \(self.events.count) Google Calendar events")
                 }
             } catch {
-                await MainActor.run {
-                    self.error = "Failed to fetch events: \(error.localizedDescription)"
-                    self.isLoading = false
-                    print("❌ Failed to fetch Google Calendar events: \(error)")
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        self.error = "Failed to fetch events: \(error.localizedDescription)"
+                        self.isLoading = false
+                        print("❌ Failed to fetch Google Calendar events: \(error)")
+                    }
                 }
             }
         }
