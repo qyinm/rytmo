@@ -99,9 +99,12 @@ class CalendarManager: ObservableObject {
         }
         
         if showSystem && isAuthorized {
-            guard let monthRange = Calendar.current.dateInterval(of: .month, for: date) else { return }
-            let start = monthRange.start
-            let end = monthRange.end
+            let calendar = Calendar.current
+            guard let monthRange = calendar.dateInterval(of: .month, for: date) else { return }
+            
+            let monthDays = CalendarUtils.generateDaysInMonth(for: date)
+            let start = monthDays.first ?? monthRange.start
+            let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthRange.end) ?? monthRange.end
             
             let calendars = eventStore.calendars(for: .event)
             let predicate = eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
