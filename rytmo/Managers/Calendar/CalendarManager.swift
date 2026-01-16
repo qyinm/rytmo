@@ -95,6 +95,10 @@ class CalendarManager: ObservableObject {
         }
         
         if showGoogle && googleManager.isAuthorized {
+            Task {
+                await googleManager.fetchEvents(date: date)
+            }
+            
             allEvents.append(contentsOf: googleManager.events.map { $0 as CalendarEventProtocol })
         }
         

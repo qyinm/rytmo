@@ -3,6 +3,7 @@ import GoogleSignIn
 import Combine
 import SwiftUI
 import FirebaseCore
+import EventKit
 
 // MARK: - Constants
 
@@ -125,7 +126,7 @@ class GoogleCalendarManager: ObservableObject {
     
     // MARK: - Fetch Events
     
-    func fetchEvents() {
+    func fetchEvents(date: Date = Date()) {
         guard isAuthorized else { return }
         
         self.isLoading = true
@@ -147,9 +148,17 @@ class GoogleCalendarManager: ObservableObject {
             let accessToken = user.accessToken.tokenString
             let urlString = GoogleCalendarAPI.baseURL
             
-            // Fetch events for the configured time range
-            let start = Date()
-            let end = Calendar.current.date(byAdding: .hour, value: eventRangeHours, to: start) ?? start.addingTimeInterval(Double(eventRangeHours) * 3600)
+            // Fetch events for the full month of the provided date
+            let calendar = Calendar.current
+            guard let monthInterval = calendar.dateInterval(of: .month, for: date) else {
+                self.isLoading = false
+                return
+            }
+            
+            // Extend range to include padding days for grid view (start of first week to end of last week)
+            let monthDays = CalendarUtils.generateDaysInMonth(for: date)
+            let start = monthDays.first ?? monthInterval.start
+            let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthInterval.end) ?? monthInterval.end
             
             let isoFormatter = ISO8601DateFormatter()
             let timeMin = isoFormatter.string(from: start)

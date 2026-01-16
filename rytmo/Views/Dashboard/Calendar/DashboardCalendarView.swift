@@ -126,10 +126,8 @@ struct DashboardCalendarView: View {
     }
     
     private var eventsForSelectedDate: [CalendarEventProtocol] {
-        calendarManager.mergedEvents.filter { event in
-            guard let eventDate = event.eventStartDate else { return false }
-            return calendar.isDate(eventDate, inSameDayAs: selectedDate)
-        }
+        CalendarUtils.events(for: selectedDate, from: calendarManager.mergedEvents)
+            .sorted { ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast) }
     }
     
     private var todosForSelectedDate: [TodoItem] {
