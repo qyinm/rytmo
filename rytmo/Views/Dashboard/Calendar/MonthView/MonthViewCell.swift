@@ -40,7 +40,7 @@ struct MonthViewCell: View {
                         EventBarView(
                             title: event.eventTitle ?? "Untitled",
                             color: event.eventColor.opacity(0.8),
-                            time: nil,
+                            time: formatTime(for: event),
                             isStart: isEventStart(event),
                             isEnd: isEventEnd(event)
                         )
@@ -99,6 +99,14 @@ struct MonthViewCell: View {
             return .secondary.opacity(0.3)
         }
         return .primary
+    }
+    
+    private func formatTime(for event: CalendarEventProtocol) -> String? {
+        guard isEventStart(event), let date = event.eventStartDate else { return nil }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }
 
