@@ -3,6 +3,7 @@ import SwiftUI
 struct CalendarRightSidebar: View {
     let selectedDate: Date
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject private var calendarManager = CalendarManager.shared
     
     @State private var eventTitle: String = ""
     @State private var startDate: Date = Date()
@@ -10,7 +11,16 @@ struct CalendarRightSidebar: View {
     @State private var isAllDay: Bool = false
     @State private var location: String = ""
     @State private var notes: String = ""
-    @State private var selectedCalendar: String = "Rytmo"
+    
+    // Updated Selection State
+    @State private var selectedCalendar: CalendarInfo = CalendarInfo(
+        id: "rytmo_local",
+        title: "Rytmo",
+        color: .blue,
+        sourceTitle: "Rytmo",
+        type: .local
+    )
+    @State private var selectedEventColor: Color = .blue
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -69,18 +79,17 @@ struct CalendarRightSidebar: View {
                             .datePickerStyle(.compact)
                     }
                     
-                    // Calendar Selection
+                    // Calendar Selection (New Custom Dropdown)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("캘린더")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        Picker("", selection: $selectedCalendar) {
-                            Text("Rytmo").tag("Rytmo")
-                            Text("qusseun@gmail.com").tag("Google")
-                            Text("System").tag("System")
-                        }
-                        .pickerStyle(.menu)
+                        CalendarSelectorView(
+                            selectedCalendar: $selectedCalendar,
+                            groups: calendarManager.calendarGroups,
+                            selectedColor: $selectedEventColor
+                        )
                     }
                     
                     // Location
@@ -140,6 +149,12 @@ struct CalendarRightSidebar: View {
         .onAppear {
             startDate = selectedDate
             endDate = selectedDate.addingTimeInterval(3600)
+            
+            // Set initial calendar from available groups if Rytmo is not default or logic requires change
+            if let firstGroup = calendarManager.calendarGroups.first, let firstCal = firstGroup.calendars.first {
+                // Keep default Rytmo or switch to first available?
+                // For now, default Rytmo local is fine as it's hardcoded as default in CalendarManager too.
+            }
         }
         .onChange(of: selectedDate) { _, newDate in
             startDate = newDate
@@ -154,12 +169,13 @@ struct CalendarRightSidebar: View {
         startDate = selectedDate
         endDate = selectedDate.addingTimeInterval(3600)
         isAllDay = false
+        // Reset color to calendar default
+        selectedEventColor = selectedCalendar.color
     }
     
     private func createEvent() {
-        // TODO: Implement event creation logic
-        // This will integrate with CalendarManager to create events
-        print("Creating event: \(eventTitle)")
+        // TODO: Implement event creation logic using selectedCalendar and selectedEventColor
+        print("Creating event: \(eventTitle) in \(selectedCalendar.title) with color \(selectedEventColor)")
         clearForm()
     }
 }

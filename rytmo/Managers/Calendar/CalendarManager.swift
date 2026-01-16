@@ -28,6 +28,8 @@ class CalendarManager: ObservableObject {
     @Published var eventSlots: [Date: [CalendarEventProtocol?]] = [:]
     @Published var eventsByDate: [Date: [CalendarEventProtocol]] = [:]
     
+    @Published var calendarGroups: [CalendarGroup] = []
+    
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
@@ -66,6 +68,11 @@ class CalendarManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.aggregateEvents() }
             .store(in: &cancellables)
+            
+        googleManager.$availableCalendars
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.updateCalendarGroups() }
+            .store(in: &cancellables)
     }
     
     func checkPermission() {
@@ -78,6 +85,8 @@ class CalendarManager: ObservableObject {
         }
         
         googleManager.checkPermission()
+        googleManager.fetchCalendarList()
+        updateCalendarGroups()
         loadEvents(for: Date())
     }
     
@@ -203,5 +212,69 @@ class CalendarManager: ObservableObject {
         if let local = local { self.showLocal = local }
         if let google = google { self.showGoogle = google }
         loadEvents(for: currentReferenceDate)
+    }
+    
+    private func updateCalendarGroups() {
+        var groups: [CalendarGroup] = []
+        
+        // 1. Google Calendars (via API)
+        if !googleManager.availableCalendars.isEmpty {
+            // Group by account if possible, but for now just one group for Google API
+            // Actually Google API usually returns the account email in summary of primary calendar, 
+            // but let's assume one logged in user for now.
+            // Or better, use the sourceTitle we set in GoogleCalendarManager
+            
+            let googleCals = googleManager.availableCalendars
+            // Group by sourceTitle (which contains email)
+            let groupedGoogle = Dictionary(grouping: googleCals) { $0.sourceTitle }
+            
+            for (source, cals) in groupedGoogle {
+                groups.append(CalendarGroup(
+                    id: "google_\(source)",
+                    sourceTitle: source,
+                    calendars: cals
+                ))
+            }
+        }
+        
+        // 2. System Calendars
+        if isAuthorized {
+            let ekCalendars = eventStore.calendars(for: .event)
+            let groupedSystem = Dictionary(grouping: ekCalendars) { $0.source.title }
+            
+            for (sourceTitle, calendars) in groupedSystem {
+                let infos = calendars.map { cal in
+                    CalendarInfo(
+                        id: cal.calendarIdentifier,
+                        title: cal.title,
+                        color: Color(nsColor: cal.color),
+                        sourceTitle: sourceTitle,
+                        type: .system
+                    )
+                }
+                groups.append(CalendarGroup(
+                    id: "system_\(sourceTitle)",
+                    sourceTitle: sourceTitle,
+                    calendars: infos.sorted { $0.title < $1.title }
+                ))
+            }
+        }
+        
+        // 3. Rytmo (Local)
+        let localCal = CalendarInfo(
+            id: "rytmo_local",
+            title: "Rytmo",
+            color: .blue,
+            sourceTitle: "Rytmo",
+            type: .local
+        )
+        // Add to top if preferred, or bottom
+        groups.insert(CalendarGroup(
+            id: "rytmo_group",
+            sourceTitle: "Rytmo",
+            calendars: [localCal]
+        ), at: 0)
+        
+        self.calendarGroups = groups
     }
 }

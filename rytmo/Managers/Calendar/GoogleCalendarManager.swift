@@ -10,6 +10,7 @@ import EventKit
 private enum GoogleCalendarAPI {
     static let scope = "https://www.googleapis.com/auth/calendar.readonly"
     static let baseURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+    static let calendarListURL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
     static let signInErrorDomain = "com.google.GIDSignIn"
     static let cancelledErrorCode = -5
 }
@@ -19,6 +20,7 @@ class GoogleCalendarManager: ObservableObject {
     static let shared = GoogleCalendarManager()
     
     @Published var events: [GoogleCalendarEvent] = []
+    @Published var availableCalendars: [CalendarInfo] = []
     @Published var isAuthorized: Bool = false
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
@@ -136,6 +138,7 @@ class GoogleCalendarManager: ObservableObject {
             if self.isAuthorized {
                 print("✅ Google Calendar access granted")
                 fetchEvents()
+                fetchCalendarList()
             } else {
                 self.error = "Calendar permission was not granted"
             }
@@ -161,6 +164,44 @@ class GoogleCalendarManager: ObservableObject {
         self.events = []
         self.error = nil
         print("ℹ️ Google Calendar disconnected")
+    }
+    
+    // MARK: - Fetch Calendars List
+    
+    func fetchCalendarList() {
+        guard isAuthorized else { return }
+        
+        Task {
+            guard await refreshTokenIfNeeded(),
+                  let user = GIDSignIn.sharedInstance.currentUser else { return }
+            
+            let accessToken = user.accessToken.tokenString
+            guard let url = URL(string: GoogleCalendarAPI.calendarListURL) else { return }
+            
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            
+            do {
+                let (data, _) = try await URLSession.shared.data(for: request)
+                let response = try JSONDecoder().decode(GoogleCalendarListResource.self, from: data)
+                
+                let calendarInfos = (response.items ?? []).map { item in
+                    CalendarInfo(
+                        id: item.id,
+                        title: item.summary ?? "Untitled",
+                        color: Color(hex: item.backgroundColor ?? "#4285F4"),
+                        sourceTitle: "Google (\(user.profile?.email ?? "Account"))",
+                        type: .google
+                    )
+                }
+                
+                await MainActor.run {
+                    self.availableCalendars = calendarInfos
+                }
+            } catch {
+                print("❌ Failed to fetch Google calendar list: \(error)")
+            }
+        }
     }
     
     // MARK: - Fetch Events
@@ -267,6 +308,16 @@ class GoogleCalendarManager: ObservableObject {
 }
 
 // MARK: - Models for Google Calendar API
+
+struct GoogleCalendarListResource: Codable {
+    let items: [GoogleCalendarListItem]?
+}
+
+struct GoogleCalendarListItem: Codable {
+    let id: String
+    let summary: String?
+    let backgroundColor: String?
+}
 
 struct GoogleCalendarListResponse: Codable {
     let items: [GoogleCalendarEvent]?
