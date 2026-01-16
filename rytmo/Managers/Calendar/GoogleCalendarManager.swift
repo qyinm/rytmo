@@ -224,12 +224,33 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     let start: GoogleCalendarTime?
     let end: GoogleCalendarTime?
     let htmlLink: String?
+    let colorId: String? // Added for color mapping
     
     var eventIdentifier: String { id }
     var eventTitle: String? { summary }
     var eventStartDate: Date? { start?.dateValue }
     var eventEndDate: Date? { end?.dateValue }
-    var eventColor: Color { .red } // Google Calendar default
+    
+    var eventColor: Color {
+        // Map Google Calendar colorId to actual Color
+        guard let colorId = colorId else { return .blue } // Default to blue if no color
+        
+        switch colorId {
+        case "1": return Color(hex: "#7986cb") // Lavender
+        case "2": return Color(hex: "#33b679") // Sage
+        case "3": return Color(hex: "#8e24aa") // Grape
+        case "4": return Color(hex: "#e67c73") // Flamingo
+        case "5": return Color(hex: "#f6c026") // Banana
+        case "6": return Color(hex: "#f5511d") // Tangerine
+        case "7": return Color(hex: "#039be5") // Peacock
+        case "8": return Color(hex: "#616161") // Graphite
+        case "9": return Color(hex: "#3f51b5") // Blueberry
+        case "10": return Color(hex: "#0b8043") // Basil
+        case "11": return Color(hex: "#d60000") // Tomato
+        default: return .blue // Fallback
+        }
+    }
+    
     var sourceName: String { "Google" }
 }
 
