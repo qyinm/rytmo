@@ -8,6 +8,14 @@ struct DashboardCalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
     @State private var selectedDate: Date = Date()
+    @State private var displayedMonth: Date = Date()
+    @State private var calendarViewMode: CalendarViewMode = .month
+    
+    enum CalendarViewMode {
+        case month
+        case week
+        case grid
+    }
     
     private let calendar = Calendar.current
     
@@ -15,27 +23,62 @@ struct DashboardCalendarView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 16) {
-                Text("Calendar")
-                    .font(.system(size: 28, weight: .bold))
+                HStack(spacing: 8) {
+                    Text(displayedMonth, format: .dateTime.year().month(.wide))
+                        .font(.system(size: 28, weight: .bold))
+                    
+                    Button {
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                }
                 
                 Spacer()
                 
-                Button {
-                    calendarManager.refresh()
-                    calendarManager.googleManager.fetchEvents()
-                } label: {
-                    Label("Sync", systemImage: "arrow.clockwise")
+                HStack(spacing: 12) {
+                    Picker("", selection: $calendarViewMode) {
+                        Text("Month").tag(CalendarViewMode.month)
+                        Text("Grid").tag(CalendarViewMode.grid)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 120)
+                    
+                    HStack(spacing: 0) {
+                        Button {
+                            withAnimation {
+                                displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                            }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                        }
+                        
+                        Button("Today") {
+                            withAnimation {
+                                displayedMonth = Date()
+                                selectedDate = Date()
+                            }
+                        }
+                        
+                        Button {
+                            withAnimation {
+                                displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                            }
+                        } label: {
+                            Image(systemName: "chevron.right")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    
+                    Button {
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-
-                Button {
-                    NotificationCenter.default.post(name: NSNotification.Name("switchToCalendarSettings"), object: nil)
-                } label: {
-                    Label("Connect Accounts", systemImage: "plus.circle")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
             }
             .padding(.horizontal, 32)
             .padding(.top, 32)
@@ -43,43 +86,32 @@ struct DashboardCalendarView: View {
             
             ScrollView {
                 VStack(spacing: 24) {
-                    // Error/Loading States
-                    if let googleError = calendarManager.googleManager.error {
-                        ErrorBannerView(message: googleError) {
-                            calendarManager.googleManager.fetchEvents()
+                    if calendarViewMode == .month {
+                        FullMonthGridView(
+                            calendarManager: calendarManager,
+                            displayedMonth: $displayedMonth
+                        )
+                        .padding(.horizontal, 32)
+                    } else {
+                        // Main Content: Calendar (Left) + Events/Todos (Right)
+                        HStack(alignment: .top, spacing: 24) {
+                            // Calendar Grid (Left)
+                            CalendarGridView(
+                                calendarManager: calendarManager,
+                                selectedDate: $selectedDate
+                            )
+                            .frame(maxWidth: 500)
+                            
+                            // Events + Todos (Right)
+                            SelectedDayEventsView(
+                                selectedDate: selectedDate,
+                                events: eventsForSelectedDate,
+                                todos: todosForSelectedDate
+                            )
+                            .frame(maxWidth: .infinity)
                         }
                         .padding(.horizontal, 32)
                     }
-                    
-                    if calendarManager.googleManager.isLoading {
-                        LoadingBannerView(message: "Syncing Google Calendar...")
-                            .padding(.horizontal, 32)
-                    }
-                    
-                    // Connect Calendars Prompt (only when no calendars connected)
-                    if !calendarManager.isAuthorized && !calendarManager.googleManager.isAuthorized {
-                        ConnectCalendarsView(calendarManager: calendarManager)
-                            .padding(.horizontal, 32)
-                    }
-                    
-                    // Main Content: Calendar (Left) + Events/Todos (Right)
-                    HStack(alignment: .top, spacing: 24) {
-                        // Calendar Grid (Left)
-                        CalendarGridView(
-                            calendarManager: calendarManager,
-                            selectedDate: $selectedDate
-                        )
-                        .frame(maxWidth: 500)
-                        
-                        // Events + Todos (Right)
-                        SelectedDayEventsView(
-                            selectedDate: selectedDate,
-                            events: eventsForSelectedDate,
-                            todos: todosForSelectedDate
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.horizontal, 32)
                 }
                 .padding(.bottom, 32)
             }
