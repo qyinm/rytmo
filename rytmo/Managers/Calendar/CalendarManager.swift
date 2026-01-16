@@ -21,6 +21,8 @@ class CalendarManager: ObservableObject {
     @Published var mergedEvents: [CalendarEventProtocol] = []
     @Published var isAuthorized: Bool = false
     
+    @Published var currentReferenceDate: Date = Date()
+    
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
@@ -84,10 +86,11 @@ class CalendarManager: ObservableObject {
     }
     
     func refresh() {
-        refresh(date: Date())
+        refresh(date: currentReferenceDate)
     }
     
     func refresh(date: Date) {
+        self.currentReferenceDate = date
         var allEvents: [CalendarEventProtocol] = []
         
         if showLocal {

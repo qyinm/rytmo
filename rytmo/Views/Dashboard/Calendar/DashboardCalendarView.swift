@@ -49,6 +49,7 @@ struct DashboardCalendarView: View {
                         Button {
                             withAnimation {
                                 displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
+                                calendarManager.currentReferenceDate = displayedMonth
                                 calendarManager.refresh(date: displayedMonth)
                             }
                         } label: {
@@ -59,6 +60,7 @@ struct DashboardCalendarView: View {
                             withAnimation {
                                 displayedMonth = Date()
                                 selectedDate = Date()
+                                calendarManager.currentReferenceDate = displayedMonth
                                 calendarManager.refresh(date: displayedMonth)
                             }
                         }
@@ -66,6 +68,7 @@ struct DashboardCalendarView: View {
                         Button {
                             withAnimation {
                                 displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
+                                calendarManager.currentReferenceDate = displayedMonth
                                 calendarManager.refresh(date: displayedMonth)
                             }
                         } label: {
