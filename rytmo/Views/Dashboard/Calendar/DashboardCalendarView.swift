@@ -9,13 +9,6 @@ struct DashboardCalendarView: View {
     @Query(sort: \TodoItem.orderIndex) private var allTodos: [TodoItem]
     @State private var selectedDate: Date = Date()
     @State private var displayedMonth: Date = Date()
-    @State private var calendarViewMode: CalendarViewMode = .month
-    
-    enum CalendarViewMode {
-        case month
-        case week
-        case grid
-    }
     
     private let calendar = Calendar.current
     
@@ -38,13 +31,6 @@ struct DashboardCalendarView: View {
                 Spacer()
                 
                 HStack(spacing: 12) {
-                    Picker("", selection: $calendarViewMode) {
-                        Text("Month").tag(CalendarViewMode.month)
-                        Text("Grid").tag(CalendarViewMode.grid)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 120)
-                    
                     HStack(spacing: 0) {
                         Button {
                             withAnimation {
@@ -92,32 +78,11 @@ struct DashboardCalendarView: View {
             
             ScrollView {
                 VStack(spacing: 24) {
-                    if calendarViewMode == .month {
-                        FullMonthGridView(
-                            calendarManager: calendarManager,
-                            displayedMonth: $displayedMonth
-                        )
-                        .padding(.horizontal, 32)
-                    } else {
-                        // Main Content: Calendar (Left) + Events/Todos (Right)
-                        HStack(alignment: .top, spacing: 24) {
-                            // Calendar Grid (Left)
-                            CalendarGridView(
-                                calendarManager: calendarManager,
-                                selectedDate: $selectedDate
-                            )
-                            .frame(maxWidth: 500)
-                            
-                            // Events + Todos (Right)
-                            SelectedDayEventsView(
-                                selectedDate: selectedDate,
-                                events: eventsForSelectedDate,
-                                todos: todosForSelectedDate
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .padding(.horizontal, 32)
-                    }
+                    FullMonthGridView(
+                        calendarManager: calendarManager,
+                        displayedMonth: $displayedMonth
+                    )
+                    .padding(.horizontal, 32)
                 }
                 .padding(.bottom, 32)
             }
