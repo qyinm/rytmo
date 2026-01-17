@@ -14,11 +14,11 @@ struct CalendarRightSidebar: View {
     
     // Updated Selection State
     @State private var selectedCalendar: CalendarInfo = CalendarInfo(
-        id: "rytmo_local",
-        title: "Rytmo",
-        color: .blue,
-        sourceTitle: "Rytmo",
-        type: .local
+        id: "",
+        title: "Select Calendar",
+        color: .gray,
+        sourceTitle: "",
+        type: .system
     )
     @State private var selectedEventColor: Color = .blue
     
@@ -150,10 +150,12 @@ struct CalendarRightSidebar: View {
             startDate = selectedDate
             endDate = selectedDate.addingTimeInterval(3600)
             
-            // Set initial calendar from available groups if Rytmo is not default or logic requires change
-            if let firstGroup = calendarManager.calendarGroups.first, let firstCal = firstGroup.calendars.first {
-                // Keep default Rytmo or switch to first available?
-                // For now, default Rytmo local is fine as it's hardcoded as default in CalendarManager too.
+            // Set initial calendar from available groups
+            if selectedCalendar.id.isEmpty {
+                if let firstGroup = calendarManager.calendarGroups.first, let firstCal = firstGroup.calendars.first {
+                    selectedCalendar = firstCal
+                    selectedEventColor = firstCal.color
+                }
             }
         }
         .onChange(of: selectedDate) { _, newDate in

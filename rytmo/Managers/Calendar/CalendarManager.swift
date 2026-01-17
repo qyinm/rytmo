@@ -15,7 +15,6 @@ class CalendarManager: ObservableObject {
     static let shared = CalendarManager()
     
     let eventStore = EKEventStore()
-    let localManager = LocalCalendarManager.shared
     let googleManager = GoogleCalendarManager.shared
     
     @Published var mergedEvents: [CalendarEventProtocol] = []
@@ -31,7 +30,6 @@ class CalendarManager: ObservableObject {
     @Published var calendarGroups: [CalendarGroup] = []
     
     @AppStorage("calendar_show_system") var showSystem: Bool = true
-    @AppStorage("calendar_show_rytmo") var showLocal: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
     @AppStorage("calendar_event_range_hours") var eventRangeHours: Int = CalendarConfig.defaultEventRangeHours
     
@@ -54,11 +52,6 @@ class CalendarManager: ObservableObject {
             .store(in: &cancellables)
             
         // Trigger aggregation when any source changes
-        localManager.$events
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.aggregateEvents() }
-            .store(in: &cancellables)
-            
         googleManager.$events
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.aggregateEvents() }
@@ -161,10 +154,6 @@ class CalendarManager: ObservableObject {
             
             var events: [CalendarEventProtocol] = []
             
-            if self.showLocal {
-                events.append(contentsOf: self.localManager.events.map { $0 as CalendarEventProtocol })
-            }
-            
             if self.showGoogle && self.googleManager.isAuthorized {
                 events.append(contentsOf: self.googleManager.events.map { $0 as CalendarEventProtocol })
             }
@@ -207,9 +196,8 @@ class CalendarManager: ObservableObject {
         self.eventsByDate = byDate
     }
     
-    func toggleSource(system: Bool? = nil, local: Bool? = nil, google: Bool? = nil) {
+    func toggleSource(system: Bool? = nil, google: Bool? = nil) {
         if let system = system { self.showSystem = system }
-        if let local = local { self.showLocal = local }
         if let google = google { self.showGoogle = google }
         loadEvents(for: currentReferenceDate)
     }
@@ -259,21 +247,6 @@ class CalendarManager: ObservableObject {
                 ))
             }
         }
-        
-        // 3. Rytmo (Local)
-        let localCal = CalendarInfo(
-            id: "rytmo_local",
-            title: "Rytmo",
-            color: .blue,
-            sourceTitle: "Rytmo",
-            type: .local
-        )
-        // Add to top if preferred, or bottom
-        groups.insert(CalendarGroup(
-            id: "rytmo_group",
-            sourceTitle: "Rytmo",
-            calendars: [localCal]
-        ), at: 0)
         
         self.calendarGroups = groups
     }

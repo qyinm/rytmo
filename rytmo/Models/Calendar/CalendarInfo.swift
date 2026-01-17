@@ -10,7 +10,6 @@ struct CalendarInfo: Identifiable, Equatable {
     var isSelected: Bool = true
     
     enum CalendarType {
-        case local
         case google
         case system
     }

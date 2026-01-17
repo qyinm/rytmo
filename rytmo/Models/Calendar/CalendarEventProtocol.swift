@@ -41,14 +41,3 @@ struct SystemCalendarEvent: CalendarEventProtocol {
     }
     var sourceName: String { "System" }
 }
-
-// MARK: - LocalCalendarEvent Conformance
-
-extension LocalCalendarEvent: CalendarEventProtocol {
-    var eventIdentifier: String { self.id.uuidString }
-    var eventTitle: String? { self.title }
-    var eventStartDate: Date? { self.startDate }
-    var eventEndDate: Date? { self.endDate }
-    var eventColor: Color { Color(hex: self.colorHex) }
-    var sourceName: String { "Rytmo" }
-}

@@ -17,10 +17,8 @@ struct DashboardCalendarView: View {
         HStack(spacing: 0) {
             CalendarLeftSidebarOptimized(
                 selectedDate: $selectedDate,
-                showLocal: calendarManager.showLocal,
                 showGoogle: calendarManager.showGoogle,
                 showSystem: calendarManager.showSystem,
-                onToggleLocal: { calendarManager.toggleSource(local: $0) },
                 onToggleGoogle: { calendarManager.toggleSource(google: $0) },
                 onToggleSystem: { calendarManager.toggleSource(system: $0) }
             )
@@ -136,15 +134,12 @@ struct CalendarHeaderView: View {
 
 struct CalendarLeftSidebarOptimized: View {
     @Binding var selectedDate: Date
-    let showLocal: Bool
     let showGoogle: Bool
     let showSystem: Bool
-    let onToggleLocal: (Bool) -> Void
     let onToggleGoogle: (Bool) -> Void
     let onToggleSystem: (Bool) -> Void
     
     @Environment(\.colorScheme) var colorScheme
-    @State private var localToggle: Bool = true
     @State private var googleToggle: Bool = true
     @State private var systemToggle: Bool = true
     
@@ -171,7 +166,6 @@ struct CalendarLeftSidebarOptimized: View {
             }
             
             VStack(alignment: .leading, spacing: 16) {
-                SourceToggleRow(name: "Rytmo", color: .blue, isOn: $localToggle)
                 SourceToggleRow(name: "Google", color: .red, isOn: $googleToggle)
                 SourceToggleRow(name: "System", color: .purple, isOn: $systemToggle)
             }
@@ -182,11 +176,9 @@ struct CalendarLeftSidebarOptimized: View {
         .frame(width: 260)
         .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
         .onAppear {
-            localToggle = showLocal
             googleToggle = showGoogle
             systemToggle = showSystem
         }
-        .onChange(of: localToggle) { _, v in onToggleLocal(v) }
         .onChange(of: googleToggle) { _, v in onToggleGoogle(v) }
         .onChange(of: systemToggle) { _, v in onToggleSystem(v) }
     }
