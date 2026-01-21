@@ -14,20 +14,20 @@ enum CalendarUtils {
     /// Shared Calendar instance
     static let calendar = Calendar.current
     
-    /// Generate all dates to display for a given month (including padding days from adjacent months)
+    /// Generate all dates to display for a given month (always 6 weeks / 42 days for fixed height)
     /// - Parameter date: Any date in the target month
-    /// - Returns: Array of dates to display in calendar grid
+    /// - Returns: Array of 42 dates to display in calendar grid
     static func generateDaysInMonth(for date: Date) -> [Date] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: date),
-              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
-              let monthLastWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.end - 1) else {
+              let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start) else {
             return []
         }
         
         var dates: [Date] = []
         var current = monthFirstWeek.start
         
-        while current < monthLastWeek.end {
+        // Always generate 42 days (6 weeks * 7 days) to maintain fixed height
+        for _ in 0..<42 {
             dates.append(current)
             current = calendar.date(byAdding: .day, value: 1, to: current) ?? current
         }

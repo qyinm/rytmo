@@ -185,32 +185,30 @@ struct CalendarLeftSidebarOptimized: View {
     @ObservedObject private var calendarManager = CalendarManager.shared
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            MiniCalendarView(selectedDate: $selectedDate)
-                .padding(.horizontal, 8)
-            
-            Divider()
-                .padding(.horizontal, 16)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "link")
-                        .foregroundColor(.secondary)
-                    Text("일정 잡기")
-                        .font(.system(size: 13, weight: .medium))
-                    Spacer()
-                    Image(systemName: "eye")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 12))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                MiniCalendarView(selectedDate: $selectedDate)
+                    .padding(.horizontal, 8)
+                
+                Divider()
+                    .padding(.horizontal, 16)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "link")
+                            .foregroundColor(.secondary)
+                        Text("일정 잡기")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Image(systemName: "eye")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 12))
+                    }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
-            }
-            
-            // Calendar list grouped by account
-            ScrollView {
+                
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(calendarManager.calendarGroups) { group in
-                        // Group Header
                         Text(group.sourceTitle)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
@@ -218,7 +216,6 @@ struct CalendarLeftSidebarOptimized: View {
                             .padding(.top, group.id == calendarManager.calendarGroups.first?.id ? 0 : 12)
                             .padding(.bottom, 8)
                         
-                        // Calendars in group
                         ForEach(group.calendars) { calendar in
                             CalendarVisibilityRow(
                                 calendar: calendar,
@@ -237,8 +234,7 @@ struct CalendarLeftSidebarOptimized: View {
                     }
                 }
             }
-            
-            Spacer()
+            .padding(.bottom, 16)
         }
         .frame(width: 260)
         .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.5))

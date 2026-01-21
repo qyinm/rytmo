@@ -102,27 +102,35 @@ struct FullMonthGridView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            WeekdayHeaderView()
+        GeometryReader { geometry in
+            let headerHeight: CGFloat = 32
+            let availableHeight = geometry.size.height - headerHeight
+            let cellHeight = max(60, availableHeight / 6)
             
-            LazyVGrid(columns: Self.columns, spacing: 0) {
-                ForEach(dayInfos) { info in
-                    OptimizedMonthCell(
-                        info: info,
-                        events: precomputedEvents[info.id] ?? [],
-                        todos: todosByDate[Calendar.current.startOfDay(for: info.date)] ?? [],
-                        onEventSelected: onEventSelected,
-                        onDateSelected: onDateSelected
-                    )
+            VStack(spacing: 0) {
+                WeekdayHeaderView()
+                    .frame(height: headerHeight)
+                
+                LazyVGrid(columns: Self.columns, spacing: 0) {
+                    ForEach(dayInfos) { info in
+                        OptimizedMonthCell(
+                            info: info,
+                            events: precomputedEvents[info.id] ?? [],
+                            todos: todosByDate[Calendar.current.startOfDay(for: info.date)] ?? [],
+                            cellHeight: cellHeight,
+                            onEventSelected: onEventSelected,
+                            onDateSelected: onDateSelected
+                        )
+                    }
                 }
             }
+            .background(Color.primary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+            )
         }
-        .background(Color.primary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-        )
         .drawingGroup()
     }
 }
@@ -148,13 +156,21 @@ struct OptimizedMonthCell: View {
     let info: MonthDayInfo
     let events: [EventDisplayInfo?]
     let todos: [TodoItem]
+    let cellHeight: CGFloat
     var onEventSelected: ((CalendarEventProtocol) -> Void)?
     var onDateSelected: ((Date) -> Void)?
     
     @Environment(\.colorScheme) private var colorScheme
     
+    private var maxVisibleItems: Int {
+        let headerSpace: CGFloat = 28
+        let itemHeight: CGFloat = 18
+        let availableForItems = cellHeight - headerSpace
+        return max(1, Int(availableForItems / itemHeight))
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text("\(info.dayNumber)\(info.isFirstDay ? "일" : "")")
                     .font(.system(size: 12, weight: info.isToday ? .bold : .medium))
@@ -168,7 +184,7 @@ struct OptimizedMonthCell: View {
             .padding(.horizontal, 4)
             
             VStack(alignment: .leading, spacing: 2) {
-                ForEach(0..<min(events.count, 4), id: \.self) { index in
+                ForEach(0..<min(events.count, maxVisibleItems), id: \.self) { index in
                     if let event = events[index] {
                         SimpleEventBar(info: event, onTap: onEventSelected)
                     } else {
@@ -176,14 +192,14 @@ struct OptimizedMonthCell: View {
                     }
                 }
                 
-                let remainingSlots = max(0, 4 - events.count)
+                let remainingSlots = max(0, maxVisibleItems - events.count)
                 ForEach(todos.prefix(remainingSlots), id: \.id) { todo in
                     SimpleTodoBar(title: todo.title)
                 }
                 
                 let totalItems = events.count + todos.count
-                if totalItems > 4 {
-                    Text("+ more")
+                if totalItems > maxVisibleItems {
+                    Text("+\(totalItems - maxVisibleItems)")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .padding(.leading, 4)
@@ -192,7 +208,8 @@ struct OptimizedMonthCell: View {
             
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
+        .frame(height: cellHeight)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.white)
         .border(Color.primary.opacity(0.1), width: 0.5)
         .contentShape(Rectangle())
