@@ -43,10 +43,8 @@ struct CalendarTabView: View {
     }
     
     private var eventsForSelectedDate: [CalendarEventProtocol] {
-        calendarManager.mergedEvents.filter { event in
-            guard let eventDate = event.eventStartDate else { return false }
-            return calendar.isDate(eventDate, inSameDayAs: selectedDate)
-        }
+        let startOfDay = calendar.startOfDay(for: selectedDate)
+        return calendarManager.optimizedData.eventsByDate[startOfDay] ?? []
     }
     
     private var todosForSelectedDate: [TodoItem] {
@@ -128,12 +126,15 @@ struct NotchCalendarGridView: View {
             let days = CalendarUtils.generateDaysInMonth(for: displayedMonth)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 2) {
                 ForEach(days, id: \.self) { date in
+                    let startOfDay = CalendarUtils.calendar.startOfDay(for: date)
+                    let hasEvents = !(calendarManager.optimizedData.eventsByDate[startOfDay]?.isEmpty ?? true)
+                    
                     DayCellView(
                         date: date,
                         isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
                         isToday: CalendarUtils.calendar.isDateInToday(date),
                         isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
-                        hasEvents: CalendarUtils.hasEvents(for: date, in: calendarManager.mergedEvents)
+                        hasEvents: hasEvents
                     )
                     .onTapGesture {
                         selectedDate = date
@@ -143,6 +144,14 @@ struct NotchCalendarGridView: View {
             .padding(.horizontal, 4)
             
             Spacer(minLength: 0)
+        }
+        .onChange(of: displayedMonth) { newDate in
+            calendarManager.loadEvents(for: newDate)
+        }
+        .onAppear {
+            if !CalendarUtils.isDate(calendarManager.currentReferenceDate, inSameMonthAs: displayedMonth) {
+                calendarManager.loadEvents(for: displayedMonth)
+            }
         }
     }
 }
