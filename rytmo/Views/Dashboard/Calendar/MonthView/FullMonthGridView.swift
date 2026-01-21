@@ -30,7 +30,7 @@ struct EventDisplayInfo: Identifiable {
     let originalEvent: CalendarEventProtocol
     
     init(event: CalendarEventProtocol, date: Date, calendar: Calendar) {
-        self.id = event.id.uuidString
+        self.id = event.eventIdentifier
         self.title = event.eventTitle ?? "Untitled"
         self.color = event.eventColor
         self.originalEvent = event
