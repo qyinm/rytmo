@@ -32,6 +32,7 @@ class GoogleCalendarManager: ObservableObject {
     
     private var fetchTask: Task<Void, Never>?
     private var syncTimer: Timer?
+    private var lastFetchCenterDate: Date = Date()
     private let eventsCacheFileName = "google_events_cache_v3.json"
     private let calendarsCacheFileName = "google_calendars_cache.json"
     
@@ -74,8 +75,9 @@ class GoogleCalendarManager: ObservableObject {
     
     private func syncInBackground() {
         guard isAuthorized, fetchTask == nil else { return }
-        Task {
-            await fetchAllEventsAsync()
+        fetchTask = Task {
+            await fetchAllEventsAsync(centerDate: lastFetchCenterDate)
+            fetchTask = nil
         }
     }
     
@@ -151,7 +153,7 @@ class GoogleCalendarManager: ObservableObject {
                 // Fetch 6 months of events at once, then start periodic sync
                 Task {
                     async let calendarsTask: () = fetchCalendarListAsync()
-                    async let eventsTask: () = fetchAllEventsAsync()
+                    async let eventsTask: () = fetchAllEventsAsync(centerDate: Date())
                     _ = await (calendarsTask, eventsTask)
                     startPeriodicSync()
                 }
@@ -291,19 +293,25 @@ class GoogleCalendarManager: ObservableObject {
     
     // MARK: - Fetch Events
     
-    /// Fetch events for a specific month (legacy, now just triggers full sync)
+    /// Fetch events for a specific date range (centered on the date)
     func fetchEvents(date: Date) {
         guard isAuthorized else {
             print("⚠️ Google Calendar not authorized, skipping fetch")
             return
         }
-        // No need to fetch per-month, we already have 6 months cached
-        // Just trigger a background sync if not already running
-        syncInBackground()
+        
+        // Cancel existing task to avoid race conditions and prioritize the new date
+        fetchTask?.cancel()
+        lastFetchCenterDate = date
+        
+        fetchTask = Task {
+            await fetchAllEventsAsync(centerDate: date)
+            fetchTask = nil
+        }
     }
     
-    /// Fetch 6 months of events (3 months before and after today)
-    private func fetchAllEventsAsync() async {
+    /// Fetch 6 months of events (3 months before and after centerDate)
+    private func fetchAllEventsAsync(centerDate: Date) async {
         guard isAuthorized else { return }
         
         self.isLoading = true
@@ -322,11 +330,10 @@ class GoogleCalendarManager: ObservableObject {
         
         let accessToken = user.accessToken.tokenString
         let calendar = Calendar.current
-        let now = Date()
         
-        // Calculate 6-month range
-        guard let startDate = calendar.date(byAdding: .month, value: -fetchMonthsBeforeAfter, to: now),
-              let endDate = calendar.date(byAdding: .month, value: fetchMonthsBeforeAfter, to: now) else {
+        // Calculate 6-month range based on centerDate
+        guard let startDate = calendar.date(byAdding: .month, value: -fetchMonthsBeforeAfter, to: centerDate),
+              let endDate = calendar.date(byAdding: .month, value: fetchMonthsBeforeAfter, to: centerDate) else {
             self.isLoading = false
             return
         }
