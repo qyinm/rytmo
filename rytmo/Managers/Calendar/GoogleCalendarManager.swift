@@ -476,7 +476,9 @@ class GoogleCalendarManager: ObservableObject {
         
         if isAllDay {
             eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
-            eventBody["end"] = ["date": dateFormatter.string(from: endDate)]
+            // Google Calendar API uses exclusive end date for all-day events
+            let exclusiveEndDate = Calendar.current.date(byAdding: .day, value: 1, to: endDate)!
+            eventBody["end"] = ["date": dateFormatter.string(from: exclusiveEndDate)]
         } else {
             eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
             eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]
@@ -555,7 +557,9 @@ class GoogleCalendarManager: ObservableObject {
         
         if isAllDay {
             eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
-            eventBody["end"] = ["date": dateFormatter.string(from: endDate)]
+            // Google Calendar API uses exclusive end date for all-day events
+            let exclusiveEndDate = Calendar.current.date(byAdding: .day, value: 1, to: endDate)!
+            eventBody["end"] = ["date": dateFormatter.string(from: exclusiveEndDate)]
         } else {
             eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
             eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]

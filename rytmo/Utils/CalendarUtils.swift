@@ -99,7 +99,13 @@ enum CalendarUtils {
         
         for event in relevantEvents {
             let start = event.eventStartDate ?? monthStart
-            let end = event.eventEndDate ?? monthEnd
+            var end = event.eventEndDate ?? monthEnd
+            
+            // Handle zero-duration events (e.g., all-day events with same start/end date)
+            // These should display on at least the start day
+            if start >= end, let adjustedEnd = calendar.date(byAdding: .day, value: 1, to: start) {
+                end = adjustedEnd
+            }
             
             // Find overlapping day indices using binary search approach
             let startDay = calendar.startOfDay(for: start)

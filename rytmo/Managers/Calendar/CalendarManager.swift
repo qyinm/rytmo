@@ -214,7 +214,12 @@ class CalendarManager: ObservableObject {
         // O(N) Algorithm: Iterate through events once and assign to day buckets
         if let firstDay = days.first, let lastDay = days.last {
             for event in mergedEvents {
-                guard let start = event.eventStartDate, let end = event.eventEndDate else { continue }
+                guard let start = event.eventStartDate, var end = event.eventEndDate else { continue }
+                
+                // Handle zero-duration events (all-day events with same start/end)
+                if start >= end, let adjusted = calendar.date(byAdding: .day, value: 1, to: start) {
+                    end = adjusted
+                }
                 
                 let startBucket = calendar.startOfDay(for: start)
                 var current = startBucket
