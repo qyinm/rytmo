@@ -8,9 +8,13 @@ import EventKit
 // MARK: - Constants
 
 private enum GoogleCalendarAPI {
-    static let scope = "https://www.googleapis.com/auth/calendar.readonly"
+    static let scope = "https://www.googleapis.com/auth/calendar"
     static let baseURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
     static let calendarListURL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+    static func eventsURL(calendarId: String) -> String {
+        let encodedId = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
+        return "https://www.googleapis.com/calendar/v3/calendars/\(encodedId)/events"
+    }
     static let signInErrorDomain = "com.google.GIDSignIn"
     static let cancelledErrorCode = -5
 }
@@ -303,6 +307,122 @@ class GoogleCalendarManager: ObservableObject {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Create Event
+    
+    /// Creates a new event in the specified Google Calendar
+    /// - Parameters:
+    ///   - calendarId: The ID of the calendar to add the event to
+    ///   - title: Event title
+    ///   - startDate: Start date/time
+    ///   - endDate: End date/time
+    ///   - isAllDay: Whether this is an all-day event
+    ///   - location: Optional location string
+    ///   - notes: Optional description/notes
+    func createEvent(
+        calendarId: String,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        location: String?,
+        notes: String?
+    ) async throws {
+        guard isAuthorized else {
+            throw GoogleCalendarError.notAuthorized
+        }
+        
+        guard await refreshTokenIfNeeded(),
+              let user = GIDSignIn.sharedInstance.currentUser else {
+            throw GoogleCalendarError.tokenRefreshFailed
+        }
+        
+        let accessToken = user.accessToken.tokenString
+        let urlString = GoogleCalendarAPI.eventsURL(calendarId: calendarId)
+        
+        guard let url = URL(string: urlString) else {
+            throw GoogleCalendarError.invalidURL
+        }
+        
+        // Build request body
+        let isoFormatter = ISO8601DateFormatter()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        var eventBody: [String: Any] = [
+            "summary": title
+        ]
+        
+        if isAllDay {
+            eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
+            eventBody["end"] = ["date": dateFormatter.string(from: endDate)]
+        } else {
+            eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
+            eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]
+        }
+        
+        if let location = location, !location.isEmpty {
+            eventBody["location"] = location
+        }
+        
+        if let notes = notes, !notes.isEmpty {
+            eventBody["description"] = notes
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: eventBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GoogleCalendarError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200, 201:
+            print("✅ Google Calendar event created successfully")
+            // Refresh events to show the new event
+            fetchEvents(date: startDate)
+        case 401:
+            self.isAuthorized = false
+            throw GoogleCalendarError.unauthorized
+        default:
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            print("❌ Failed to create event: HTTP \(httpResponse.statusCode) - \(errorMessage)")
+            throw GoogleCalendarError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)
+        }
+    }
+}
+
+// MARK: - Google Calendar Errors
+
+enum GoogleCalendarError: LocalizedError {
+    case notAuthorized
+    case tokenRefreshFailed
+    case invalidURL
+    case invalidResponse
+    case unauthorized
+    case apiError(statusCode: Int, message: String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .notAuthorized:
+            return "Google Calendar is not authorized. Please sign in."
+        case .tokenRefreshFailed:
+            return "Failed to refresh authentication token."
+        case .invalidURL:
+            return "Invalid calendar URL."
+        case .invalidResponse:
+            return "Invalid response from server."
+        case .unauthorized:
+            return "Session expired. Please reconnect Google Calendar."
+        case .apiError(let statusCode, let message):
+            return "API Error (\(statusCode)): \(message)"
         }
     }
 }

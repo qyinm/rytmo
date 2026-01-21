@@ -11,6 +11,9 @@ struct CalendarRightSidebar: View {
     @State private var isAllDay: Bool = false
     @State private var location: String = ""
     @State private var notes: String = ""
+    @State private var isSaving: Bool = false
+    @State private var errorMessage: String? = nil
+    @State private var showError: Bool = false
     
     // Updated Selection State
     @State private var selectedCalendar: CalendarInfo = CalendarInfo(
@@ -132,12 +135,19 @@ struct CalendarRightSidebar: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         
-                        Button("저장") {
+                        Button {
                             createEvent()
+                        } label: {
+                            if isSaving {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Text("저장")
+                            }
                         }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                        .disabled(eventTitle.isEmpty)
+                        .disabled(eventTitle.isEmpty || selectedCalendar.id.isEmpty || isSaving)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -162,6 +172,11 @@ struct CalendarRightSidebar: View {
             startDate = newDate
             endDate = newDate.addingTimeInterval(3600)
         }
+        .alert("이벤트 생성 실패", isPresented: $showError) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "알 수 없는 오류가 발생했습니다.")
+        }
     }
     
     private func clearForm() {
@@ -176,8 +191,37 @@ struct CalendarRightSidebar: View {
     }
     
     private func createEvent() {
-        // TODO: Implement event creation logic using selectedCalendar and selectedEventColor
-        print("Creating event: \(eventTitle) in \(selectedCalendar.title) with color \(selectedEventColor)")
-        clearForm()
+        guard !selectedCalendar.id.isEmpty else {
+            errorMessage = "캘린더를 선택해주세요."
+            showError = true
+            return
+        }
+        
+        isSaving = true
+        
+        Task {
+            do {
+                try await calendarManager.createEvent(
+                    title: eventTitle,
+                    startDate: startDate,
+                    endDate: endDate,
+                    isAllDay: isAllDay,
+                    calendarInfo: selectedCalendar,
+                    location: location.isEmpty ? nil : location,
+                    notes: notes.isEmpty ? nil : notes
+                )
+                
+                await MainActor.run {
+                    isSaving = false
+                    clearForm()
+                }
+            } catch {
+                await MainActor.run {
+                    isSaving = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
     }
 }

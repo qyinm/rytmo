@@ -250,4 +250,112 @@ class CalendarManager: ObservableObject {
         
         self.calendarGroups = groups
     }
+    
+    // MARK: - Create Event
+    
+    /// Creates a new event in the specified calendar (System or Google)
+    /// - Parameters:
+    ///   - title: Event title
+    ///   - startDate: Start date/time
+    ///   - endDate: End date/time
+    ///   - isAllDay: Whether this is an all-day event
+    ///   - calendarInfo: The target calendar information
+    ///   - location: Optional location string
+    ///   - notes: Optional description/notes
+    func createEvent(
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        calendarInfo: CalendarInfo,
+        location: String?,
+        notes: String?
+    ) async throws {
+        switch calendarInfo.type {
+        case .system:
+            try await createSystemEvent(
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
+                calendarId: calendarInfo.id,
+                location: location,
+                notes: notes
+            )
+        case .google:
+            try await googleManager.createEvent(
+                calendarId: calendarInfo.id,
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
+                location: location,
+                notes: notes
+            )
+        }
+        
+        // Refresh events after creation
+        refresh(date: startDate)
+    }
+    
+    /// Creates an event in the System (Apple) Calendar using EventKit
+    private func createSystemEvent(
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        calendarId: String,
+        location: String?,
+        notes: String?
+    ) async throws {
+        guard isAuthorized else {
+            throw CalendarCreationError.notAuthorized
+        }
+        
+        guard let calendar = eventStore.calendar(withIdentifier: calendarId) else {
+            throw CalendarCreationError.calendarNotFound
+        }
+        
+        let event = EKEvent(eventStore: eventStore)
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.isAllDay = isAllDay
+        event.calendar = calendar
+        
+        if let location = location, !location.isEmpty {
+            event.location = location
+        }
+        
+        if let notes = notes, !notes.isEmpty {
+            event.notes = notes
+        }
+        
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            print("✅ System Calendar event created successfully: \(title)")
+        } catch {
+            print("❌ Failed to create System Calendar event: \(error.localizedDescription)")
+            throw CalendarCreationError.saveFailed(error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - Calendar Creation Errors
+
+enum CalendarCreationError: LocalizedError {
+    case notAuthorized
+    case calendarNotFound
+    case saveFailed(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .notAuthorized:
+            return "Calendar access not authorized. Please grant permission in System Settings."
+        case .calendarNotFound:
+            return "Selected calendar not found."
+        case .saveFailed(let message):
+            return "Failed to save event: \(message)"
+        }
+    }
 }
