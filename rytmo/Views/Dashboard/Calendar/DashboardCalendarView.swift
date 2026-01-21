@@ -11,6 +11,7 @@ struct DashboardCalendarView: View {
     @State private var displayedMonth: Date = Date()
     @State private var cachedTodosByDate: [Date: [TodoItem]] = [:]
     @State private var selectedEvent: CalendarEventProtocol? = nil
+    @State private var updateTask: Task<Void, Never>?
     
     private let calendar = Calendar.current
     
@@ -90,14 +91,49 @@ struct DashboardCalendarView: View {
     }
     
     private func updateTodosCache() {
-        var dict: [Date: [TodoItem]] = [:]
-        for todo in allTodos {
-            guard let dueDate = todo.dueDate else { continue }
-            let startOfDay = calendar.startOfDay(for: dueDate)
-            dict[startOfDay, default: []].append(todo)
+        updateTask?.cancel()
+        
+        // Capture state on Main Actor
+        let todosSnapshot = allTodos
+        // Use a local copy of the calendar to ensure consistency and thread safety
+        let calendarSnapshot = calendar
+        
+        updateTask = Task {
+            // 1. Prepare lightweight Sendable data on Main Actor (fast)
+            // We map to indices so we can reconstruct the objects later without passing non-Sendable items
+            let input = todosSnapshot.enumerated().compactMap { index, todo in
+                todo.dueDate.map { TodoDateInfo(index: index, date: $0) }
+            }
+            
+            if Task.isCancelled { return }
+            
+            // 2. Offload heavy grouping and date math to background thread
+            let groupedIndices = await Task.detached(priority: .userInitiated) {
+                var dict: [Date: [Int]] = [:]
+                for item in input {
+                    let startOfDay = calendarSnapshot.startOfDay(for: item.date)
+                    dict[startOfDay, default: []].append(item.index)
+                }
+                return dict
+            }.value
+            
+            if Task.isCancelled { return }
+            
+            // 3. Reconstruct the dictionary on Main Actor
+            // This is O(N) but avoids the date math overhead
+            var finalDict: [Date: [TodoItem]] = [:]
+            for (date, indices) in groupedIndices {
+                finalDict[date] = indices.map { todosSnapshot[$0] }
+            }
+            
+            self.cachedTodosByDate = finalDict
         }
-        cachedTodosByDate = dict
     }
+}
+
+private struct TodoDateInfo: Sendable {
+    let index: Int
+    let date: Date
 }
 
 struct CalendarHeaderView: View {

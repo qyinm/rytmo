@@ -5,6 +5,18 @@ import SwiftUI
 
 // MARK: - Calendar Configuration
 
+struct CalendarOptimizedData {
+    let days: [Date]
+    let eventSlots: [Date: [CalendarEventProtocol?]]
+    let eventsByDate: [Date: [CalendarEventProtocol]]
+    
+    static let empty = CalendarOptimizedData(
+        days: [],
+        eventSlots: [:],
+        eventsByDate: [:]
+    )
+}
+
 private enum CalendarConfig {
     /// Default event fetch range in hours
     static let defaultEventRangeHours = 24
@@ -23,9 +35,11 @@ class CalendarManager: ObservableObject {
     
     @Published var currentReferenceDate: Date = Date()
     
-    @Published var currentMonthDays: [Date] = []
-    @Published var eventSlots: [Date: [CalendarEventProtocol?]] = [:]
-    @Published var eventsByDate: [Date: [CalendarEventProtocol]] = [:]
+    @Published var optimizedData: CalendarOptimizedData = .empty
+    
+    var currentMonthDays: [Date] { optimizedData.days }
+    var eventSlots: [Date: [CalendarEventProtocol?]] { optimizedData.eventSlots }
+    var eventsByDate: [Date: [CalendarEventProtocol]] { optimizedData.eventsByDate }
     
     @Published var calendarGroups: [CalendarGroup] = []
     
@@ -120,7 +134,6 @@ class CalendarManager: ObservableObject {
         }
         
         aggregateEvents()
-        computeOptimizedData()
     }
     
     private func fetchSystemEvents(date: Date) {
@@ -190,20 +203,45 @@ class CalendarManager: ObservableObject {
         let slots = CalendarUtils.arrangeEventsInSlotsForMonth(allDays: days, events: mergedEvents)
         
         var byDate: [Date: [CalendarEventProtocol]] = [:]
+        
+        // Initialize buckets for the days in the current view
         for day in days {
-            let calendar = Calendar.current
-            let startOfDay = calendar.startOfDay(for: day)
-            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-            
-            byDate[startOfDay] = mergedEvents.filter { event in
-                guard let start = event.eventStartDate, let end = event.eventEndDate else { return false }
-                return start < endOfDay && end > startOfDay
+            byDate[day] = []
+        }
+        
+        let calendar = Calendar.current
+        
+        // O(N) Algorithm: Iterate through events once and assign to day buckets
+        if let firstDay = days.first, let lastDay = days.last {
+            for event in mergedEvents {
+                guard let start = event.eventStartDate, let end = event.eventEndDate else { continue }
+                
+                let startBucket = calendar.startOfDay(for: start)
+                var current = startBucket
+                
+                // Add event to all days it covers
+                while current < end {
+                    // Optimization: stop if we passed the end of the month view
+                    if current > lastDay { break }
+                    
+                    // Only add if this day is within our month view (key exists)
+                    if current >= firstDay {
+                        if byDate[current] != nil {
+                            byDate[current]?.append(event)
+                        }
+                    }
+                    
+                    guard let next = calendar.date(byAdding: .day, value: 1, to: current) else { break }
+                    current = next
+                }
             }
         }
         
-        self.currentMonthDays = days
-        self.eventSlots = slots
-        self.eventsByDate = byDate
+        self.optimizedData = CalendarOptimizedData(
+            days: days,
+            eventSlots: slots,
+            eventsByDate: byDate
+        )
     }
     
     func toggleSource(system: Bool? = nil, google: Bool? = nil) {
