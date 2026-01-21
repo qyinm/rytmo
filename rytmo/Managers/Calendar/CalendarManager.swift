@@ -40,6 +40,8 @@ class CalendarManager: ObservableObject {
     
     private init() {
         setupObservers()
+        // Immediately show cached data on startup (like Notion Calendar)
+        aggregateEventsImmediate()
     }
     
     private func setupObservers() {
@@ -149,37 +151,38 @@ class CalendarManager: ObservableObject {
         aggregateDebounceTask?.cancel()
         
         aggregateDebounceTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            
+            try? await Task.sleep(nanoseconds: 30_000_000) // 30ms debounce
             if Task.isCancelled { return }
-            
-            var events: [CalendarEventProtocol] = []
-            let hidden = self.hiddenCalendarIds
-            
-            if self.showGoogle && self.googleManager.isAuthorized {
-                let googleEvents = self.googleManager.events
-                    .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
-                    .map { $0 as CalendarEventProtocol }
-                events.append(contentsOf: googleEvents)
-            }
-            
-            if self.showSystem && self.isAuthorized {
-                let systemEventsFiltered = self.systemEvents
-                    .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
-                events.append(contentsOf: systemEventsFiltered)
-            }
-            
-            let sortedEvents = await Task.detached(priority: .userInitiated) {
-                events.sorted {
-                    ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
-                }
-            }.value
-            
-            if Task.isCancelled { return }
-            
-            self.mergedEvents = sortedEvents
-            self.computeOptimizedData()
+            aggregateEventsImmediate()
         }
+    }
+    
+    /// Immediately aggregate events without debounce - used for initial load
+    private func aggregateEventsImmediate() {
+        var events: [CalendarEventProtocol] = []
+        let hidden = self.hiddenCalendarIds
+        
+        // Use cached Google events even if not yet "authorized" (cache loaded in init)
+        if self.showGoogle && !googleManager.events.isEmpty {
+            let googleEvents = googleManager.events
+                .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
+                .map { $0 as CalendarEventProtocol }
+            events.append(contentsOf: googleEvents)
+        }
+        
+        if self.showSystem && !systemEvents.isEmpty {
+            let systemEventsFiltered = systemEvents
+                .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
+            events.append(contentsOf: systemEventsFiltered)
+        }
+        
+        // Sort synchronously for immediate display
+        self.mergedEvents = events.sorted {
+            ($0.eventStartDate ?? Date.distantPast) < ($1.eventStartDate ?? Date.distantPast)
+        }
+        
+        // Compute optimized data on main actor
+        computeOptimizedData()
     }
     
     private func computeOptimizedData() {

@@ -5,6 +5,7 @@ struct CalendarInfo: Identifiable, Equatable {
     let id: String
     let title: String
     let color: Color
+    var hexColorString: String? // Optional hex string for persistence (mainly for Google)
     let sourceTitle: String // e.g., "Google (qusseun@gmail.com)", "iCloud"
     let type: CalendarType
     var isSelected: Bool = true

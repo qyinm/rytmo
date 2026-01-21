@@ -31,21 +31,63 @@ class GoogleCalendarManager: ObservableObject {
     @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
     
     private var fetchTask: Task<Void, Never>?
-    private let cacheFileName = "google_events_cache.json"
+    private var syncTimer: Timer?
+    private let eventsCacheFileName = "google_events_cache_v3.json"
+    private let calendarsCacheFileName = "google_calendars_cache.json"
+    
+    /// Fetch range: 3 months before and after current date (6 months total)
+    private let fetchMonthsBeforeAfter = 3
+    /// Background sync interval in seconds (5 minutes)
+    private let syncInterval: TimeInterval = 300
     
     private init() {
+        loadCalendarsFromCache()
         loadEventsFromCache()
+        setupAppLifecycleObservers()
+    }
+    
+    private func setupAppLifecycleObservers() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncIfNeeded()
+            }
+        }
+    }
+    
+    private func startPeriodicSync() {
+        syncTimer?.invalidate()
+        syncTimer = Timer.scheduledTimer(withTimeInterval: syncInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.syncInBackground()
+            }
+        }
+    }
+    
+    private func syncIfNeeded() {
+        guard isAuthorized else { return }
+        syncInBackground()
+    }
+    
+    private func syncInBackground() {
+        guard isAuthorized, fetchTask == nil else { return }
+        Task {
+            await fetchAllEventsAsync()
+        }
     }
     
     // MARK: - Caching
     
-    private func getCacheURL() -> URL? {
+    private func getCacheURL(fileName: String) -> URL? {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
-        return documentsDirectory.appendingPathComponent(cacheFileName)
+        return documentsDirectory.appendingPathComponent(fileName)
     }
     
     private func saveEventsToCache(_ events: [GoogleCalendarEvent]) {
-        guard let url = getCacheURL() else { return }
+        guard let url = getCacheURL(fileName: eventsCacheFileName) else { return }
         
         Task.detached(priority: .background) {
             do {
@@ -58,7 +100,7 @@ class GoogleCalendarManager: ObservableObject {
     }
     
     private func loadEventsFromCache() {
-        guard let url = getCacheURL(),
+        guard let url = getCacheURL(fileName: eventsCacheFileName),
               FileManager.default.fileExists(atPath: url.path) else { return }
         
         do {
@@ -71,6 +113,34 @@ class GoogleCalendarManager: ObservableObject {
         }
     }
     
+    private func saveCalendarsToCache(_ calendars: [CalendarInfo]) {
+        guard let url = getCacheURL(fileName: calendarsCacheFileName) else { return }
+        
+        Task.detached(priority: .background) {
+            do {
+                let cacheable = calendars.map { CacheableCalendarInfo(from: $0) }
+                let data = try JSONEncoder().encode(cacheable)
+                try data.write(to: url)
+            } catch {
+                print("❌ Failed to save calendars cache: \(error)")
+            }
+        }
+    }
+    
+    private func loadCalendarsFromCache() {
+        guard let url = getCacheURL(fileName: calendarsCacheFileName),
+              FileManager.default.fileExists(atPath: url.path) else { return }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let cached = try JSONDecoder().decode([CacheableCalendarInfo].self, from: data)
+            self.availableCalendars = cached.map { $0.toCalendarInfo() }
+            print("✅ Loaded \(cached.count) cached Google calendars")
+        } catch {
+            print("❌ Failed to load calendars cache: \(error)")
+        }
+    }
+    
     // MARK: - Permission Check
     
     func checkPermission() {
@@ -78,8 +148,13 @@ class GoogleCalendarManager: ObservableObject {
             let grantedScopes = user.grantedScopes ?? []
             self.isAuthorized = grantedScopes.contains(GoogleCalendarAPI.scope)
             if self.isAuthorized {
-                // Automatically fetch events when permission is confirmed
-                fetchEvents(date: Date())
+                // Fetch 6 months of events at once, then start periodic sync
+                Task {
+                    async let calendarsTask: () = fetchCalendarListAsync()
+                    async let eventsTask: () = fetchAllEventsAsync()
+                    _ = await (calendarsTask, eventsTask)
+                    startPeriodicSync()
+                }
             }
         } else {
             self.isAuthorized = false
@@ -176,146 +251,175 @@ class GoogleCalendarManager: ObservableObject {
         guard isAuthorized else { return }
         
         Task {
-            guard await refreshTokenIfNeeded(),
-                  let user = GIDSignIn.sharedInstance.currentUser else { return }
+            await fetchCalendarListAsync()
+        }
+    }
+    
+    private func fetchCalendarListAsync() async {
+        guard isAuthorized else { return }
+        guard await refreshTokenIfNeeded(),
+              let user = GIDSignIn.sharedInstance.currentUser else { return }
+        
+        let accessToken = user.accessToken.tokenString
+        guard let url = URL(string: GoogleCalendarAPI.calendarListURL) else { return }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(GoogleCalendarListResource.self, from: data)
             
-            let accessToken = user.accessToken.tokenString
-            guard let url = URL(string: GoogleCalendarAPI.calendarListURL) else { return }
-            
-            var request = URLRequest(url: url)
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            
-            do {
-                let (data, _) = try await URLSession.shared.data(for: request)
-                let response = try JSONDecoder().decode(GoogleCalendarListResource.self, from: data)
-                
-                let calendarInfos = (response.items ?? []).map { item in
-                    CalendarInfo(
-                        id: item.id,
-                        title: item.summary ?? "Untitled",
-                        color: Color(hex: item.backgroundColor ?? "#4285F4"),
-                        sourceTitle: "Google (\(user.profile?.email ?? "Account"))",
-                        type: .google
-                    )
-                }
-                
-                await MainActor.run {
-                    self.availableCalendars = calendarInfos
-                }
-            } catch {
-                print("❌ Failed to fetch Google calendar list: \(error)")
+            let calendarInfos = (response.items ?? []).map { item in
+                CalendarInfo(
+                    id: item.id,
+                    title: item.summary ?? "Untitled",
+                    color: Color(hex: item.backgroundColor ?? "#4285F4"),
+                    hexColorString: item.backgroundColor,
+                    sourceTitle: "Google (\(user.profile?.email ?? "Account"))",
+                    type: .google
+                )
             }
+            
+            self.availableCalendars = calendarInfos
+            saveCalendarsToCache(calendarInfos)
+            print("✅ Fetched \(calendarInfos.count) Google calendars")
+        } catch {
+            print("❌ Failed to fetch Google calendar list: \(error)")
         }
     }
     
     // MARK: - Fetch Events
     
+    /// Fetch events for a specific month (legacy, now just triggers full sync)
     func fetchEvents(date: Date) {
         guard isAuthorized else {
             print("⚠️ Google Calendar not authorized, skipping fetch")
             return
         }
-        
-        fetchTask?.cancel()
+        // No need to fetch per-month, we already have 6 months cached
+        // Just trigger a background sync if not already running
+        syncInBackground()
+    }
+    
+    /// Fetch 6 months of events (3 months before and after today)
+    private func fetchAllEventsAsync() async {
+        guard isAuthorized else { return }
         
         self.isLoading = true
         self.error = nil
         
-        fetchTask = Task {
-            // Refresh token before making API call
-            guard await refreshTokenIfNeeded() else {
-                if !Task.isCancelled { self.isLoading = false }
-                return
-            }
-            
-            guard let user = GIDSignIn.sharedInstance.currentUser else {
-                if !Task.isCancelled {
-                    self.isLoading = false
-                    self.error = "User not found"
-                }
-                return
-            }
-            
-            let accessToken = user.accessToken.tokenString
-            
-            let calendar = Calendar.current
-            guard let monthInterval = calendar.dateInterval(of: .month, for: date) else {
-                if !Task.isCancelled { self.isLoading = false }
-                return
-            }
-            
-            let monthDays = CalendarUtils.generateDaysInMonth(for: date)
-            let start = monthDays.first ?? monthInterval.start
-            let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthInterval.end) ?? monthInterval.end
-            
-            let isoFormatter = ISO8601DateFormatter()
-            let timeMin = isoFormatter.string(from: start)
-            let timeMax = isoFormatter.string(from: end)
-            
-            // Fetch events from all available calendars
-            var allEvents: [GoogleCalendarEvent] = []
-            let calendarsToFetch = availableCalendars.isEmpty ? [CalendarInfo(id: "primary", title: "Primary", color: .blue, sourceTitle: "", type: .google)] : availableCalendars
-            
-            for cal in calendarsToFetch {
-                if Task.isCancelled { return }
-                
-                let urlString = GoogleCalendarAPI.eventsURL(calendarId: cal.id)
-                
-                guard var components = URLComponents(string: urlString) else { continue }
-                components.queryItems = [
-                    URLQueryItem(name: "timeMin", value: timeMin),
-                    URLQueryItem(name: "timeMax", value: timeMax),
-                    URLQueryItem(name: "singleEvents", value: "true"),
-                    URLQueryItem(name: "orderBy", value: "startTime"),
-                    URLQueryItem(name: "maxResults", value: "250")
-                ]
-                
-                guard let url = components.url else { continue }
-                
-                var request = URLRequest(url: url)
-                request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-                
-                do {
-                    let (data, response) = try await URLSession.shared.data(for: request)
-                    
-                    if let httpResponse = response as? HTTPURLResponse {
-                        if httpResponse.statusCode == 401 {
-                            await MainActor.run {
-                                self.isAuthorized = false
-                                self.error = "Session expired. Please reconnect Google Calendar."
-                                self.isLoading = false
-                            }
-                            return
-                        } else if httpResponse.statusCode != 200 {
-                            continue // Skip this calendar if error
-                        }
-                    }
-                    
-                    let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
-                    var calEvents = calendarResponse.items ?? []
-                    
-                    // Set the calendarId for each event
-                    for i in calEvents.indices {
-                        calEvents[i].storedCalendarId = cal.id
-                    }
-                    
-                    allEvents.append(contentsOf: calEvents)
-                } catch {
-                    print("⚠️ Failed to fetch events from calendar \(cal.title): \(error)")
-                    continue
-                }
-            }
-            
-            if Task.isCancelled { return }
-            
-            await MainActor.run {
-                self.events = allEvents
-                self.saveEventsToCache(allEvents)
-                self.isLoading = false
-                self.error = nil
-                print("✅ Fetched \(self.events.count) Google Calendar events from \(calendarsToFetch.count) calendars")
-            }
+        guard await refreshTokenIfNeeded() else {
+            self.isLoading = false
+            return
         }
+        
+        guard let user = GIDSignIn.sharedInstance.currentUser else {
+            self.isLoading = false
+            self.error = "User not found"
+            return
+        }
+        
+        let accessToken = user.accessToken.tokenString
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Calculate 6-month range
+        guard let startDate = calendar.date(byAdding: .month, value: -fetchMonthsBeforeAfter, to: now),
+              let endDate = calendar.date(byAdding: .month, value: fetchMonthsBeforeAfter, to: now) else {
+            self.isLoading = false
+            return
+        }
+        
+        let isoFormatter = ISO8601DateFormatter()
+        let timeMin = isoFormatter.string(from: startDate)
+        let timeMax = isoFormatter.string(from: endDate)
+        
+        let calendarsToFetch = availableCalendars.isEmpty ? [CalendarInfo(id: "primary", title: "Primary", color: .blue, sourceTitle: "", type: .google)] : availableCalendars
+        
+        // Fetch all calendars in parallel
+        let allEvents = await withTaskGroup(of: [GoogleCalendarEvent].self) { group in
+            for cal in calendarsToFetch {
+                group.addTask {
+                    await self.fetchEventsForCalendar(
+                        cal: cal,
+                        accessToken: accessToken,
+                        timeMin: timeMin,
+                        timeMax: timeMax
+                    )
+                }
+            }
+            
+            var results: [GoogleCalendarEvent] = []
+            for await events in group {
+                results.append(contentsOf: events)
+            }
+            return results
+        }
+        
+        self.events = allEvents
+        self.saveEventsToCache(allEvents)
+        self.isLoading = false
+        self.error = nil
+        print("✅ Fetched \(allEvents.count) Google events for 6 months from \(calendarsToFetch.count) calendars")
+    }
+    
+    private func fetchEventsForCalendar(cal: CalendarInfo, accessToken: String, timeMin: String, timeMax: String) async -> [GoogleCalendarEvent] {
+        let urlString = GoogleCalendarAPI.eventsURL(calendarId: cal.id)
+        var allEvents: [GoogleCalendarEvent] = []
+        var pageToken: String? = nil
+        
+        // Paginate through all results (Google API max 2500 per request)
+        repeat {
+            guard var components = URLComponents(string: urlString) else { return allEvents }
+            components.queryItems = [
+                URLQueryItem(name: "timeMin", value: timeMin),
+                URLQueryItem(name: "timeMax", value: timeMax),
+                URLQueryItem(name: "singleEvents", value: "true"),
+                URLQueryItem(name: "orderBy", value: "startTime"),
+                URLQueryItem(name: "maxResults", value: "2500")
+            ]
+            if let token = pageToken {
+                components.queryItems?.append(URLQueryItem(name: "pageToken", value: token))
+            }
+            
+            guard let url = components.url else { return allEvents }
+            
+            var request = URLRequest(url: url)
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse {
+                    if httpResponse.statusCode == 401 {
+                        await MainActor.run {
+                            self.isAuthorized = false
+                            self.error = "Session expired. Please reconnect Google Calendar."
+                        }
+                        return allEvents
+                    } else if httpResponse.statusCode != 200 {
+                        return allEvents
+                    }
+                }
+                
+                let calendarResponse = try JSONDecoder().decode(GoogleCalendarPaginatedResponse.self, from: data)
+                var calEvents = calendarResponse.items ?? []
+                
+                for i in calEvents.indices {
+                    calEvents[i].storedCalendarId = cal.id
+                    calEvents[i].storedCalendarColorHex = cal.hexColorString ?? "#4285F4"
+                }
+                
+                allEvents.append(contentsOf: calEvents)
+                pageToken = calendarResponse.nextPageToken
+            } catch {
+                print("⚠️ Failed to fetch events from calendar \(cal.title): \(error)")
+                return allEvents
+            }
+        } while pageToken != nil
+        
+        return allEvents
     }
     
     // MARK: - Create Event
@@ -571,6 +675,11 @@ struct GoogleCalendarListResponse: Codable {
     let items: [GoogleCalendarEvent]?
 }
 
+struct GoogleCalendarPaginatedResponse: Codable {
+    let items: [GoogleCalendarEvent]?
+    let nextPageToken: String?
+}
+
 struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     let id: String
     let summary: String?
@@ -581,11 +690,21 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     let location: String?
     let description: String?
     
-    // CalendarId is set after decoding (from API context)
+    // Calendar Info is set after decoding and persisted
     var storedCalendarId: String?
+    var storedCalendarColorHex: String?
+    
+    // Legacy property for runtime backward compatibility if needed, but we rely on hex now
+    var storedCalendarColor: Color? {
+        if let hex = storedCalendarColorHex {
+            return Color(hex: hex)
+        }
+        return nil
+    }
     
     enum CodingKeys: String, CodingKey {
         case id, summary, start, end, htmlLink, colorId, location, description
+        case storedCalendarId, storedCalendarColorHex
     }
     
     var eventIdentifier: String { id }
@@ -594,22 +713,24 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     var eventEndDate: Date? { end?.dateValue }
     
     var eventColor: Color {
-        guard let colorId = colorId else { return .blue }
-        
-        switch colorId {
-        case "1": return Color(hex: "#7986cb") // Lavender
-        case "2": return Color(hex: "#33b679") // Sage
-        case "3": return Color(hex: "#8e24aa") // Grape
-        case "4": return Color(hex: "#e67c73") // Flamingo
-        case "5": return Color(hex: "#f6c026") // Banana
-        case "6": return Color(hex: "#f5511d") // Tangerine
-        case "7": return Color(hex: "#039be5") // Peacock
-        case "8": return Color(hex: "#616161") // Graphite
-        case "9": return Color(hex: "#3f51b5") // Blueberry
-        case "10": return Color(hex: "#0b8043") // Basil
-        case "11": return Color(hex: "#d60000") // Tomato
-        default: return .blue
+        if let colorId = colorId {
+            switch colorId {
+            case "1": return Color(hex: "#7986cb") // Lavender
+            case "2": return Color(hex: "#33b679") // Sage
+            case "3": return Color(hex: "#8e24aa") // Grape
+            case "4": return Color(hex: "#e67c73") // Flamingo
+            case "5": return Color(hex: "#f6c026") // Banana
+            case "6": return Color(hex: "#f5511d") // Tangerine
+            case "7": return Color(hex: "#039be5") // Peacock
+            case "8": return Color(hex: "#616161") // Graphite
+            case "9": return Color(hex: "#3f51b5") // Blueberry
+            case "10": return Color(hex: "#0b8043") // Basil
+            case "11": return Color(hex: "#d60000") // Tomato
+            default: break
+            }
         }
+        
+        return storedCalendarColor ?? .blue
     }
     
     var sourceName: String { "Google" }
@@ -636,5 +757,32 @@ struct GoogleCalendarTime: Codable {
             return dayFormatter.date(from: date)
         }
         return nil
+    }
+}
+
+// MARK: - Cacheable Calendar Info
+
+struct CacheableCalendarInfo: Codable {
+    let id: String
+    let title: String
+    let hexColorString: String?
+    let sourceTitle: String
+    
+    init(from info: CalendarInfo) {
+        self.id = info.id
+        self.title = info.title
+        self.hexColorString = info.hexColorString
+        self.sourceTitle = info.sourceTitle
+    }
+    
+    func toCalendarInfo() -> CalendarInfo {
+        CalendarInfo(
+            id: id,
+            title: title,
+            color: Color(hex: hexColorString ?? "#4285F4"),
+            hexColorString: hexColorString,
+            sourceTitle: sourceTitle,
+            type: .google
+        )
     }
 }

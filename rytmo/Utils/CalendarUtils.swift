@@ -76,6 +76,12 @@ enum CalendarUtils {
         let monthEnd = allDays.last!
         let nextDayAfterMonth = calendar.date(byAdding: .day, value: 1, to: monthEnd)!
         
+        // Pre-compute day indices for O(1) lookup
+        var dayToIndex: [Date: Int] = [:]
+        for (index, day) in allDays.enumerated() {
+            dayToIndex[calendar.startOfDay(for: day)] = index
+        }
+        
         let relevantEvents = events.filter { event in
             guard let start = event.eventStartDate, let end = event.eventEndDate else { return false }
             return start < nextDayAfterMonth && end > monthStart
@@ -83,60 +89,73 @@ enum CalendarUtils {
             let s1 = e1.eventStartDate ?? Date.distantPast
             let s2 = e2.eventStartDate ?? Date.distantPast
             if s1 != s2 { return s1 < s2 }
-            
             let d1 = (e1.eventEndDate ?? s1).timeIntervalSince(s1)
             let d2 = (e2.eventEndDate ?? s2).timeIntervalSince(s2)
             return d1 > d2
         }
         
-        var slots: [Date: [CalendarEventProtocol?]] = [:]
-        for day in allDays { slots[day] = [] }
-        
-        var eventSlots: [String: Int] = [:]
+        // Use array-based slots for faster access
+        var slotsArray: [[CalendarEventProtocol?]] = Array(repeating: [], count: allDays.count)
         
         for event in relevantEvents {
             let start = event.eventStartDate ?? monthStart
             let end = event.eventEndDate ?? monthEnd
             
-            let overlappingDays = allDays.filter { day in
-                let dayStart = calendar.startOfDay(for: day)
+            // Find overlapping day indices using binary search approach
+            let startDay = calendar.startOfDay(for: start)
+            let endDay = calendar.startOfDay(for: end)
+            
+            var startIdx = dayToIndex[startDay] ?? 0
+            var endIdx = allDays.count - 1
+            
+            // Find actual range
+            for i in 0..<allDays.count {
+                let dayStart = calendar.startOfDay(for: allDays[i])
                 let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-                return start < dayEnd && end > dayStart
-            }
-            
-            guard !overlappingDays.isEmpty else { continue }
-            
-            let firstDay = overlappingDays[0]
-            let weekIndex = allDays.firstIndex(of: firstDay)! / 7
-            
-            var slotIndex = 0
-            while true {
-                var isAvailable = true
-                for day in overlappingDays {
-                    let daySlots = slots[day]!
-                    if slotIndex < daySlots.count && daySlots[slotIndex] != nil {
-                        isAvailable = false
-                        break
-                    }
-                }
-                
-                if isAvailable {
+                if start < dayEnd && end > dayStart {
+                    startIdx = i
                     break
                 }
-                slotIndex += 1
+            }
+            for i in stride(from: allDays.count - 1, through: 0, by: -1) {
+                let dayStart = calendar.startOfDay(for: allDays[i])
+                let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
+                if start < dayEnd && end > dayStart {
+                    endIdx = i
+                    break
+                }
             }
             
-            for day in overlappingDays {
-                var daySlots = slots[day]!
-                while daySlots.count <= slotIndex {
-                    daySlots.append(nil)
+            guard startIdx <= endIdx else { continue }
+            
+            // Find available slot
+            var slotIndex = 0
+            outer: while true {
+                for i in startIdx...endIdx {
+                    if slotIndex < slotsArray[i].count && slotsArray[i][slotIndex] != nil {
+                        slotIndex += 1
+                        continue outer
+                    }
                 }
-                daySlots[slotIndex] = event
-                slots[day] = daySlots
+                break
+            }
+            
+            // Assign event to slot
+            for i in startIdx...endIdx {
+                while slotsArray[i].count <= slotIndex {
+                    slotsArray[i].append(nil)
+                }
+                slotsArray[i][slotIndex] = event
             }
         }
         
-        return slots
+        // Convert to dictionary
+        var result: [Date: [CalendarEventProtocol?]] = [:]
+        for (index, day) in allDays.enumerated() {
+            result[day] = slotsArray[index]
+        }
+        
+        return result
     }
     
     /// Arranges events into visual slots for a specific week (row)
