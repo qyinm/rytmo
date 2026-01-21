@@ -1,6 +1,58 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Optimization Structures
+
+struct MonthDayInfo: Identifiable, Sendable {
+    let id: TimeInterval
+    let date: Date
+    let dayNumber: Int
+    let isToday: Bool
+    let isCurrentMonth: Bool
+    let isFirstDay: Bool
+    
+    init(date: Date, displayedMonth: Date, calendar: Calendar) {
+        self.date = date
+        self.id = date.timeIntervalSince1970
+        self.dayNumber = calendar.component(.day, from: date)
+        self.isToday = calendar.isDateInToday(date)
+        self.isCurrentMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
+        self.isFirstDay = self.dayNumber == 1
+    }
+}
+
+struct EventDisplayInfo: Identifiable {
+    let id: String
+    let title: String
+    let color: Color
+    let isStart: Bool
+    let timeString: String?
+    let originalEvent: CalendarEventProtocol
+    
+    init(event: CalendarEventProtocol, date: Date, calendar: Calendar) {
+        self.id = event.id.uuidString
+        self.title = event.eventTitle ?? "Untitled"
+        self.color = event.eventColor
+        self.originalEvent = event
+        
+        let start = event.eventStartDate
+        // Logic from original SimpleEventBar
+        if let start = start {
+            self.isStart = calendar.isDate(start, inSameDayAs: date) || calendar.component(.weekday, from: date) == 1
+            if self.isStart {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                self.timeString = formatter.string(from: start)
+            } else {
+                self.timeString = nil
+            }
+        } else {
+            self.isStart = true
+            self.timeString = nil
+        }
+    }
+}
+
 struct FullMonthGridView: View {
     let days: [Date]
     let eventSlots: [Date: [CalendarEventProtocol?]]
@@ -10,20 +62,55 @@ struct FullMonthGridView: View {
     var onEventSelected: ((CalendarEventProtocol) -> Void)?
     var onDateSelected: ((Date) -> Void)?
     
+    // Optimized pre-calculated data
+    private let dayInfos: [MonthDayInfo]
+    private let precomputedEvents: [TimeInterval: [EventDisplayInfo?]]
+    
     private static let weekdaySymbols = Calendar.current.shortWeekdaySymbols
     private static let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+    
+    init(days: [Date], 
+         eventSlots: [Date: [CalendarEventProtocol?]], 
+         displayedMonth: Date, 
+         todosByDate: [Date: [TodoItem]], 
+         onEventSelected: ((CalendarEventProtocol) -> Void)? = nil, 
+         onDateSelected: ((Date) -> Void)? = nil) {
+        
+        self.days = days
+        self.eventSlots = eventSlots
+        self.displayedMonth = displayedMonth
+        self.todosByDate = todosByDate
+        self.onEventSelected = onEventSelected
+        self.onDateSelected = onDateSelected
+        
+        let calendar = Calendar.current
+        
+        self.dayInfos = days.map { 
+            MonthDayInfo(date: $0, displayedMonth: displayedMonth, calendar: calendar) 
+        }
+        
+        var eventsDict: [TimeInterval: [EventDisplayInfo?]] = [:]
+        for day in days {
+            if let events = eventSlots[day] {
+                eventsDict[day.timeIntervalSince1970] = events.map { event in
+                    guard let event = event else { return nil }
+                    return EventDisplayInfo(event: event, date: day, calendar: calendar)
+                }
+            }
+        }
+        self.precomputedEvents = eventsDict
+    }
     
     var body: some View {
         VStack(spacing: 0) {
             WeekdayHeaderView()
             
             LazyVGrid(columns: Self.columns, spacing: 0) {
-                ForEach(days, id: \.timeIntervalSince1970) { date in
+                ForEach(dayInfos) { info in
                     OptimizedMonthCell(
-                        date: date,
-                        displayedMonth: displayedMonth,
-                        events: eventSlots[date] ?? [],
-                        todos: todosByDate[Calendar.current.startOfDay(for: date)] ?? [],
+                        info: info,
+                        events: precomputedEvents[info.id] ?? [],
+                        todos: todosByDate[Calendar.current.startOfDay(for: info.date)] ?? [],
                         onEventSelected: onEventSelected,
                         onDateSelected: onDateSelected
                     )
@@ -58,28 +145,22 @@ struct WeekdayHeaderView: View {
 }
 
 struct OptimizedMonthCell: View {
-    let date: Date
-    let displayedMonth: Date
-    let events: [CalendarEventProtocol?]
+    let info: MonthDayInfo
+    let events: [EventDisplayInfo?]
     let todos: [TodoItem]
     var onEventSelected: ((CalendarEventProtocol) -> Void)?
     var onDateSelected: ((Date) -> Void)?
     
     @Environment(\.colorScheme) private var colorScheme
     
-    private var isToday: Bool { Calendar.current.isDateInToday(date) }
-    private var isCurrentMonth: Bool { Calendar.current.isDate(date, equalTo: displayedMonth, toGranularity: .month) }
-    private var dayNumber: Int { Calendar.current.component(.day, from: date) }
-    private var isFirstDay: Bool { dayNumber == 1 }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("\(dayNumber)\(isFirstDay ? "일" : "")")
-                    .font(.system(size: 12, weight: isToday ? .bold : .medium))
-                    .foregroundColor(isCurrentMonth ? (isToday ? .white : .primary) : .secondary.opacity(0.3))
+                Text("\(info.dayNumber)\(info.isFirstDay ? "일" : "")")
+                    .font(.system(size: 12, weight: info.isToday ? .bold : .medium))
+                    .foregroundColor(info.isCurrentMonth ? (info.isToday ? .white : .primary) : .secondary.opacity(0.3))
                     .padding(4)
-                    .background(isToday ? Color.blue : Color.clear)
+                    .background(info.isToday ? Color.blue : Color.clear)
                     .clipShape(Circle())
                 Spacer()
             }
@@ -89,7 +170,7 @@ struct OptimizedMonthCell: View {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(0..<min(events.count, 4), id: \.self) { index in
                     if let event = events[index] {
-                        SimpleEventBar(event: event, date: date, onTap: onEventSelected)
+                        SimpleEventBar(info: event, onTap: onEventSelected)
                     } else {
                         Color.clear.frame(height: 16)
                     }
@@ -115,38 +196,21 @@ struct OptimizedMonthCell: View {
         .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.white)
         .border(Color.primary.opacity(0.1), width: 0.5)
         .contentShape(Rectangle())
-        .onTapGesture { onDateSelected?(date) }
+        .onTapGesture { onDateSelected?(info.date) }
     }
 }
 
 struct SimpleEventBar: View {
-    let event: CalendarEventProtocol
-    let date: Date
+    let info: EventDisplayInfo
     var onTap: ((CalendarEventProtocol) -> Void)?
-    
-    private static let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
-    }()
-    
-    private var isStart: Bool {
-        guard let start = event.eventStartDate else { return true }
-        return Calendar.current.isDate(start, inSameDayAs: date) || Calendar.current.component(.weekday, from: date) == 1
-    }
-    
-    private var timeString: String? {
-        guard isStart, let d = event.eventStartDate else { return nil }
-        return Self.timeFormatter.string(from: d)
-    }
     
     var body: some View {
         HStack(spacing: 4) {
-            Text(event.eventTitle ?? "Untitled")
+            Text(info.title)
                 .font(.system(size: 10, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 0)
-            if let time = timeString {
+            if let time = info.timeString {
                 Text(time)
                     .font(.system(size: 9))
                     .foregroundColor(.secondary)
@@ -154,11 +218,11 @@ struct SimpleEventBar: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
-        .background(event.eventColor.opacity(0.8))
+        .background(info.color.opacity(0.8))
         .clipShape(RoundedRectangle(cornerRadius: 3))
         .padding(.horizontal, 2)
         .contentShape(Rectangle())
-        .onTapGesture { onTap?(event) }
+        .onTapGesture { onTap?(info.originalEvent) }
     }
 }
 
@@ -177,3 +241,4 @@ struct SimpleTodoBar: View {
             .padding(.horizontal, 2)
     }
 }
+
