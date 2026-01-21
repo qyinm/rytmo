@@ -37,7 +37,7 @@ struct CalendarRightSidebar: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack {
-                Text(isEditMode ? "일정 수정" : "일정 만들기")
+                Text(isEditMode ? "Edit Event" : "New Event")
                     .font(.system(size: 16, weight: .bold))
                 
                 Spacer()
@@ -48,7 +48,7 @@ struct CalendarRightSidebar: View {
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            Label("삭제", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -79,11 +79,11 @@ struct CalendarRightSidebar: View {
                 VStack(alignment: .leading, spacing: 20) {
                     // Title
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("제목")
+                        Text("Title")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        TextField("일정 제목", text: $eventTitle)
+                        TextField("Event Title", text: $eventTitle)
                             .textFieldStyle(.plain)
                             .font(.system(size: 16))
                             .padding(8)
@@ -98,7 +98,7 @@ struct CalendarRightSidebar: View {
                     
                     // Calendar Selection
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("캘린더")
+                        Text("Calendar")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -110,11 +110,11 @@ struct CalendarRightSidebar: View {
                     
                     // Location
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("위치")
+                        Text("Location")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        TextField("위치 추가", text: $location)
+                        TextField("Add Location", text: $location)
                             .textFieldStyle(.plain)
                             .font(.system(size: 14))
                             .padding(8)
@@ -126,7 +126,7 @@ struct CalendarRightSidebar: View {
                     
                     // Notes
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("메모")
+                        Text("Notes")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -142,7 +142,7 @@ struct CalendarRightSidebar: View {
                     
                     // Action Buttons
                     HStack(spacing: 12) {
-                        Button("취소") {
+                        Button("Cancel") {
                             if isEditMode {
                                 selectedEvent = nil
                             } else {
@@ -163,7 +163,7 @@ struct CalendarRightSidebar: View {
                                 ProgressView()
                                     .controlSize(.small)
                             } else {
-                                Text("저장")
+                                Text("Save")
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -189,18 +189,18 @@ struct CalendarRightSidebar: View {
         .onChange(of: selectedEvent?.eventIdentifier) { _, _ in
             setupForm()
         }
-        .alert(isEditMode ? "이벤트 수정 실패" : "이벤트 생성 실패", isPresented: $showError) {
-            Button("확인", role: .cancel) {}
+        .alert(isEditMode ? "Failed to Update Event" : "Failed to Create Event", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? "알 수 없는 오류가 발생했습니다.")
+            Text(errorMessage ?? "An unknown error occurred.")
         }
-        .alert("이벤트 삭제", isPresented: $showDeleteConfirm) {
-            Button("취소", role: .cancel) {}
-            Button("삭제", role: .destructive) {
+        .alert("Delete Event", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
                 deleteEvent()
             }
         } message: {
-            Text("이 이벤트를 삭제하시겠습니까?")
+            Text("Are you sure you want to delete this event?")
         }
     }
     
@@ -338,7 +338,7 @@ struct CalendarRightSidebar: View {
     @ViewBuilder
     private var dateAndTimeSection: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("날짜 및 시간")
+            Text("Date & Time")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.bottom, 4)
@@ -545,7 +545,7 @@ struct CalendarRightSidebar: View {
                     .foregroundColor(.secondary)
                     .frame(width: 20)
                 
-                Text("종일")
+                Text("All Day")
                     .font(.system(size: 14))
                 
                 Spacer()
@@ -555,34 +555,6 @@ struct CalendarRightSidebar: View {
                     .toggleStyle(.switch)
                     .controlSize(.small)
             }
-            .frame(height: 30)
-            
-            HStack(spacing: 8) {
-                Image(systemName: "globe")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20)
-                
-                Text("GMT+9 Seoul")
-                    .font(.system(size: 14))
-                
-                Spacer()
-            }
-            .foregroundColor(.primary)
-            .frame(height: 30)
-            
-            HStack(spacing: 8) {
-                Image(systemName: "repeat")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(width: 20)
-                
-                Text("반복 안 함")
-                    .font(.system(size: 14))
-                
-                Spacer()
-            }
-            .foregroundColor(.primary)
             .frame(height: 30)
         }
     }
@@ -606,8 +578,8 @@ struct CalendarRightSidebar: View {
 
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "M월 d일 (E)"
-        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "MMM d (E)"
+        formatter.locale = Locale(identifier: "en_US")
         return formatter
     }
 
@@ -615,7 +587,7 @@ struct CalendarRightSidebar: View {
         let calendar = Calendar.current
         let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end))
         if let days = components.day {
-            return "(\(days + 1)일)"
+            return "(\(days + 1) days)"
         }
         return ""
     }
