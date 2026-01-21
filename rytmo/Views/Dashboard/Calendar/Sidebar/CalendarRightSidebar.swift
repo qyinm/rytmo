@@ -18,6 +18,10 @@ struct CalendarRightSidebar: View {
     @State private var showDeleteConfirm: Bool = false
     @State private var errorMessage: String? = nil
     @State private var showError: Bool = false
+    @State private var showStartTimePicker: Bool = false
+    @State private var showEndTimePicker: Bool = false
+    @State private var showStartDatePicker: Bool = false
+    @State private var showEndDatePicker: Bool = false
     
     @State private var selectedCalendar: CalendarInfo = CalendarInfo(
         id: "",
@@ -26,7 +30,6 @@ struct CalendarRightSidebar: View {
         sourceTitle: "",
         type: .system
     )
-    @State private var selectedEventColor: Color = .blue
     
     private var isEditMode: Bool { selectedEvent != nil }
     
@@ -91,21 +94,7 @@ struct CalendarRightSidebar: View {
                     }
                     
                     // Date & Time
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("날짜 및 시간")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Toggle("종일", isOn: $isAllDay)
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                        
-                        DatePicker("시작", selection: $startDate, displayedComponents: isAllDay ? [.date] : [.date, .hourAndMinute])
-                            .datePickerStyle(.compact)
-                        
-                        DatePicker("종료", selection: $endDate, displayedComponents: isAllDay ? [.date] : [.date, .hourAndMinute])
-                            .datePickerStyle(.compact)
-                    }
+                    dateAndTimeSection
                     
                     // Calendar Selection
                     VStack(alignment: .leading, spacing: 8) {
@@ -115,8 +104,7 @@ struct CalendarRightSidebar: View {
                         
                         CalendarSelectorView(
                             selectedCalendar: $selectedCalendar,
-                            groups: calendarManager.calendarGroups,
-                            selectedColor: $selectedEventColor
+                            groups: calendarManager.calendarGroups
                         )
                     }
                     
@@ -231,7 +219,6 @@ struct CalendarRightSidebar: View {
                 for group in calendarManager.calendarGroups {
                     if let matchingCal = group.calendars.first(where: { $0.id == calendarId }) {
                         selectedCalendar = matchingCal
-                        selectedEventColor = matchingCal.color
                         break
                     }
                 }
@@ -244,7 +231,6 @@ struct CalendarRightSidebar: View {
             if selectedCalendar.id.isEmpty {
                 if let firstGroup = calendarManager.calendarGroups.first, let firstCal = firstGroup.calendars.first {
                     selectedCalendar = firstCal
-                    selectedEventColor = firstCal.color
                 }
             }
         }
@@ -257,7 +243,6 @@ struct CalendarRightSidebar: View {
         startDate = selectedDate
         endDate = selectedDate.addingTimeInterval(3600)
         isAllDay = false
-        selectedEventColor = selectedCalendar.color
     }
     
     private func createEvent() {
@@ -347,6 +332,556 @@ struct CalendarRightSidebar: View {
                     showError = true
                 }
             }
+        }
+    }
+    
+    @ViewBuilder
+    private var dateAndTimeSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("날짜 및 시간")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 4)
+            
+            if !isAllDay {
+                HStack(spacing: 8) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .frame(width: 20)
+                    
+                    HStack(spacing: 0) {
+                        Button {
+                            showStartTimePicker.toggle()
+                        } label: {
+                            Text(timeFormatter.string(from: startDate))
+                                .font(.system(size: 13))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.primary.opacity(0.05))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showStartTimePicker, arrowEdge: .bottom) {
+                            TimeSlotPicker(date: Binding(
+                                get: { startDate },
+                                set: { newDate in
+                                    let duration = endDate.timeIntervalSince(startDate)
+                                    startDate = newDate
+                                    endDate = newDate.addingTimeInterval(duration)
+                                }
+                            )) {
+                                showStartTimePicker = false
+                            }
+                        }
+                        
+                        Text("→")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 4)
+                        
+                        Button {
+                            showEndTimePicker.toggle()
+                        } label: {
+                            Text(timeFormatter.string(from: endDate))
+                                .font(.system(size: 13))
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.primary.opacity(0.05))
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .popover(isPresented: $showEndTimePicker, arrowEdge: .bottom) {
+                            TimeSlotPicker(date: Binding(
+                                get: { endDate },
+                                set: { newDate in
+                                    endDate = newDate
+                                    if endDate < startDate {
+                                        startDate = endDate
+                                    }
+                                }
+                            )) {
+                                showEndTimePicker = false
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    let duration = endDate.timeIntervalSince(startDate)
+                    if duration > 0 {
+                        Text(formatDuration(duration))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .frame(height: 30)
+            }
+            
+            HStack(spacing: 8) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+                
+                if isAllDay {
+                    Button {
+                        showStartDatePicker.toggle()
+                    } label: {
+                        Text(dateFormatter.string(from: startDate))
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showStartDatePicker, arrowEdge: .bottom) {
+                        SidebarCalendarView(selectedDate: Binding(
+                            get: { startDate },
+                            set: { newDate in
+                                startDate = newDate
+                                if endDate < startDate {
+                                    endDate = startDate
+                                }
+                            }
+                        )) { _ in
+                            showStartDatePicker = false
+                        }
+                    }
+                    
+                    Text("→")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                    
+                    Button {
+                        showEndDatePicker.toggle()
+                    } label: {
+                        Text(dateFormatter.string(from: endDate))
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showEndDatePicker, arrowEdge: .bottom) {
+                        SidebarCalendarView(selectedDate: Binding(
+                            get: { endDate },
+                            set: { newDate in
+                                endDate = newDate
+                                if startDate > endDate {
+                                    startDate = endDate
+                                }
+                            }
+                        )) { _ in
+                            showEndDatePicker = false
+                        }
+                    }
+                    
+                    Text(formatDaysDuration(start: startDate, end: endDate))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                } else {
+                    Button {
+                        showStartDatePicker.toggle()
+                    } label: {
+                        Text(dateFormatter.string(from: startDate))
+                            .font(.system(size: 13))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.primary.opacity(0.05))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showStartDatePicker, arrowEdge: .bottom) {
+                        SidebarCalendarView(selectedDate: Binding(
+                            get: { startDate },
+                            set: { newDate in
+                                let duration = endDate.timeIntervalSince(startDate)
+                                let calendar = Calendar.current
+                                let newYMD = calendar.dateComponents([.year, .month, .day], from: newDate)
+                                var startComps = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: startDate)
+                                startComps.year = newYMD.year
+                                startComps.month = newYMD.month
+                                startComps.day = newYMD.day
+                                
+                                if let updatedStart = calendar.date(from: startComps) {
+                                    startDate = updatedStart
+                                    endDate = updatedStart.addingTimeInterval(duration)
+                                }
+                            }
+                        )) { _ in
+                            showStartDatePicker = false
+                        }
+                    }
+                    
+                    Spacer()
+                }
+            }
+            .frame(height: 30)
+            
+            HStack(spacing: 8) {
+                Image(systemName: "sun.max")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+                
+                Text("종일")
+                    .font(.system(size: 14))
+                
+                Spacer()
+                
+                Toggle("", isOn: $isAllDay)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
+            .frame(height: 30)
+            
+            HStack(spacing: 8) {
+                Image(systemName: "globe")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+                
+                Text("GMT+9 Seoul")
+                    .font(.system(size: 14))
+                
+                Spacer()
+            }
+            .foregroundColor(.primary)
+            .frame(height: 30)
+            
+            HStack(spacing: 8) {
+                Image(systemName: "repeat")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+                
+                Text("반복 안 함")
+                    .font(.system(size: 14))
+                
+                Spacer()
+            }
+            .foregroundColor(.primary)
+            .frame(height: 30)
+        }
+    }
+    
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M월 d일 (E)"
+        formatter.locale = Locale(identifier: "ko_KR")
+        return formatter
+    }
+
+    private func formatDaysDuration(start: Date, end: Date) -> String {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end))
+        if let days = components.day {
+            return "(\(days + 1)일)"
+        }
+        return ""
+    }
+}
+
+private struct TimeSlotPicker: View {
+    @Binding var date: Date
+    let onSelect: () -> Void
+    
+    private let timeSlots: [Date] = {
+        var slots: [Date] = []
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: Date())
+        
+        for i in 0..<(24 * 4) {
+            if let date = calendar.date(byAdding: .minute, value: i * 15, to: startOfDay) {
+                slots.append(date)
+            }
+        }
+        return slots
+    }()
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(timeSlots, id: \.self) { slot in
+                        Button {
+                            updateTime(with: slot)
+                            onSelect()
+                        } label: {
+                            HStack {
+                                Text(formatTime(slot))
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                if isSelected(slot) {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .background(isSelected(slot) ? Color.primary.opacity(0.1) : Color.clear)
+                        .id(slot)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .frame(width: 150, height: 250)
+            .onAppear {
+                if let nearest = findNearestSlot() {
+                    proxy.scrollTo(nearest, anchor: .center)
+                }
+            }
+        }
+    }
+    
+    private func updateTime(with slot: Date) {
+        let calendar = Calendar.current
+        let slotComps = calendar.dateComponents([.hour, .minute], from: slot)
+        
+        var targetComps = calendar.dateComponents([.year, .month, .day], from: date)
+        targetComps.hour = slotComps.hour
+        targetComps.minute = slotComps.minute
+        
+        if let newDate = calendar.date(from: targetComps) {
+            date = newDate
+        }
+    }
+    
+    private func isSelected(_ slot: Date) -> Bool {
+        let calendar = Calendar.current
+        let slotComps = calendar.dateComponents([.hour, .minute], from: slot)
+        let dateComps = calendar.dateComponents([.hour, .minute], from: date)
+        return slotComps.hour == dateComps.hour && slotComps.minute == dateComps.minute
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter.string(from: date)
+    }
+    
+    private func findNearestSlot() -> Date? {
+        let calendar = Calendar.current
+        let currentComps = calendar.dateComponents([.hour, .minute], from: date)
+        let currentMinutes = (currentComps.hour ?? 0) * 60 + (currentComps.minute ?? 0)
+        
+        return timeSlots.min(by: { a, b in
+            let aComps = calendar.dateComponents([.hour, .minute], from: a)
+            let bComps = calendar.dateComponents([.hour, .minute], from: b)
+            let aMin = (aComps.hour ?? 0) * 60 + (aComps.minute ?? 0)
+            let bMin = (bComps.hour ?? 0) * 60 + (bComps.minute ?? 0)
+            return abs(aMin - currentMinutes) < abs(bMin - currentMinutes)
+        })
+    }
+}
+
+private struct SidebarCalendarView: View {
+    @Binding var selectedDate: Date
+    var onDateSelected: ((Date) -> Void)? = nil
+    
+    @State private var currentMonth: Date = Date()
+    @State private var daysInMonth: [Date?] = []
+    
+    private let calendar = Calendar.current
+    private let daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text(monthYearString(from: currentMonth))
+                    .font(.system(size: 15, weight: .semibold))
+                
+                Spacer()
+                
+                HStack(spacing: 20) {
+                    Button(action: { changeMonth(by: -1) }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: { changeMonth(by: 1) }) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 8)
+            
+            HStack(spacing: 0) {
+                ForEach(daysOfWeek, id: \.self) { day in
+                    Text(day)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+            
+            LazyVGrid(columns: columns, spacing: 4) {
+                ForEach(0..<daysInMonth.count, id: \.self) { index in
+                    if let date = daysInMonth[index] {
+                        SidebarCalendarDayView(
+                            date: date,
+                            isSelected: calendar.isDate(date, inSameDayAs: selectedDate),
+                            isToday: calendar.isDateInToday(date),
+                            isCurrentMonth: calendar.isDate(date, equalTo: currentMonth, toGranularity: .month),
+                            action: {
+                                selectedDate = date
+                                onDateSelected?(date)
+                            }
+                        )
+                    } else {
+                        Color.clear
+                            .frame(height: 32)
+                    }
+                }
+            }
+            .frame(minHeight: 216)
+        }
+        .padding(16)
+        .frame(width: 280)
+        .onAppear {
+            currentMonth = selectedDate
+            updateDays()
+        }
+        .onChange(of: currentMonth) { _, _ in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                updateDays()
+            }
+        }
+    }
+    
+    private func updateDays() {
+        daysInMonth = generateDaysInMonth(for: currentMonth)
+    }
+    
+    private func monthYearString(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func changeMonth(by value: Int) {
+        if let newMonth = calendar.date(byAdding: .month, value: value, to: currentMonth) {
+            currentMonth = newMonth
+        }
+    }
+    
+    private func generateDaysInMonth(for date: Date) -> [Date?] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: date),
+              let firstDayOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthInterval.start)),
+              let monthRange = calendar.range(of: .day, in: .month, for: firstDayOfMonth) else {
+            return []
+        }
+        
+        let weekdayOfFirstDay = calendar.component(.weekday, from: firstDayOfMonth)
+        let numberOfDaysInMonth = monthRange.count
+        
+        var days: [Date?] = Array(repeating: nil, count: weekdayOfFirstDay - 1)
+        
+        for day in 0..<numberOfDaysInMonth {
+            if let date = calendar.date(byAdding: .day, value: day, to: firstDayOfMonth) {
+                days.append(date)
+            }
+        }
+        
+        while days.count % 7 != 0 {
+            days.append(nil)
+        }
+        
+        return days
+    }
+}
+
+private struct SidebarCalendarDayView: View {
+    let date: Date
+    let isSelected: Bool
+    let isToday: Bool
+    let isCurrentMonth: Bool
+    let action: () -> Void
+    
+    @State private var isHovering = false
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary)
+                        .frame(width: 32, height: 32)
+                } else if isHovering {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.05))
+                        .frame(width: 32, height: 32)
+                }
+                
+                VStack(spacing: 2) {
+                    Text("\(calendar.component(.day, from: date))")
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(isSelected ? .white : (isCurrentMonth ? .primary : .secondary.opacity(0.3)))
+                    
+                    if isToday && !isSelected {
+                        Circle()
+                            .fill(Color.primary)
+                            .frame(width: 3, height: 3)
+                    }
+                }
+            }
+            .frame(height: 36)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovering = hovering
         }
     }
 }

@@ -3,14 +3,8 @@ import SwiftUI
 struct CalendarSelectorView: View {
     @Binding var selectedCalendar: CalendarInfo
     let groups: [CalendarGroup]
-    @Binding var selectedColor: Color
     
-    @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var isPopoverPresented: Bool = false
-    
-    private let eventColors: [Color] = [
-        .red, .orange, .yellow, .green, .blue, .purple, .gray, .pink
-    ]
     
     var body: some View {
         Button {
@@ -72,13 +66,8 @@ struct CalendarSelectorView: View {
                                 CalendarRowView(
                                     calendar: calendar,
                                     isSelected: calendar.id == selectedCalendar.id,
-                                    isVisible: calendarManager.isCalendarVisible(calendar.id),
                                     onSelect: {
                                         selectedCalendar = calendar
-                                        selectedColor = calendar.color
-                                    },
-                                    onToggleVisibility: {
-                                        calendarManager.toggleCalendarVisibility(calendar.id)
                                     }
                                 )
                             }
@@ -93,37 +82,6 @@ struct CalendarSelectorView: View {
                 }
                 .frame(height: 280)
                 
-                Divider()
-                
-                // Color Picker Section
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("이벤트 색")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 10) {
-                        ForEach(eventColors, id: \.self) { color in
-                            Button {
-                                selectedColor = color
-                            } label: {
-                                ZStack {
-                                    Circle()
-                                        .fill(color)
-                                        .frame(width: 16, height: 16)
-                                    
-                                    if selectedColor == color {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 8, weight: .bold))
-                                            .foregroundColor(.white)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(12)
-                .background(Color.primary.opacity(0.03))
             }
             .frame(width: 280)
         }
@@ -135,46 +93,31 @@ struct CalendarSelectorView: View {
 private struct CalendarRowView: View {
     let calendar: CalendarInfo
     let isSelected: Bool
-    let isVisible: Bool
     let onSelect: () -> Void
-    let onToggleVisibility: () -> Void
     
     var body: some View {
-        HStack(spacing: 8) {
-            // Visibility Toggle
-            Button {
-                onToggleVisibility()
-            } label: {
-                Image(systemName: isVisible ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 14))
-                    .foregroundColor(isVisible ? calendar.color : .secondary)
-            }
-            .buttonStyle(.plain)
-            
-            // Calendar Select Button
-            Button {
-                onSelect()
-            } label: {
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(calendar.color)
-                        .frame(width: 12, height: 12)
-                    
-                    Text(calendar.title)
-                        .font(.system(size: 13))
-                        .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.accentColor)
-                    }
+        Button {
+            onSelect()
+        } label: {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(calendar.color)
+                    .frame(width: 12, height: 12)
+                
+                Text(calendar.title)
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.accentColor)
                 }
             }
-            .buttonStyle(.plain)
         }
+        .buttonStyle(.plain)
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
         .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
