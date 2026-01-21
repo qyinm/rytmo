@@ -59,16 +59,6 @@ struct CalendarRightSidebar: View {
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
                 }
-                
-                Button {
-                    if isEditMode {
-                        selectedEvent = nil
-                    }
-                } label: {
-                    Image(systemName: isEditMode ? "xmark" : "sidebar.right")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
             }
             .padding(16)
             
