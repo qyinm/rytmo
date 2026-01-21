@@ -79,7 +79,7 @@ class GoogleCalendarManager: ObservableObject {
             self.isAuthorized = grantedScopes.contains(GoogleCalendarAPI.scope)
             if self.isAuthorized {
                 // Automatically fetch events when permission is confirmed
-                fetchEvents()
+                fetchEvents(date: Date())
             }
         } else {
             self.isAuthorized = false
@@ -141,7 +141,7 @@ class GoogleCalendarManager: ObservableObject {
             
             if self.isAuthorized {
                 print("✅ Google Calendar access granted")
-                fetchEvents()
+                fetchEvents(date: Date())
                 fetchCalendarList()
             } else {
                 self.error = "Calendar permission was not granted"
@@ -210,8 +210,11 @@ class GoogleCalendarManager: ObservableObject {
     
     // MARK: - Fetch Events
     
-    func fetchEvents(date: Date = Date()) {
-        guard isAuthorized else { return }
+    func fetchEvents(date: Date) {
+        guard isAuthorized else {
+            print("⚠️ Google Calendar not authorized, skipping fetch")
+            return
+        }
         
         fetchTask?.cancel()
         
@@ -234,7 +237,6 @@ class GoogleCalendarManager: ObservableObject {
             }
             
             let accessToken = user.accessToken.tokenString
-            let urlString = GoogleCalendarAPI.baseURL
             
             let calendar = Calendar.current
             guard let monthInterval = calendar.dateInterval(of: .month, for: date) else {
@@ -250,62 +252,68 @@ class GoogleCalendarManager: ObservableObject {
             let timeMin = isoFormatter.string(from: start)
             let timeMax = isoFormatter.string(from: end)
             
-            var components = URLComponents(string: urlString)!
-            components.queryItems = [
-                URLQueryItem(name: "timeMin", value: timeMin),
-                URLQueryItem(name: "timeMax", value: timeMax),
-                URLQueryItem(name: "singleEvents", value: "true"),
-                URLQueryItem(name: "orderBy", value: "startTime"),
-                URLQueryItem(name: "fields", value: "items(id,summary,start,end,colorId,htmlLink)")
-            ]
+            // Fetch events from all available calendars
+            var allEvents: [GoogleCalendarEvent] = []
+            let calendarsToFetch = availableCalendars.isEmpty ? [CalendarInfo(id: "primary", title: "Primary", color: .blue, sourceTitle: "", type: .google)] : availableCalendars
             
-            var request = URLRequest(url: components.url!)
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            for cal in calendarsToFetch {
+                if Task.isCancelled { return }
+                
+                let urlString = GoogleCalendarAPI.eventsURL(calendarId: cal.id)
+                
+                guard var components = URLComponents(string: urlString) else { continue }
+                components.queryItems = [
+                    URLQueryItem(name: "timeMin", value: timeMin),
+                    URLQueryItem(name: "timeMax", value: timeMax),
+                    URLQueryItem(name: "singleEvents", value: "true"),
+                    URLQueryItem(name: "orderBy", value: "startTime"),
+                    URLQueryItem(name: "maxResults", value: "250")
+                ]
+                
+                guard let url = components.url else { continue }
+                
+                var request = URLRequest(url: url)
+                request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+                
+                do {
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    
+                    if let httpResponse = response as? HTTPURLResponse {
+                        if httpResponse.statusCode == 401 {
+                            await MainActor.run {
+                                self.isAuthorized = false
+                                self.error = "Session expired. Please reconnect Google Calendar."
+                                self.isLoading = false
+                            }
+                            return
+                        } else if httpResponse.statusCode != 200 {
+                            continue // Skip this calendar if error
+                        }
+                    }
+                    
+                    let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
+                    var calEvents = calendarResponse.items ?? []
+                    
+                    // Set the calendarId for each event
+                    for i in calEvents.indices {
+                        calEvents[i].storedCalendarId = cal.id
+                    }
+                    
+                    allEvents.append(contentsOf: calEvents)
+                } catch {
+                    print("⚠️ Failed to fetch events from calendar \(cal.title): \(error)")
+                    continue
+                }
+            }
             
             if Task.isCancelled { return }
             
-            do {
-                let (data, response) = try await URLSession.shared.data(for: request)
-                
-                if Task.isCancelled { return }
-                
-                if let httpResponse = response as? HTTPURLResponse {
-                    if httpResponse.statusCode == 401 {
-                        await MainActor.run {
-                            self.isAuthorized = false
-                            self.error = "Session expired. Please reconnect Google Calendar."
-                            self.isLoading = false
-                        }
-                        return
-                    } else if httpResponse.statusCode != 200 {
-                        await MainActor.run {
-                            self.error = "Failed to fetch events (HTTP \(httpResponse.statusCode))"
-                            self.isLoading = false
-                        }
-                        return
-                    }
-                }
-                
-                let newEvents = try await Task.detached(priority: .userInitiated) {
-                    let calendarResponse = try JSONDecoder().decode(GoogleCalendarListResponse.self, from: data)
-                    return calendarResponse.items ?? []
-                }.value
-                
-                await MainActor.run {
-                    self.events = newEvents
-                    self.saveEventsToCache(newEvents)
-                    self.isLoading = false
-                    self.error = nil
-                    print("✅ Fetched \(self.events.count) Google Calendar events")
-                }
-            } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.error = "Failed to fetch events: \(error.localizedDescription)"
-                        self.isLoading = false
-                        print("❌ Failed to fetch Google Calendar events: \(error)")
-                    }
-                }
+            await MainActor.run {
+                self.events = allEvents
+                self.saveEventsToCache(allEvents)
+                self.isLoading = false
+                self.error = nil
+                print("✅ Fetched \(self.events.count) Google Calendar events from \(calendarsToFetch.count) calendars")
             }
         }
     }
@@ -397,6 +405,126 @@ class GoogleCalendarManager: ObservableObject {
             throw GoogleCalendarError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)
         }
     }
+    
+    // MARK: - Update Event
+    
+    /// Updates an existing event in Google Calendar
+    func updateEvent(
+        eventId: String,
+        calendarId: String,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        location: String?,
+        notes: String?
+    ) async throws {
+        guard isAuthorized else {
+            throw GoogleCalendarError.notAuthorized
+        }
+        
+        guard await refreshTokenIfNeeded(),
+              let user = GIDSignIn.sharedInstance.currentUser else {
+            throw GoogleCalendarError.tokenRefreshFailed
+        }
+        
+        let accessToken = user.accessToken.tokenString
+        let encodedEventId = eventId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventId
+        let urlString = "\(GoogleCalendarAPI.eventsURL(calendarId: calendarId))/\(encodedEventId)"
+        
+        guard let url = URL(string: urlString) else {
+            throw GoogleCalendarError.invalidURL
+        }
+        
+        let isoFormatter = ISO8601DateFormatter()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        var eventBody: [String: Any] = ["summary": title]
+        
+        if isAllDay {
+            eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
+            eventBody["end"] = ["date": dateFormatter.string(from: endDate)]
+        } else {
+            eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
+            eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]
+        }
+        
+        if let location = location, !location.isEmpty {
+            eventBody["location"] = location
+        }
+        
+        if let notes = notes, !notes.isEmpty {
+            eventBody["description"] = notes
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: eventBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GoogleCalendarError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 200:
+            print("✅ Google Calendar event updated successfully")
+            fetchEvents(date: startDate)
+        case 401:
+            self.isAuthorized = false
+            throw GoogleCalendarError.unauthorized
+        default:
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw GoogleCalendarError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)
+        }
+    }
+    
+    // MARK: - Delete Event
+    
+    /// Deletes an event from Google Calendar
+    func deleteEvent(eventId: String, calendarId: String) async throws {
+        guard isAuthorized else {
+            throw GoogleCalendarError.notAuthorized
+        }
+        
+        guard await refreshTokenIfNeeded(),
+              let user = GIDSignIn.sharedInstance.currentUser else {
+            throw GoogleCalendarError.tokenRefreshFailed
+        }
+        
+        let accessToken = user.accessToken.tokenString
+        let encodedEventId = eventId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventId
+        let urlString = "\(GoogleCalendarAPI.eventsURL(calendarId: calendarId))/\(encodedEventId)"
+        
+        guard let url = URL(string: urlString) else {
+            throw GoogleCalendarError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GoogleCalendarError.invalidResponse
+        }
+        
+        switch httpResponse.statusCode {
+        case 204, 200:
+            print("✅ Google Calendar event deleted successfully")
+            fetchEvents(date: Date())
+        case 401:
+            self.isAuthorized = false
+            throw GoogleCalendarError.unauthorized
+        default:
+            throw GoogleCalendarError.apiError(statusCode: httpResponse.statusCode, message: "Delete failed")
+        }
+    }
 }
 
 // MARK: - Google Calendar Errors
@@ -449,7 +577,16 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     let start: GoogleCalendarTime?
     let end: GoogleCalendarTime?
     let htmlLink: String?
-    let colorId: String? // Added for color mapping
+    let colorId: String?
+    let location: String?
+    let description: String?
+    
+    // CalendarId is set after decoding (from API context)
+    var storedCalendarId: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, summary, start, end, htmlLink, colorId, location, description
+    }
     
     var eventIdentifier: String { id }
     var eventTitle: String? { summary }
@@ -457,8 +594,7 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     var eventEndDate: Date? { end?.dateValue }
     
     var eventColor: Color {
-        // Map Google Calendar colorId to actual Color
-        guard let colorId = colorId else { return .blue } // Default to blue if no color
+        guard let colorId = colorId else { return .blue }
         
         switch colorId {
         case "1": return Color(hex: "#7986cb") // Lavender
@@ -472,11 +608,17 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
         case "9": return Color(hex: "#3f51b5") // Blueberry
         case "10": return Color(hex: "#0b8043") // Basil
         case "11": return Color(hex: "#d60000") // Tomato
-        default: return .blue // Fallback
+        default: return .blue
         }
     }
     
     var sourceName: String { "Google" }
+    
+    // Additional properties for edit/delete
+    var isAllDay: Bool { start?.date != nil }
+    var eventLocation: String? { location }
+    var eventNotes: String? { description }
+    var calendarId: String? { storedCalendarId }
 }
 
 struct GoogleCalendarTime: Codable {

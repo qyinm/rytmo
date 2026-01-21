@@ -17,6 +17,12 @@ protocol CalendarEventProtocol {
     var eventEndDate: Date? { get }
     var eventColor: Color { get }
     var sourceName: String { get }
+    
+    // Additional properties for edit/delete
+    var isAllDay: Bool { get }
+    var eventLocation: String? { get }
+    var eventNotes: String? { get }
+    var calendarId: String? { get }
 }
 
 // MARK: - System Calendar Event Wrapper
@@ -40,4 +46,10 @@ struct SystemCalendarEvent: CalendarEventProtocol {
         return .blue
     }
     var sourceName: String { "System" }
+    
+    // Additional properties
+    var isAllDay: Bool { event.isAllDay }
+    var eventLocation: String? { event.location }
+    var eventNotes: String? { event.notes }
+    var calendarId: String? { event.calendar?.calendarIdentifier }
 }

@@ -10,6 +10,7 @@ struct DashboardCalendarView: View {
     @State private var selectedDate: Date = Date()
     @State private var displayedMonth: Date = Date()
     @State private var cachedTodosByDate: [Date: [TodoItem]] = [:]
+    @State private var selectedEvent: CalendarEventProtocol? = nil
     
     private let calendar = Calendar.current
     
@@ -43,11 +44,13 @@ struct DashboardCalendarView: View {
                     displayedMonth: displayedMonth,
                     todosByDate: cachedTodosByDate,
                     onEventSelected: { event in
+                        selectedEvent = event
                         if let date = event.eventStartDate {
                             selectedDate = date
                         }
                     },
                     onDateSelected: { date in
+                        selectedEvent = nil
                         selectedDate = date
                     }
                 )
@@ -58,7 +61,10 @@ struct DashboardCalendarView: View {
             
             Divider()
             
-            CalendarRightSidebar(selectedDate: selectedDate)
+            CalendarRightSidebar(
+                selectedDate: selectedDate,
+                selectedEvent: $selectedEvent
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
@@ -140,8 +146,7 @@ struct CalendarLeftSidebarOptimized: View {
     let onToggleSystem: (Bool) -> Void
     
     @Environment(\.colorScheme) var colorScheme
-    @State private var googleToggle: Bool = true
-    @State private var systemToggle: Bool = true
+    @ObservedObject private var calendarManager = CalendarManager.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -165,22 +170,73 @@ struct CalendarLeftSidebarOptimized: View {
                 .padding(.horizontal, 16)
             }
             
-            VStack(alignment: .leading, spacing: 16) {
-                SourceToggleRow(name: "Google", color: .red, isOn: $googleToggle)
-                SourceToggleRow(name: "System", color: .purple, isOn: $systemToggle)
+            // Calendar list grouped by account
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(calendarManager.calendarGroups) { group in
+                        // Group Header
+                        Text(group.sourceTitle)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 16)
+                            .padding(.top, group.id == calendarManager.calendarGroups.first?.id ? 0 : 12)
+                            .padding(.bottom, 8)
+                        
+                        // Calendars in group
+                        ForEach(group.calendars) { calendar in
+                            CalendarVisibilityRow(
+                                calendar: calendar,
+                                isVisible: calendarManager.isCalendarVisible(calendar.id),
+                                onToggle: {
+                                    calendarManager.toggleCalendarVisibility(calendar.id)
+                                }
+                            )
+                        }
+                        
+                        if group.id != calendarManager.calendarGroups.last?.id {
+                            Divider()
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                        }
+                    }
+                }
             }
-            .padding(.horizontal, 16)
             
             Spacer()
         }
         .frame(width: 260)
         .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color(nsColor: .controlBackgroundColor).opacity(0.5))
-        .onAppear {
-            googleToggle = showGoogle
-            systemToggle = showSystem
+    }
+}
+
+struct CalendarVisibilityRow: View {
+    let calendar: CalendarInfo
+    let isVisible: Bool
+    let onToggle: () -> Void
+    
+    var body: some View {
+        Button {
+            onToggle()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isVisible ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 14))
+                    .foregroundColor(isVisible ? calendar.color : .secondary.opacity(0.5))
+                
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(calendar.color)
+                    .frame(width: 12, height: 12)
+                
+                Text(calendar.title)
+                    .font(.system(size: 13))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
         }
-        .onChange(of: googleToggle) { _, v in onToggleGoogle(v) }
-        .onChange(of: systemToggle) { _, v in onToggleSystem(v) }
+        .buttonStyle(.plain)
     }
 }
 

@@ -5,9 +5,9 @@ struct CalendarSelectorView: View {
     let groups: [CalendarGroup]
     @Binding var selectedColor: Color
     
+    @ObservedObject private var calendarManager = CalendarManager.shared
     @State private var isPopoverPresented: Bool = false
     
-    // Predefined colors for event color picker
     private let eventColors: [Color] = [
         .red, .orange, .yellow, .green, .blue, .purple, .gray, .pink
     ]
@@ -40,70 +40,58 @@ struct CalendarSelectorView: View {
         .buttonStyle(.plain)
         .popover(isPresented: $isPopoverPresented, arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
-                // Header (Current Selection)
+                // Header
                 HStack {
-                    Text(selectedCalendar.sourceTitle)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text("캘린더 선택")
+                        .font(.system(size: 13, weight: .semibold))
                     Spacer()
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
                 .background(Color.primary.opacity(0.03))
                 
                 Divider()
                 
-                // Calendar List
+                // Calendar List grouped by account
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 0) {
                         ForEach(groups) { group in
-                            VStack(alignment: .leading, spacing: 4) {
+                            // Group Header
+                            HStack {
                                 Text(group.sourceTitle)
-                                    .font(.caption)
+                                    .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.secondary)
-                                    .padding(.horizontal, 12)
-                                
-                                ForEach(group.calendars) { calendar in
-                                    Button {
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.primary.opacity(0.02))
+                            
+                            // Calendars in group
+                            ForEach(group.calendars) { calendar in
+                                CalendarRowView(
+                                    calendar: calendar,
+                                    isSelected: calendar.id == selectedCalendar.id,
+                                    isVisible: calendarManager.isCalendarVisible(calendar.id),
+                                    onSelect: {
                                         selectedCalendar = calendar
-                                        selectedColor = calendar.color // Default to calendar color
-                                        // isPopoverPresented = false // Keep open to select color? Or close.
-                                    } label: {
-                                        HStack(spacing: 8) {
-                                            if calendar.id == selectedCalendar.id {
-                                                Image(systemName: "checkmark")
-                                                    .font(.system(size: 10))
-                                                    .foregroundColor(.white)
-                                                    .frame(width: 16)
-                                            } else {
-                                                Spacer().frame(width: 16)
-                                            }
-                                            
-                                            RoundedRectangle(cornerRadius: 3)
-                                                .fill(calendar.color)
-                                                .frame(width: 12, height: 12)
-                                            
-                                            Text(calendar.title)
-                                                .font(.system(size: 13))
-                                                .foregroundColor(.primary)
-                                            
-                                            Spacer()
-                                        }
-                                        .padding(.vertical, 6)
-                                        .padding(.horizontal, 12)
-                                        .background(
-                                            calendar.id == selectedCalendar.id ? Color.primary.opacity(0.1) : Color.clear
-                                        )
-                                        .cornerRadius(4)
+                                        selectedColor = calendar.color
+                                    },
+                                    onToggleVisibility: {
+                                        calendarManager.toggleCalendarVisibility(calendar.id)
                                     }
-                                    .buttonStyle(.plain)
-                                }
+                                )
+                            }
+                            
+                            if group.id != groups.last?.id {
+                                Divider()
+                                    .padding(.vertical, 4)
                             }
                         }
                     }
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                 }
-                .frame(height: 250)
+                .frame(height: 280)
                 
                 Divider()
                 
@@ -137,7 +125,58 @@ struct CalendarSelectorView: View {
                 .padding(12)
                 .background(Color.primary.opacity(0.03))
             }
-            .frame(width: 260)
+            .frame(width: 280)
         }
+    }
+}
+
+// MARK: - Calendar Row View
+
+private struct CalendarRowView: View {
+    let calendar: CalendarInfo
+    let isSelected: Bool
+    let isVisible: Bool
+    let onSelect: () -> Void
+    let onToggleVisibility: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            // Visibility Toggle
+            Button {
+                onToggleVisibility()
+            } label: {
+                Image(systemName: isVisible ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 14))
+                    .foregroundColor(isVisible ? calendar.color : .secondary)
+            }
+            .buttonStyle(.plain)
+            
+            // Calendar Select Button
+            Button {
+                onSelect()
+            } label: {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(calendar.color)
+                        .frame(width: 12, height: 12)
+                    
+                    Text(calendar.title)
+                        .font(.system(size: 13))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 12)
+        .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
     }
 }

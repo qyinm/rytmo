@@ -32,6 +32,7 @@ class CalendarManager: ObservableObject {
     @AppStorage("calendar_show_system") var showSystem: Bool = true
     @AppStorage("calendar_show_google") var showGoogle: Bool = true
     @AppStorage("calendar_event_range_hours") var eventRangeHours: Int = CalendarConfig.defaultEventRangeHours
+    @AppStorage("calendar_hidden_ids") private var hiddenCalendarIdsData: Data = Data()
     
     private var cancellables = Set<AnyCancellable>()
     private var systemFetchTask: Task<Void, Never>?
@@ -153,13 +154,19 @@ class CalendarManager: ObservableObject {
             if Task.isCancelled { return }
             
             var events: [CalendarEventProtocol] = []
+            let hidden = self.hiddenCalendarIds
             
             if self.showGoogle && self.googleManager.isAuthorized {
-                events.append(contentsOf: self.googleManager.events.map { $0 as CalendarEventProtocol })
+                let googleEvents = self.googleManager.events
+                    .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
+                    .map { $0 as CalendarEventProtocol }
+                events.append(contentsOf: googleEvents)
             }
             
             if self.showSystem && self.isAuthorized {
-                events.append(contentsOf: self.systemEvents)
+                let systemEventsFiltered = self.systemEvents
+                    .filter { hidden.isEmpty || !hidden.contains($0.calendarId ?? "") }
+                events.append(contentsOf: systemEventsFiltered)
             }
             
             let sortedEvents = await Task.detached(priority: .userInitiated) {
@@ -200,6 +207,34 @@ class CalendarManager: ObservableObject {
         if let system = system { self.showSystem = system }
         if let google = google { self.showGoogle = google }
         loadEvents(for: currentReferenceDate)
+    }
+    
+    // MARK: - Calendar Visibility
+    
+    private var hiddenCalendarIds: Set<String> {
+        get {
+            (try? JSONDecoder().decode(Set<String>.self, from: hiddenCalendarIdsData)) ?? []
+        }
+        set {
+            hiddenCalendarIdsData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
+    }
+    
+    func isCalendarVisible(_ calendarId: String) -> Bool {
+        !hiddenCalendarIds.contains(calendarId)
+    }
+    
+    func toggleCalendarVisibility(_ calendarId: String) {
+        var hidden = hiddenCalendarIds
+        if hidden.contains(calendarId) {
+            hidden.remove(calendarId)
+        } else {
+            hidden.insert(calendarId)
+        }
+        hiddenCalendarIds = hidden
+        
+        // Refresh to apply visibility changes
+        aggregateEvents()
     }
     
     private func updateCalendarGroups() {
@@ -336,6 +371,130 @@ class CalendarManager: ObservableObject {
             print("✅ System Calendar event created successfully: \(title)")
         } catch {
             print("❌ Failed to create System Calendar event: \(error.localizedDescription)")
+            throw CalendarCreationError.saveFailed(error.localizedDescription)
+        }
+    }
+    
+    // MARK: - Update Event
+    
+    /// Updates an existing event
+    func updateEvent(
+        event: CalendarEventProtocol,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        calendarInfo: CalendarInfo,
+        location: String?,
+        notes: String?
+    ) async throws {
+        switch event.sourceName {
+        case "System":
+            try await updateSystemEvent(
+                eventId: event.eventIdentifier,
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
+                calendarId: calendarInfo.id,
+                location: location,
+                notes: notes
+            )
+        case "Google":
+            // For Google, if calendar changed we need to move the event
+            let targetCalendarId = calendarInfo.id
+            let sourceCalendarId = event.calendarId ?? targetCalendarId
+            
+            try await googleManager.updateEvent(
+                eventId: event.eventIdentifier,
+                calendarId: sourceCalendarId,
+                title: title,
+                startDate: startDate,
+                endDate: endDate,
+                isAllDay: isAllDay,
+                location: location,
+                notes: notes
+            )
+        default:
+            throw CalendarCreationError.saveFailed("Unknown event source")
+        }
+        
+        refresh(date: startDate)
+    }
+    
+    private func updateSystemEvent(
+        eventId: String,
+        title: String,
+        startDate: Date,
+        endDate: Date,
+        isAllDay: Bool,
+        calendarId: String,
+        location: String?,
+        notes: String?
+    ) async throws {
+        guard isAuthorized else {
+            throw CalendarCreationError.notAuthorized
+        }
+        
+        guard let event = eventStore.event(withIdentifier: eventId) else {
+            throw CalendarCreationError.saveFailed("Event not found")
+        }
+        
+        // Update calendar if changed
+        if let newCalendar = eventStore.calendar(withIdentifier: calendarId) {
+            event.calendar = newCalendar
+        }
+        
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.isAllDay = isAllDay
+        event.location = location
+        event.notes = notes
+        
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            print("✅ System Calendar event updated: \(title)")
+        } catch {
+            throw CalendarCreationError.saveFailed(error.localizedDescription)
+        }
+    }
+    
+    // MARK: - Delete Event
+    
+    /// Deletes an event
+    func deleteEvent(event: CalendarEventProtocol) async throws {
+        switch event.sourceName {
+        case "System":
+            try await deleteSystemEvent(eventId: event.eventIdentifier)
+        case "Google":
+            guard let calendarId = event.calendarId else {
+                throw CalendarCreationError.calendarNotFound
+            }
+            try await googleManager.deleteEvent(
+                eventId: event.eventIdentifier,
+                calendarId: calendarId
+            )
+        default:
+            throw CalendarCreationError.saveFailed("Unknown event source")
+        }
+        
+        refresh(date: currentReferenceDate)
+    }
+    
+    private func deleteSystemEvent(eventId: String) async throws {
+        guard isAuthorized else {
+            throw CalendarCreationError.notAuthorized
+        }
+        
+        guard let event = eventStore.event(withIdentifier: eventId) else {
+            throw CalendarCreationError.saveFailed("Event not found")
+        }
+        
+        do {
+            try eventStore.remove(event, span: .thisEvent)
+            print("✅ System Calendar event deleted")
+        } catch {
             throw CalendarCreationError.saveFailed(error.localizedDescription)
         }
     }

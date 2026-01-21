@@ -167,4 +167,10 @@ private struct PlaceholderEvent: CalendarEventProtocol {
     var eventEndDate: Date? { nil }
     var eventColor: Color { .accentColor }
     var sourceName: String { "" }
+    
+    // Additional properties
+    var isAllDay: Bool { false }
+    var eventLocation: String? { nil }
+    var eventNotes: String? { nil }
+    var calendarId: String? { nil }
 }
