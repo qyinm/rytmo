@@ -363,7 +363,7 @@ struct NotchExpandedView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
                             .onTapGesture {
-                                withAnimation {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     isAddingTask = true
                                     isInputFocused = true
                                 }
