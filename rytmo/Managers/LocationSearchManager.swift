@@ -21,11 +21,15 @@ class LocationSearchManager: NSObject, ObservableObject, MKLocalSearchCompleterD
     }
     
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        self.results = completer.results
+        DispatchQueue.main.async {
+            self.results = completer.results
+        }
     }
     
     func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        // Handle error if needed, for now just clear results or log
+        DispatchQueue.main.async {
+            self.results = []
+        }
         print("Location search failed: \(error.localizedDescription)")
     }
 }

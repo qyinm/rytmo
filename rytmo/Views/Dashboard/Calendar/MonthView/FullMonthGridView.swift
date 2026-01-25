@@ -188,7 +188,7 @@ struct OptimizedMonthCell: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text("\(info.dayNumber)\(info.isFirstDay ? "일" : "")")
+                    Text("\(info.dayNumber)")
                     .font(.system(size: 12, weight: info.isToday ? .bold : .medium))
                     .foregroundColor(info.isCurrentMonth ? (info.isToday ? .white : .primary) : .secondary.opacity(0.3))
                     .padding(4)

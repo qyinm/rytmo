@@ -36,7 +36,7 @@ struct CalendarSelectorView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack {
-                    Text("캘린더 선택")
+                    Text("Select Calendar")
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
                 }
