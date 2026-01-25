@@ -40,9 +40,7 @@ struct NotchExpandedView: View {
             authManager.errorMessage
         ].compactMap { $0 }
         
-        guard let firstError = errors.first else { return nil }
-        if firstError == dismissedError { return nil }
-        return firstError
+        return errors.first { $0 != dismissedError }
     }
     
     private var mainContent: some View {
