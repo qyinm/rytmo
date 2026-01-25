@@ -50,8 +50,7 @@ struct rytmoApp: App {
                 Playlist.self,
                 MusicTrack.self,
                 TodoItem.self,  // SwiftData will auto-migrate "content" -> "title" via @Attribute(originalName:)
-                FocusSession.self,
-                LocalCalendarEvent.self
+                FocusSession.self
             ])
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
@@ -97,7 +96,6 @@ struct rytmoApp: App {
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
                     timerManager.setModelContext(modelContainer.mainContext)
-                    LocalCalendarManager.shared.setModelContext(modelContainer.mainContext)
                     
                     // Setup Notch Window
                     appDelegate.setupNotchWindow(

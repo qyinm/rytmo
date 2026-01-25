@@ -17,6 +17,12 @@ protocol CalendarEventProtocol {
     var eventEndDate: Date? { get }
     var eventColor: Color { get }
     var sourceName: String { get }
+    
+    // Additional properties for edit/delete
+    var isAllDay: Bool { get }
+    var eventLocation: String? { get }
+    var eventNotes: String? { get }
+    var calendarId: String? { get }
 }
 
 // MARK: - System Calendar Event Wrapper
@@ -32,7 +38,18 @@ struct SystemCalendarEvent: CalendarEventProtocol {
     var eventIdentifier: String { event.eventIdentifier }
     var eventTitle: String? { event.title }
     var eventStartDate: Date? { event.startDate }
-    var eventEndDate: Date? { event.endDate }
+    
+    // For all-day events, EventKit stores exclusive end date (next day)
+    // We convert it to inclusive end date (same day) for app display
+    var eventEndDate: Date? {
+        guard let date = event.endDate else { return nil }
+        
+        if event.isAllDay {
+            return Calendar.current.date(byAdding: .day, value: -1, to: date)
+        }
+        
+        return date
+    }
     var eventColor: Color {
         if let cgColor = event.calendar?.cgColor {
             return Color(cgColor: cgColor)
@@ -40,15 +57,10 @@ struct SystemCalendarEvent: CalendarEventProtocol {
         return .blue
     }
     var sourceName: String { "System" }
-}
-
-// MARK: - LocalCalendarEvent Conformance
-
-extension LocalCalendarEvent: CalendarEventProtocol {
-    var eventIdentifier: String { self.id.uuidString }
-    var eventTitle: String? { self.title }
-    var eventStartDate: Date? { self.startDate }
-    var eventEndDate: Date? { self.endDate }
-    var eventColor: Color { Color(hex: self.colorHex) }
-    var sourceName: String { "Rytmo" }
+    
+    // Additional properties
+    var isAllDay: Bool { event.isAllDay }
+    var eventLocation: String? { event.location }
+    var eventNotes: String? { event.notes }
+    var calendarId: String? { event.calendar?.calendarIdentifier }
 }

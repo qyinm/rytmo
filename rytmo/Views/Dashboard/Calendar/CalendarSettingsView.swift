@@ -12,19 +12,6 @@ struct CalendarSettingsView: View {
                 .fontWeight(.bold)
             
             VStack(spacing: 0) {
-                // 1. Rytmo Local Calendar
-                ToggleRow(
-                    title: "Rytmo Calendar",
-                    subtitle: "Internal app events",
-                    icon: "calendar.badge.plus",
-                    isOn: Binding(
-                        get: { calendarManager.showLocal },
-                        set: { calendarManager.toggleSource(local: $0) }
-                    )
-                )
-                
-                Divider()
-                
                 // 2. Apple / System Calendar
                 ToggleRow(
                     title: "System Calendar",

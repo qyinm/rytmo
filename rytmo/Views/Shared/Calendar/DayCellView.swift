@@ -161,10 +161,16 @@ struct DayCellView: View {
 // MARK: - Placeholder Event for hasEvents compatibility
 
 private struct PlaceholderEvent: CalendarEventProtocol {
-    var eventIdentifier: String { UUID().uuidString }
+    let eventIdentifier: String = UUID().uuidString
     var eventTitle: String? { nil }
     var eventStartDate: Date? { nil }
     var eventEndDate: Date? { nil }
     var eventColor: Color { .accentColor }
     var sourceName: String { "" }
+    
+    // Additional properties
+    var isAllDay: Bool { false }
+    var eventLocation: String? { nil }
+    var eventNotes: String? { nil }
+    var calendarId: String? { nil }
 }
