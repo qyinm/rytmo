@@ -403,10 +403,7 @@ struct NotchExpandedView: View {
                     }
                 
                 Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        isAddingTask = false
-                        newTaskTitle = ""
-                    }
+                    closeQuickAddInput()
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 9, weight: .bold))
@@ -426,10 +423,7 @@ struct NotchExpandedView: View {
         private func createTask() {
             let trimmed = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else {
-                withAnimation {
-                    isAddingTask = false
-                    newTaskTitle = ""
-                }
+                closeQuickAddInput()
                 return
             }
             
@@ -438,7 +432,10 @@ struct NotchExpandedView: View {
             newTodo.orderIndex = maxIndex + 1
             
             modelContext.insert(newTodo)
-            
+            closeQuickAddInput()
+        }
+        
+        private func closeQuickAddInput() {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 newTaskTitle = ""
                 isAddingTask = false
