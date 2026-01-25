@@ -6,9 +6,11 @@ struct NotchExpandedView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @EnvironmentObject var vm: NotchViewModel
+    @EnvironmentObject var settings: PomodoroSettings
     
     @State private var showingSettings: Bool = false
     @State private var selectedTab: Int = 0
+    @State private var dismissedError: String? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -32,8 +34,26 @@ struct NotchExpandedView: View {
         }
     }
     
+    private var activeError: String? {
+        let errors = [
+            musicPlayer.errorMessage,
+            authManager.errorMessage
+        ].compactMap { $0 }
+        
+        return errors.first { $0 != dismissedError }
+    }
+    
     private var mainContent: some View {
         VStack(spacing: 0) {
+            if let error = activeError {
+                ErrorBannerView(message: error) {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dismissedError = error
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+            
             headerView
                 .frame(height: 32)
                 .padding(.top, 0)
@@ -269,10 +289,13 @@ struct NotchExpandedView: View {
         }
     }
 
-    // MARK: - Compact Todo View (Square Layout)
     struct CompactTodoView: View {
         @Environment(\.modelContext) private var modelContext
         @Query(sort: \TodoItem.orderIndex) private var todos: [TodoItem]
+        
+        @State private var newTaskTitle: String = ""
+        @State private var isAddingTask: Bool = false
+        @FocusState private var isInputFocused: Bool
 
         private var incompleteCount: Int {
             todos.filter { !$0.isCompleted }.count
@@ -280,13 +303,26 @@ struct NotchExpandedView: View {
 
         var body: some View {
             VStack(spacing: 6) {
-                // Header
                 HStack {
                     Text("Tasks")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(.primary)
 
                     Spacer()
+                    
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isAddingTask = true
+                            isInputFocused = true
+                        }
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Circle().fill(Color.black))
+                    }
+                    .buttonStyle(.plain)
 
                     if incompleteCount > 0 {
                         Text("\(incompleteCount)")
@@ -304,11 +340,18 @@ struct NotchExpandedView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
+                
+                if isAddingTask {
+                    quickAddInput
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
 
-                // Todo List
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        if todos.isEmpty {
+                        if todos.isEmpty && !isAddingTask {
                             VStack(spacing: 8) {
                                 Image(systemName: "plus.circle")
                                     .font(.system(size: 20))
@@ -319,6 +362,12 @@ struct NotchExpandedView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.top, 40)
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    isAddingTask = true
+                                    isInputFocused = true
+                                }
+                            }
                         } else {
                             ForEach(Array(todos.prefix(5).enumerated()), id: \.element.id) { index, todo in
                                 CompactTodoRow(todo: todo)
@@ -341,6 +390,56 @@ struct NotchExpandedView: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
+        }
+        
+        private var quickAddInput: some View {
+            HStack(spacing: 8) {
+                TextField("New task...", text: $newTaskTitle)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 12, weight: .medium))
+                    .focused($isInputFocused)
+                    .onSubmit {
+                        createTask()
+                    }
+                
+                Button(action: {
+                    closeQuickAddInput()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.white.opacity(0.1))
+            )
+            .padding(.horizontal, 10)
+        }
+        
+        private func createTask() {
+            let trimmed = newTaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                closeQuickAddInput()
+                return
+            }
+            
+            let maxIndex = todos.map { $0.orderIndex }.max() ?? 0
+            let newTodo = TodoItem(title: trimmed)
+            newTodo.orderIndex = maxIndex + 1
+            
+            modelContext.insert(newTodo)
+            closeQuickAddInput()
+        }
+        
+        private func closeQuickAddInput() {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                newTaskTitle = ""
+                isAddingTask = false
+            }
         }
 
         struct CompactTodoRow: View {
@@ -486,28 +585,28 @@ struct NotchExpandedView: View {
             VStack(spacing: 0) {
                 CompactSettingRow(
                     title: "Focus Time",
-                    value: .constant(25),
+                    value: $settings.focusDuration,
                     range: 1...60,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Short Break",
-                    value: .constant(5),
+                    value: $settings.shortBreakDuration,
                     range: 1...30,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Long Break",
-                    value: .constant(15),
+                    value: $settings.longBreakDuration,
                     range: 5...60,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Sessions until Long Break",
-                    value: .constant(4),
+                    value: $settings.sessionsBeforeLongBreak,
                     range: 2...10,
                     unit: "sessions"
                 )
@@ -546,7 +645,7 @@ struct NotchExpandedView: View {
 
                     Spacer()
 
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $settings.notificationsEnabled)
                         .toggleStyle(.switch)
                         .controlSize(.mini)
                 }

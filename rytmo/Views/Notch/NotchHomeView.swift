@@ -22,12 +22,6 @@ struct NotchHomeView: View {
                 }
             }
             
-            stateIcon
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(stateColor)
-                .scaleEffect(timerManager.session.isRunning ? 1.0 : 0.9)
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: timerManager.session.isRunning)
-            
             HStack(spacing: 0) {
                 Spacer()
                 
@@ -63,20 +57,6 @@ struct NotchHomeView: View {
             return 130
         }
         return 0
-    }
-    
-    @ViewBuilder
-    private var stateIcon: some View {
-        switch timerManager.session.state {
-        case .idle:
-            Image(systemName: "clock")
-        case .focus:
-            Image(systemName: "brain.head.profile")
-        case .shortBreak:
-            Image(systemName: "cup.and.saucer")
-        case .longBreak:
-            Image(systemName: "figure.walk")
-        }
     }
     
     private var stateColor: Color {
