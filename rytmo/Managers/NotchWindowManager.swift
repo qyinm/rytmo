@@ -51,22 +51,16 @@ class NotchWindowManager: NSObject, ObservableObject {
     private func createWindow<Content: View>(with content: Content) {
         let windowSize = UIConstants.Notch.windowSize
         let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
-        let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
+        let styleMask: NSWindow.StyleMask = [.borderless, .utilityWindow, .hudWindow]
         
-        let panel = NSPanel(
+        let panel = NotchWindow(
             contentRect: rect,
             styleMask: styleMask,
             backing: .buffered,
             defer: false
         )
         
-        panel.level = .mainMenu + 1
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
         panel.acceptsMouseMovedEvents = true
-        panel.isMovable = false
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         
