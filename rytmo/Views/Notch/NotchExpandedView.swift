@@ -6,6 +6,7 @@ struct NotchExpandedView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @EnvironmentObject var vm: NotchViewModel
+    @EnvironmentObject var settings: PomodoroSettings
     
     @State private var showingSettings: Bool = false
     @State private var selectedTab: Int = 0
@@ -486,28 +487,28 @@ struct NotchExpandedView: View {
             VStack(spacing: 0) {
                 CompactSettingRow(
                     title: "Focus Time",
-                    value: .constant(25),
+                    value: $settings.focusDuration,
                     range: 1...60,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Short Break",
-                    value: .constant(5),
+                    value: $settings.shortBreakDuration,
                     range: 1...30,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Long Break",
-                    value: .constant(15),
+                    value: $settings.longBreakDuration,
                     range: 5...60,
                     unit: "min"
                 )
                 Divider().padding(.leading, 16)
                 CompactSettingRow(
                     title: "Sessions until Long Break",
-                    value: .constant(4),
+                    value: $settings.sessionsBeforeLongBreak,
                     range: 2...10,
                     unit: "sessions"
                 )
@@ -546,7 +547,7 @@ struct NotchExpandedView: View {
 
                     Spacer()
 
-                    Toggle("", isOn: .constant(true))
+                    Toggle("", isOn: $settings.notificationsEnabled)
                         .toggleStyle(.switch)
                         .controlSize(.mini)
                 }
