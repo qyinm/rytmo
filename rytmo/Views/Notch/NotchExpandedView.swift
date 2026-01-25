@@ -10,6 +10,7 @@ struct NotchExpandedView: View {
     
     @State private var showingSettings: Bool = false
     @State private var selectedTab: Int = 0
+    @State private var dismissedError: String? = nil
     
     var body: some View {
         VStack(spacing: 0) {
@@ -33,8 +34,28 @@ struct NotchExpandedView: View {
         }
     }
     
+    private var activeError: String? {
+        let errors = [
+            musicPlayer.errorMessage,
+            authManager.errorMessage
+        ].compactMap { $0 }
+        
+        guard let firstError = errors.first else { return nil }
+        if firstError == dismissedError { return nil }
+        return firstError
+    }
+    
     private var mainContent: some View {
         VStack(spacing: 0) {
+            if let error = activeError {
+                ErrorBannerView(message: error) {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        dismissedError = error
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+            
             headerView
                 .frame(height: 32)
                 .padding(.top, 0)
