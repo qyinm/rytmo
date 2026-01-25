@@ -28,7 +28,10 @@ class GoogleCalendarManager: ObservableObject {
     @Published var isAuthorized: Bool = false
     @Published var isLoading: Bool = false
     @Published var error: String? = nil
+    @Published var needsScopeUpgrade: Bool = false
     @AppStorage("calendar_event_range_hours") private var eventRangeHours: Int = 24
+    
+    private static let legacyReadonlyScope = "https://www.googleapis.com/auth/calendar.readonly"
     
     private var fetchTask: Task<Void, Never>?
     private var syncTimer: Timer?
@@ -148,9 +151,17 @@ class GoogleCalendarManager: ObservableObject {
     func checkPermission() {
         if let user = GIDSignIn.sharedInstance.currentUser {
             let grantedScopes = user.grantedScopes ?? []
-            self.isAuthorized = grantedScopes.contains(GoogleCalendarAPI.scope)
+            let hasFullAccess = grantedScopes.contains(GoogleCalendarAPI.scope)
+            let hasLegacyReadonly = grantedScopes.contains(Self.legacyReadonlyScope)
+            
+            self.isAuthorized = hasFullAccess
+            self.needsScopeUpgrade = !hasFullAccess && hasLegacyReadonly
+            
+            if self.needsScopeUpgrade {
+                self.error = "Calendar permissions need to be updated. Please reconnect to enable event creation."
+            }
+            
             if self.isAuthorized {
-                // Fetch 6 months of events at once, then start periodic sync
                 Task {
                     async let calendarsTask: () = fetchCalendarListAsync()
                     async let eventsTask: () = fetchAllEventsAsync(centerDate: Date())
@@ -160,7 +171,44 @@ class GoogleCalendarManager: ObservableObject {
             }
         } else {
             self.isAuthorized = false
+            self.needsScopeUpgrade = false
         }
+    }
+    
+    func requestScopeUpgrade() async {
+        guard let window = NSApplication.shared.windows.first,
+              let user = GIDSignIn.sharedInstance.currentUser else {
+            self.error = "Cannot upgrade permissions. Please sign in again."
+            return
+        }
+        
+        self.isLoading = true
+        self.error = nil
+        
+        do {
+            let result = try await user.addScopes([GoogleCalendarAPI.scope], presenting: window)
+            
+            let hasFullAccess = result.user.grantedScopes?.contains(GoogleCalendarAPI.scope) ?? false
+            self.isAuthorized = hasFullAccess
+            self.needsScopeUpgrade = !hasFullAccess
+            
+            if hasFullAccess {
+                print("✅ Google Calendar scope upgraded successfully")
+                fetchEvents(date: Date())
+                fetchCalendarList()
+            } else {
+                self.error = "Permission upgrade was not granted"
+            }
+        } catch let error as NSError {
+            if error.domain == GoogleCalendarAPI.signInErrorDomain && error.code == GoogleCalendarAPI.cancelledErrorCode {
+                print("ℹ️ Scope upgrade cancelled")
+            } else {
+                self.error = "Failed to upgrade permissions: \(error.localizedDescription)"
+                print("❌ Scope upgrade failed: \(error.localizedDescription)")
+            }
+        }
+        
+        self.isLoading = false
     }
     
     // MARK: - Token Refresh
@@ -242,6 +290,7 @@ class GoogleCalendarManager: ObservableObject {
     /// Disconnect Google Calendar integration (without signing out of Google account)
     func disconnect() {
         self.isAuthorized = false
+        self.needsScopeUpgrade = false
         self.events = []
         self.error = nil
         print("ℹ️ Google Calendar disconnected")
