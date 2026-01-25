@@ -221,11 +221,20 @@ class CalendarManager: ObservableObject {
                     end = adjusted
                 }
                 
+                // For all-day events, end date is inclusive (e.g., Jan 30 means "including Jan 30")
+                // Convert to exclusive end for comparison by adding 1 day
+                let effectiveEnd: Date
+                if event.isAllDay, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
+                    effectiveEnd = nextDay
+                } else {
+                    effectiveEnd = end
+                }
+                
                 let startBucket = calendar.startOfDay(for: start)
                 var current = startBucket
                 
                 // Add event to all days it covers
-                while current < end {
+                while current < effectiveEnd {
                     // Optimization: stop if we passed the end of the month view
                     if current > lastDay { break }
                     

@@ -107,9 +107,18 @@ enum CalendarUtils {
                 end = adjustedEnd
             }
             
+            // For all-day events, end date is inclusive (e.g., Jan 30 means "including Jan 30")
+            // Convert to exclusive end for comparison by adding 1 day
+            let effectiveEnd: Date
+            if event.isAllDay, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
+                effectiveEnd = nextDay
+            } else {
+                effectiveEnd = end
+            }
+            
             // Find overlapping day indices using binary search approach
             let startDay = calendar.startOfDay(for: start)
-            let endDay = calendar.startOfDay(for: end)
+            let endDay = calendar.startOfDay(for: effectiveEnd)
             
             var startIdx = dayToIndex[startDay] ?? 0
             var endIdx = allDays.count - 1
@@ -118,7 +127,7 @@ enum CalendarUtils {
             for i in 0..<allDays.count {
                 let dayStart = calendar.startOfDay(for: allDays[i])
                 let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-                if start < dayEnd && end > dayStart {
+                if start < dayEnd && effectiveEnd > dayStart {
                     startIdx = i
                     break
                 }
@@ -126,7 +135,7 @@ enum CalendarUtils {
             for i in stride(from: allDays.count - 1, through: 0, by: -1) {
                 let dayStart = calendar.startOfDay(for: allDays[i])
                 let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-                if start < dayEnd && end > dayStart {
+                if start < dayEnd && effectiveEnd > dayStart {
                     endIdx = i
                     break
                 }

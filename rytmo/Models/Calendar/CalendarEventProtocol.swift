@@ -38,7 +38,18 @@ struct SystemCalendarEvent: CalendarEventProtocol {
     var eventIdentifier: String { event.eventIdentifier }
     var eventTitle: String? { event.title }
     var eventStartDate: Date? { event.startDate }
-    var eventEndDate: Date? { event.endDate }
+    
+    // For all-day events, EventKit stores exclusive end date (next day)
+    // We convert it to inclusive end date (same day) for app display
+    var eventEndDate: Date? {
+        guard let date = event.endDate else { return nil }
+        
+        if event.isAllDay {
+            return Calendar.current.date(byAdding: .day, value: -1, to: date)
+        }
+        
+        return date
+    }
     var eventColor: Color {
         if let cgColor = event.calendar?.cgColor {
             return Color(cgColor: cgColor)

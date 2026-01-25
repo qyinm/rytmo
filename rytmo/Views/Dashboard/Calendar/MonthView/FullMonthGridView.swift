@@ -25,9 +25,11 @@ struct EventDisplayInfo: Identifiable {
     let id: String
     let title: String
     let color: Color
-    let isStart: Bool
+    let showTitle: Bool
     let timeString: String?
     let originalEvent: CalendarEventProtocol
+    let continuesFromPrevious: Bool
+    let continuesToNext: Bool
     
     init(event: CalendarEventProtocol, date: Date, calendar: Calendar) {
         self.id = event.eventIdentifier
@@ -36,19 +38,33 @@ struct EventDisplayInfo: Identifiable {
         self.originalEvent = event
         
         let start = event.eventStartDate
-        // Logic from original SimpleEventBar
-        if let start = start {
-            self.isStart = calendar.isDate(start, inSameDayAs: date) || calendar.component(.weekday, from: date) == 1
-            if self.isStart {
-                let formatter = DateFormatter()
-                formatter.dateFormat = "HH:mm"
-                self.timeString = formatter.string(from: start)
-            } else {
-                self.timeString = nil
-            }
+        let end = event.eventEndDate
+        let weekday = calendar.component(.weekday, from: date)
+        let isFirstDayOfWeek = weekday == 1
+        
+        let isActualStart = start.map { calendar.isDate($0, inSameDayAs: date) } ?? true
+        self.showTitle = isActualStart || isFirstDayOfWeek
+        
+        if self.showTitle, let start = start, !event.isAllDay {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            self.timeString = formatter.string(from: start)
         } else {
-            self.isStart = true
             self.timeString = nil
+        }
+        
+        self.continuesFromPrevious = !isActualStart && !isFirstDayOfWeek
+        
+        if let end = end {
+            let dayEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: date))!
+            let isLastDayOfWeek = weekday == 7
+            
+            // For all-day events, end date is inclusive - convert to exclusive for comparison
+            let effectiveEnd = event.isAllDay ? calendar.date(byAdding: .day, value: 1, to: end)! : end
+            let endsOnThisDay = effectiveEnd <= dayEnd
+            self.continuesToNext = !endsOnThisDay && !isLastDayOfWeek
+        } else {
+            self.continuesToNext = false
         }
     }
 }
@@ -196,14 +212,6 @@ struct OptimizedMonthCell: View {
                 ForEach(todos.prefix(remainingSlots), id: \.id) { todo in
                     SimpleTodoBar(title: todo.title)
                 }
-                
-                let totalItems = events.count + todos.count
-                if totalItems > maxVisibleItems {
-                    Text("+\(totalItems - maxVisibleItems)")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 4)
-                }
             }
             
             Spacer(minLength: 0)
@@ -221,25 +229,43 @@ struct SimpleEventBar: View {
     let info: EventDisplayInfo
     var onTap: ((CalendarEventProtocol) -> Void)?
     
+    private var cornerRadii: RectangleCornerRadii {
+        let radius: CGFloat = 3
+        return RectangleCornerRadii(
+            topLeading: info.continuesFromPrevious ? 0 : radius,
+            bottomLeading: info.continuesFromPrevious ? 0 : radius,
+            bottomTrailing: info.continuesToNext ? 0 : radius,
+            topTrailing: info.continuesToNext ? 0 : radius
+        )
+    }
+    
     var body: some View {
-        HStack(spacing: 4) {
-            Text(info.title)
-                .font(.system(size: 10, weight: .medium))
-                .lineLimit(1)
-            Spacer(minLength: 0)
-            if let time = info.timeString {
-                Text(time)
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary)
+        info.color.opacity(0.85)
+            .frame(height: 16)
+            .frame(maxWidth: .infinity)
+            .clipShape(UnevenRoundedRectangle(cornerRadii: cornerRadii))
+            .overlay(alignment: .leading) {
+                HStack(spacing: 4) {
+                    if info.showTitle {
+                        Text(info.title)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                    if let time = info.timeString {
+                        Text(time)
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding(.leading, info.continuesFromPrevious ? 2 : 4)
+                .padding(.trailing, info.continuesToNext ? 2 : 4)
             }
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 2)
-        .background(info.color.opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .padding(.horizontal, 2)
-        .contentShape(Rectangle())
-        .onTapGesture { onTap?(info.originalEvent) }
+            .padding(.leading, info.continuesFromPrevious ? 0 : 2)
+            .padding(.trailing, info.continuesToNext ? 0 : 2)
+            .contentShape(Rectangle())
+            .onTapGesture { onTap?(info.originalEvent) }
     }
 }
 

@@ -721,7 +721,18 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
     var eventIdentifier: String { id }
     var eventTitle: String? { summary }
     var eventStartDate: Date? { start?.dateValue }
-    var eventEndDate: Date? { end?.dateValue }
+    
+    // For all-day events, Google returns exclusive end date (next day)
+    // We convert it to inclusive end date (same day) for app display
+    var eventEndDate: Date? {
+        guard let date = end?.dateValue else { return nil }
+        
+        if isAllDay {
+            return Calendar.current.date(byAdding: .day, value: -1, to: date)
+        }
+        
+        return date
+    }
     
     var eventColor: Color {
         if let colorId = colorId {
