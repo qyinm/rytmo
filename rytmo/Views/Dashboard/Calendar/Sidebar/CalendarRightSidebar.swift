@@ -229,7 +229,7 @@ struct CalendarRightSidebar: View {
     
     private func createEvent() {
         guard !selectedCalendar.id.isEmpty else {
-            errorMessage = "캘린더를 선택해주세요."
+            errorMessage = "Please select a calendar."
             showError = true
             return
         }
