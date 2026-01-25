@@ -101,16 +101,17 @@ enum CalendarUtils {
             let start = event.eventStartDate ?? monthStart
             var end = event.eventEndDate ?? monthEnd
             
-            // Handle zero-duration events (e.g., all-day events with same start/end date)
-            // These should display on at least the start day
+            // Handle zero-duration events (single-day all-day events with same start/end)
+            var wasZeroDuration = false
             if start >= end, let adjustedEnd = calendar.date(byAdding: .day, value: 1, to: start) {
                 end = adjustedEnd
+                wasZeroDuration = true
             }
             
-            // For all-day events, end date is inclusive (e.g., Jan 30 means "including Jan 30")
-            // Convert to exclusive end for comparison by adding 1 day
+            // For multi-day all-day events, convert inclusive end to exclusive
+            // Skip if zero-duration fix was already applied
             let effectiveEnd: Date
-            if event.isAllDay, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
+            if event.isAllDay && !wasZeroDuration, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
                 effectiveEnd = nextDay
             } else {
                 effectiveEnd = end

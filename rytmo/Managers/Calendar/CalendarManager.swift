@@ -217,14 +217,18 @@ class CalendarManager: ObservableObject {
                 guard let start = event.eventStartDate, var end = event.eventEndDate else { continue }
                 
                 // Handle zero-duration events (all-day events with same start/end)
+                // This already converts to exclusive end date, so skip all-day fix below
+                var wasZeroDuration = false
                 if start >= end, let adjusted = calendar.date(byAdding: .day, value: 1, to: start) {
                     end = adjusted
+                    wasZeroDuration = true
                 }
                 
-                // For all-day events, end date is inclusive (e.g., Jan 30 means "including Jan 30")
+                // For multi-day all-day events, end date is inclusive (e.g., Jan 30 means "including Jan 30")
                 // Convert to exclusive end for comparison by adding 1 day
+                // Skip if zero-duration fix was already applied (single-day all-day events)
                 let effectiveEnd: Date
-                if event.isAllDay, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
+                if event.isAllDay && !wasZeroDuration, let nextDay = calendar.date(byAdding: .day, value: 1, to: end) {
                     effectiveEnd = nextDay
                 } else {
                     effectiveEnd = end
