@@ -43,6 +43,8 @@ class GoogleCalendarManager: ObservableObject {
     private let fetchMonthsBeforeAfter = 3
     /// Background sync interval in seconds (5 minutes)
     private let syncInterval: TimeInterval = 300
+    /// Maximum number of events to cache (prevents memory issues for busy users)
+    private let maxCachedEvents = 5000
     
     private init() {
         loadCalendarsFromCache()
@@ -94,9 +96,18 @@ class GoogleCalendarManager: ObservableObject {
     private func saveEventsToCache(_ events: [GoogleCalendarEvent]) {
         guard let url = getCacheURL(fileName: eventsCacheFileName) else { return }
         
-        Task.detached(priority: .background) {
+        let eventsToCache: [GoogleCalendarEvent]
+        if events.count > maxCachedEvents {
+            let sorted = events.sorted { ($0.eventStartDate ?? .distantPast) > ($1.eventStartDate ?? .distantPast) }
+            eventsToCache = Array(sorted.prefix(maxCachedEvents))
+            print("⚠️ Cache trimmed: \(events.count) → \(maxCachedEvents) events")
+        } else {
+            eventsToCache = events
+        }
+        
+        Task.detached(priority: .background) { [eventsToCache] in
             do {
-                let data = try JSONEncoder().encode(events)
+                let data = try JSONEncoder().encode(eventsToCache)
                 try data.write(to: url)
             } catch {
                 print("❌ Failed to save Google Calendar cache: \(error)")
