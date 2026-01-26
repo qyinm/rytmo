@@ -305,7 +305,7 @@ struct NotchExpandedView: View {
         private var sortedTodos: [TodoItem] {
             todos.sorted {
                 if $0.isCompleted != $1.isCompleted {
-                    return !$0.isCompleted // incomplete comes first
+                    return !$0.isCompleted
                 }
                 return $0.orderIndex < $1.orderIndex
             }
