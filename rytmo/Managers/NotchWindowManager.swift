@@ -51,7 +51,7 @@ class NotchWindowManager: NSObject, ObservableObject {
     private func createWindow<Content: View>(with content: Content) {
         let windowSize = UIConstants.Notch.windowSize
         let rect = NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height)
-        let styleMask: NSWindow.StyleMask = [.borderless, .utilityWindow, .hudWindow]
+        let styleMask: NSWindow.StyleMask = [.borderless, .nonactivatingPanel, .utilityWindow, .hudWindow]
         
         let panel = NotchWindow(
             contentRect: rect,
