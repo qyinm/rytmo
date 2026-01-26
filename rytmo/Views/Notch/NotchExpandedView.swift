@@ -369,10 +369,10 @@ struct NotchExpandedView: View {
                                 }
                             }
                         } else {
-                            ForEach(Array(todos.prefix(5).enumerated()), id: \.element.id) { index, todo in
+                            ForEach(Array(todos.enumerated()), id: \.element.id) { index, todo in
                                 CompactTodoRow(todo: todo)
                                 
-                                if index < min(todos.count, 5) - 1 {
+                                if index < todos.count - 1 {
                                     Rectangle()
                                         .fill(Color.black.opacity(0.04))
                                         .frame(height: 0.5)
