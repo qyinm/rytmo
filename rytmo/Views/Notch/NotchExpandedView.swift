@@ -300,6 +300,16 @@ struct NotchExpandedView: View {
         private var incompleteCount: Int {
             todos.filter { !$0.isCompleted }.count
         }
+        
+        /// Sorted todos: incomplete first, then completed (preserving orderIndex within each group)
+        private var sortedTodos: [TodoItem] {
+            todos.sorted {
+                if $0.isCompleted != $1.isCompleted {
+                    return !$0.isCompleted // incomplete comes first
+                }
+                return $0.orderIndex < $1.orderIndex
+            }
+        }
 
         var body: some View {
             VStack(spacing: 6) {
@@ -369,10 +379,10 @@ struct NotchExpandedView: View {
                                 }
                             }
                         } else {
-                            ForEach(Array(todos.enumerated()), id: \.element.id) { index, todo in
+                            ForEach(Array(sortedTodos.enumerated()), id: \.element.id) { index, todo in
                                 CompactTodoRow(todo: todo)
                                 
-                                if index < todos.count - 1 {
+                                if index < sortedTodos.count - 1 {
                                     Rectangle()
                                         .fill(Color.black.opacity(0.04))
                                         .frame(height: 0.5)
