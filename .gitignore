@@ -111,3 +111,8 @@ iOSInjectionProject/
 # API Keys 및 민감 정보
 *.xcconfig
 GoogleService-Info.plist
+
+# Landing Page (docs/) - Next.js
+docs/node_modules/
+docs/.next/
+docs/.env*.local

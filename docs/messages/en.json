@@ -1,0 +1,80 @@
+{
+  "Hero": {
+    "badge": "Available for macOS",
+    "title_focus": "Perfecting the",
+    "title_rhythm": "Rhythm of Immersion",
+    "subtitle": "Timer, Music, and Todo in one. Enter 'Deep Work' instantly without wasting time on setup.",
+    "download": "Download for macOS",
+    "learn_more": "Explore Features"
+  },
+  "Header": {
+    "features": "Features",
+    "roadmap": "Roadmap",
+    "values": "Values",
+    "changelog": "Changelog",
+    "download": "Download",
+    "download_macos": "Download for macOS"
+  },
+  "LiveFeatures": {
+    "title": "Live Features",
+    "subtitle": "Provides the essential auditory and temporal control needed to shape your workspace.",
+    "feature1_title": "Immersive Audio Player",
+    "feature1_desc": "Your own BGM with just a YouTube link. Focus solely on audio with a minimal distraction-free UI.",
+    "feature2_title": "Custom Pomodoro Timer",
+    "feature2_desc": "25min focus, 5min break. Set flexibility to match your condition and check remaining time instantly from the menubar.",
+    "feature3_title": "Minimal To-do List",
+    "feature3_desc": "Manage your tasks directly from the menubar without switching apps, keeping your focus flow intact."
+  },
+  "Roadmap": {
+    "title": "Roadmap",
+    "subtitle": "Beyond a simple tool, expanding into a personal assistant that manages productivity based on data.",
+    "item1_title": "Workflow Analysis & App Tracking",
+    "item1_desc": "Visualizes objective work patterns by analyzing which apps were used during focus time. (Coming Soon)",
+    "item2_title": "Session-Linked Task Management",
+    "item2_desc": "Plan and record the number of Pomodoro sessions needed based on task difficulty. (v1.0.3 To-do feature added)",
+    "item3_title": "Google Calendar 2-Way Sync",
+    "item3_desc": "Visualizes focusable time by importing schedules and automatically suggests focus sessions for empty slots. (Coming Soon)",
+    "item4_title": "Apple Ecosystem Integration",
+    "item4_desc": "iPhone on the go, Mac at the office. Seamlessly sync data via iCloud. (Coming Soon)"
+  },
+  "Values": {
+    "title": "Core Values",
+    "subtitle": "The essence of productivity that Rytmo pursues.",
+    "val1_title": "Minimize Context Switching",
+    "val1_desc": "Drastically reduce task switching costs by controlling music, timer, and tasks on one screen.",
+    "val2_title": "Data-Driven Growth",
+    "val2_desc": "Prove 'how efficiently' you worked through tracking data, not just vague 'hard work'.",
+    "val3_title": "Privacy First",
+    "val3_desc": "User activity data is used strictly for productivity analysis purposes and sensitive information is never collected."
+  },
+  "FAQ": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Answers to your questions about Rytmo.",
+    "q1": "What is this service?",
+    "a1": "Rytmo is a macOS productivity tool integrating a timer, music player, and todo list. Designed to let you enter deep work mode immediately without complex setup.",
+    "q2": "Do I need YouTube Premium?",
+    "a2": "No, you can use background music with just a YouTube URL without a separate premium account.",
+    "q3": "Is my personal data safe?",
+    "a3": "Yes, Rytmo follows Privacy First principles. Sensitive info like keylogging or screen capture is never collected; only metadata like app usage duration is used for local analysis.",
+    "q4": "Is it free?",
+    "a4": "Yes, all currently available features are free to use.",
+    "q5": "Do you support other OS?",
+    "a5": "Currently supports macOS. We plan to support Apple ecosystem integration through an iOS app release in the future."
+  },
+  "CTA": {
+    "title": "Ready to Focus?",
+    "subtitle": "Download Rytmo for macOS and start your most productive work sessions today.",
+    "download": "Download Now",
+    "badge_macos": "macOS 14.6+",
+    "badge_size": "Free Download",
+    "badge_account": "No Account Required"
+  },
+  "Footer": {
+    "features": "Features",
+    "roadmap": "Roadmap",
+    "values": "Values",
+    "download": "Download",
+    "support": "Support",
+    "copyright": "© 2026 dievas. All rights reserved."
+  }
+}
