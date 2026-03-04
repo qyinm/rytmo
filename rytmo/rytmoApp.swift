@@ -212,6 +212,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
     
+    @MainActor
     func setupNotchWindow(
         timerManager: PomodoroTimerManager,
         settings: PomodoroSettings,
