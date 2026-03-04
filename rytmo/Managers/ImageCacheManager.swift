@@ -38,6 +38,7 @@ final class ImageCacheManager {
 }
 
 /// Image loader (asynchronous download and caching)
+@MainActor
 final class ImageLoader: ObservableObject {
     @Published var image: NSImage?
     @Published var isLoading = false
