@@ -408,6 +408,8 @@ if [[ "$SKIP_DMG" -eq 0 ]]; then
       "$DMG_PATH"
   fi
 
+  rm -rf "$INSTALLER_SOURCE_DIR"
+
   if [[ "$LEGACY_FEED_SYNC" -eq 1 ]]; then
     LEGACY_DMG_PATH="${LEGACY_UPDATE_DIR}/${DMG_NAME}"
     if [[ "$LEGACY_DMG_PATH" != "$DMG_PATH" ]]; then
@@ -429,9 +431,9 @@ if [[ "$GITHUB_RELEASE" -eq 1 ]]; then
     GITHUB_TARGET="$(git rev-parse HEAD)"
   fi
 
-  REPO_ARGS=()
+  GH_CMD=(gh)
   if [[ -n "$GITHUB_REPO" ]]; then
-    REPO_ARGS=(--repo "$GITHUB_REPO")
+    GH_CMD+=(--repo "$GITHUB_REPO")
   fi
 
   GITHUB_RELEASE_NOTES_FILE="$GITHUB_NOTES_FILE"
@@ -459,18 +461,18 @@ if [[ "$GITHUB_RELEASE" -eq 1 ]]; then
     echo "[GitHub dry-run] tag=${RELEASE_TAG} target=${GITHUB_TARGET}"
     echo "[GitHub dry-run] assets: ${RELEASE_ASSETS[*]}"
     echo "[GitHub dry-run] notes file: ${GITHUB_RELEASE_NOTES_FILE}"
-    if [[ ${#REPO_ARGS[@]} -gt 0 ]]; then
+    if [[ -n "$GITHUB_REPO" ]]; then
       echo "[GitHub dry-run] repo override: ${GITHUB_REPO}"
     fi
   else
-    if gh release view "$RELEASE_TAG" "${REPO_ARGS[@]}" >/dev/null 2>&1; then
+    if "${GH_CMD[@]}" release view "$RELEASE_TAG" >/dev/null 2>&1; then
       echo "GitHub release ${RELEASE_TAG} exists. Updating notes and assets..."
-      gh release edit "$RELEASE_TAG" "${REPO_ARGS[@]}" --title "$RELEASE_TITLE" --notes-file "$GITHUB_RELEASE_NOTES_FILE"
+      "${GH_CMD[@]}" release edit "$RELEASE_TAG" --title "$RELEASE_TITLE" --notes-file "$GITHUB_RELEASE_NOTES_FILE"
       for asset_path in "${RELEASE_ASSETS[@]}"; do
-        gh release upload "$RELEASE_TAG" "${REPO_ARGS[@]}" "$asset_path" --clobber
+        "${GH_CMD[@]}" release upload "$RELEASE_TAG" "$asset_path" --clobber
       done
     else
-      CREATE_ARGS=()
+      CREATE_ARGS=("${GH_CMD[@]}" release create "$RELEASE_TAG" "${RELEASE_ASSETS[@]}" --target "$GITHUB_TARGET" --title "$RELEASE_TITLE" --notes-file "$GITHUB_RELEASE_NOTES_FILE")
       if [[ "$GITHUB_DRAFT" -eq 1 ]]; then
         CREATE_ARGS+=(--draft)
       fi
@@ -478,10 +480,10 @@ if [[ "$GITHUB_RELEASE" -eq 1 ]]; then
         CREATE_ARGS+=(--prerelease)
       fi
 
-      gh release create "$RELEASE_TAG" "${RELEASE_ASSETS[@]}" "${REPO_ARGS[@]}" "${CREATE_ARGS[@]}" --target "$GITHUB_TARGET" --title "$RELEASE_TITLE" --notes-file "$GITHUB_RELEASE_NOTES_FILE"
+      "${CREATE_ARGS[@]}"
     fi
 
-    GITHUB_RELEASE_URL="$(gh release view "$RELEASE_TAG" "${REPO_ARGS[@]}" --json url -q .url)"
+    GITHUB_RELEASE_URL="$("${GH_CMD[@]}" release view "$RELEASE_TAG" --json url -q .url)"
   fi
 fi
 
