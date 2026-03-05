@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>rytmo</title>
+        <item>
+            <title>1.0.5</title>
+            <pubDate>Thu, 05 Mar 2026 13:29:39 +0900</pubDate>
+            <sparkle:version>14</sparkle:version>
+            <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
+            <sparkle:releaseNotesLink>https://qyinm.github.io/rytmo/sparkle/release_notes/release_notes_1.0.5.html</sparkle:releaseNotesLink>
+            <enclosure url="https://qyinm.github.io/rytmo/sparkle/rytmo-1.0.5-14.zip" length="20970695" type="application/octet-stream" sparkle:edSignature="H2ZeOkhZQZ0jbYvVCSIHtDSqiq7f+BdFhQNyVvmDYHVagAJFycjoshGwA5F1jIfDfhiqvd9dxfuNkUiOC7+3Cw==" />
+        </item>
+    </channel>
+</rss>
