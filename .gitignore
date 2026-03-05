@@ -116,3 +116,8 @@ GoogleService-Info.plist
 docs/node_modules/
 docs/.next/
 docs/.env*.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

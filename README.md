@@ -114,6 +114,89 @@ xcodebuild -scheme rytmo -configuration Release build
 xcodebuild test -scheme rytmo
 ```
 
+### Automated Release (Sparkle + DMG)
+
+Run one command to archive/export `.app`, create update zip, update `appcast.xml`, and build DMG into `sparkle/` in this repository.
+
+```bash
+./scripts/release_update.sh
+```
+
+Optional flags:
+
+```bash
+./scripts/release_update.sh --base-url https://qyinm.github.io/rytmo/sparkle --skip-dmg
+```
+
+Default bundled binary path:
+
+```bash
+./sparkle/tools/sign_update
+```
+
+If you want to override `sign_update` path:
+
+```bash
+./scripts/release_update.sh --sign-update-bin /absolute/path/to/sign_update
+```
+
+GitHub Release automation (optional):
+
+```bash
+./scripts/release_update.sh --github-release
+```
+
+Useful GitHub flags:
+
+```bash
+./scripts/release_update.sh \
+  --github-release \
+  --github-repo owner/repo \
+  --github-tag-prefix v \
+  --github-notes-file ./CHANGELOG.md
+```
+
+Safe validation without publishing:
+
+```bash
+./scripts/release_update.sh --github-release --github-dry-run --skip-dmg
+```
+
+Legacy Sparkle compatibility (for already shipped apps pointing to old feed URL):
+
+```bash
+./scripts/release_update.sh --legacy-feed-sync
+```
+
+Legacy sync with explicit path/URL:
+
+```bash
+./scripts/release_update.sh \
+  --legacy-feed-sync \
+  --legacy-update-dir ../Rytmo-update \
+  --legacy-base-url https://qyinm.github.io/rytmo-update
+```
+
+Requirements:
+- `xcodebuild`, `python3`
+- Sparkle `sign_update` at `./sparkle/tools/sign_update` (bundled default)
+- Optional overrides: `--sign-update-bin`, `SPARKLE_SIGN_UPDATE_BIN`, or PATH `sign_update`
+- `create-dmg` (optional, script falls back to `hdiutil` if missing)
+- `gh` (only when using `--github-release`)
+- Optional legacy sync target directory (default: `../Rytmo-update`) when `--legacy-feed-sync` is enabled
+
+Output:
+- `sparkle/<AppName>-<shortVersion>-<build>.zip`
+- `sparkle/appcast.xml` (keeps newest item only by default)
+- `sparkle/release_notes/release_notes_<shortVersion>.html` (auto-created placeholder if missing)
+- `sparkle/Rytmo.dmg` (unless `--skip-dmg`)
+- GitHub Release `v<shortVersion>` with ZIP/DMG assets (when `--github-release`)
+- Legacy mirror artifacts/appcast in `../Rytmo-update` (when `--legacy-feed-sync`)
+
+Appcast retention:
+- Default policy keeps only the latest appcast item (`--retain-appcast-items 1`).
+- Override if needed (for legacy OS support): `--retain-appcast-items 3`.
+
 ### Commit Convention
 
 ```
