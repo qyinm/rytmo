@@ -18,7 +18,7 @@
 		</dict>
 	</array>
 	<key>SUFeedURL</key>
-	<string>$(SPARKLE_FEED_URL)</string>
+	<string>https://qyinm.github.io/rytmo/sparkle/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>$(SUPublicEDKey)</string>
 	<key>YoutubeDataAPIKey</key>

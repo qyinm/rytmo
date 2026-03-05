@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		41CF646F2EE192CF00636347 /* YouTubePlayerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF646E2EE192CF00636347 /* YouTubePlayerKit */; };
 		41CF64E12EE2917400636347 /* AmplitudeUnified in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF64E02EE2917400636347 /* AmplitudeUnified */; };
-		41CF64E52EE2997900636347 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 41CF64E42EE2997900636347 /* Config.xcconfig */; };
 		41CF65C12EE3078C00636347 /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF65C02EE3078C00636347 /* FirebaseAI */; };
 		41CF65C32EE3078C00636347 /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF65C22EE3078C00636347 /* FirebaseAILogic */; };
 		41CF65C52EE3078C00636347 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 41CF65C42EE3078C00636347 /* FirebaseAnalytics */; };
@@ -244,7 +243,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				41CF64E52EE2997900636347 /* Config.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,7 +390,7 @@
 				CODE_SIGN_ENTITLEMENTS = rytmo/rytmo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = MCP4D3M7XK;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -418,7 +416,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0.4;
+				MARKETING_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dievas.rytmo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -440,7 +438,7 @@
 				CODE_SIGN_ENTITLEMENTS = rytmo/rytmo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_TEAM = MCP4D3M7XK;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -466,7 +464,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0.4;
+				MARKETING_VERSION = 1.0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dievas.rytmo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

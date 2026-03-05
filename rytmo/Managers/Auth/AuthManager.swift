@@ -75,7 +75,7 @@ class AuthManager: ObservableObject {
         currentUser = Auth.auth().currentUser
 
         if let user = currentUser {
-            print("✅ Automatic login successful: \(user.uid)")
+            print("✅ Automatic login successful")
         } else {
             print("ℹ️ No logged-in user")
         }
@@ -90,7 +90,7 @@ class AuthManager: ObservableObject {
             let result = try await Auth.auth().signInAnonymously()
             currentUser = result.user
 
-            print("✅ Anonymous login successful: \(result.user.uid)")
+            print("✅ Anonymous login successful")
 
         } catch {
             let nsError = error as NSError
@@ -151,10 +151,7 @@ class AuthManager: ObservableObject {
             let authResult = try await Auth.auth().signIn(with: credential)
             currentUser = authResult.user
 
-            print("✅ Google login successful: \(authResult.user.uid)")
-            if let email = authResult.user.email {
-                print("   Email: \(email)")
-            }
+            print("✅ Google login successful")
 
         } catch let error as NSError {
             // Handle Google Sign-In cancellation
