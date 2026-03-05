@@ -153,7 +153,7 @@ export function Header() {
               }}
               asChild
             >
-              <a href="https://qyinm.github.io/rytmo-update/Rytmo.dmg" className="flex items-center gap-2">
+              <a href="https://qyinm.github.io/rytmo/sparkle/Rytmo.dmg" className="flex items-center gap-2">
                 <FaApple className="w-4 h-4 mb-0.5" />
                 {t('download_macos')}
               </a>
@@ -245,7 +245,7 @@ export function Header() {
             asChild
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            <a href="https://qyinm.github.io/rytmo-update/Rytmo.dmg" className="flex items-center justify-center gap-2">
+            <a href="https://qyinm.github.io/rytmo/sparkle/Rytmo.dmg" className="flex items-center justify-center gap-2">
               <FaApple className="w-5 h-5 mb-0.5" />
               {t('download_macos')}
             </a>

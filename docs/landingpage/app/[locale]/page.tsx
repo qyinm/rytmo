@@ -21,7 +21,7 @@ export default function RytmoLanding() {
   const tCTA = useTranslations('CTA');
   const tFooter = useTranslations('Footer');
 
-  const downloadUrl = "https://qyinm.github.io/rytmo-update/Rytmo.dmg";
+  const downloadUrl = "https://qyinm.github.io/rytmo/sparkle/Rytmo.dmg";
   
   // Structured Data (JSON-LD) for SEO
   const structuredData = {
