@@ -2,25 +2,34 @@ import Combine
 import Sparkle
 
 // Make it an ObservableObject according to the MVVM pattern.
+@MainActor
 final class UpdateManager: ObservableObject {
-    private let controller: SPUStandardUpdaterController
+    private var controller: SPUStandardUpdaterController?
+    private var hasStartedUpdater = false
     
-    init() {
-        // Initialize Sparkle's standard controller
-        // Setting startingUpdater to true automatically runs the check logic when the app starts.
-        controller = SPUStandardUpdaterController(
+    init() {}
+
+    func startUpdaterIfNeeded() {
+        guard !hasStartedUpdater else { return }
+
+        let controller = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
             userDriverDelegate: nil
         )
-        
-        // Automatically check for updates every time the app runs
+
         controller.updater.automaticallyChecksForUpdates = true
-        controller.updater.checkForUpdatesInBackground()
+        self.controller = controller
+        hasStartedUpdater = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.controller?.updater.checkForUpdatesInBackground()
+        }
     }
     
     // Function to call when 'Check for Updates' is pressed in the menubar
     func checkForUpdates() {
-        controller.updater.checkForUpdates()
+        startUpdaterIfNeeded()
+        controller?.updater.checkForUpdates()
     }
 }

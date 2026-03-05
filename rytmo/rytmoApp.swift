@@ -95,7 +95,9 @@ struct rytmoApp: App {
                 }
                 .onAppear {
                     musicPlayer.setModelContext(modelContainer.mainContext)
+                    musicPlayer.startBackgroundPlayerIfNeeded()
                     timerManager.setModelContext(modelContainer.mainContext)
+                    updateManager.startUpdaterIfNeeded()
                     
                     // Setup Notch Window
                     appDelegate.setupNotchWindow(
@@ -187,6 +189,7 @@ extension Notification.Name {
 
 // MARK: - App Delegate
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     
     private var notchViewModel: NotchViewModel?

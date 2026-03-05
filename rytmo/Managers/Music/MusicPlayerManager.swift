@@ -113,6 +113,7 @@ class MusicPlayerManager: ObservableObject {
     private var modelContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
     private var backgroundWindow: NSWindow?
+    private var hasSetupBackgroundPlayer = false
     private var volumeBeforeMute: Double?
 
     // MARK: - Initialization
@@ -124,8 +125,13 @@ class MusicPlayerManager: ObservableObject {
         )
         self.youTubePlayer = YouTubePlayer(configuration: configuration)
 
-        setupBackgroundPlayer()
         setupPlayerObservation()
+    }
+
+    func startBackgroundPlayerIfNeeded() {
+        guard !hasSetupBackgroundPlayer else { return }
+        hasSetupBackgroundPlayer = true
+        setupBackgroundPlayer()
     }
 
     private func setupBackgroundPlayer() {
