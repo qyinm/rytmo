@@ -109,12 +109,12 @@ struct HomeView: View {
                         }
                     } else {
                         // Tasks Content
-                        VStack(alignment: .leading, spacing: 16) {
+                        ScrollView {
                             TodoListView(showHeader: false, compact: true)
                                 .padding()
-                            
-                            Spacer()
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     }
                 }
                 .frame(width: 320)

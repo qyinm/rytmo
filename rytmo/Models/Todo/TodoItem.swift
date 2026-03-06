@@ -35,11 +35,12 @@ class TodoItem {
     }
 
     func toggleCompletion() {
+        let previousCompletedAt = completedAt
         isCompleted.toggle()
         completedAt = isCompleted ? Date() : nil
-        if isCompleted && dueDate == nil {
-            dueDate = completedAt
+
+        if !isCompleted, let previousCompletedAt, dueDate == previousCompletedAt {
+            dueDate = nil
         }
     }
 }
-

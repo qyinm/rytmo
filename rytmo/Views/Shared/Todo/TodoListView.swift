@@ -105,7 +105,7 @@ struct TodoRowView: View {
                         .lineLimit(2)
                 }
 
-                if let dueDate = todo.dueDate {
+                if let dueDate = visibleDueDate {
                     HStack(spacing: 4) {
                         Image(systemName: isOverdue(dueDate) ? "calendar.badge.exclamationmark" : "calendar")
                             .font(.system(size: compact ? 10 : 12))
@@ -145,6 +145,16 @@ struct TodoRowView: View {
 
     // MARK: - Helper Methods
 
+    private var visibleDueDate: Date? {
+        guard let dueDate = todo.dueDate else { return nil }
+
+        if compact, todo.isCompleted, dueDate == todo.completedAt {
+            return nil
+        }
+
+        return dueDate
+    }
+
     private func isOverdue(_ date: Date) -> Bool {
         date < Date() && !todo.isCompleted
     }
@@ -160,4 +170,3 @@ struct TodoRowView: View {
         }
     }
 }
-
