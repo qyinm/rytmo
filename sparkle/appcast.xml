@@ -3,13 +3,13 @@
     <channel>
         <title>rytmo</title>
         <item>
-            <title>1.0.6</title>
-            <pubDate>Thu, 05 Mar 2026 14:18:04 +0900</pubDate>
-            <sparkle:version>15</sparkle:version>
-            <sparkle:shortVersionString>1.0.6</sparkle:shortVersionString>
+            <title>1.0.7</title>
+            <pubDate>Sat, 07 Mar 2026 00:34:14 +0900</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>1.0.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
-            <sparkle:releaseNotesLink>https://qyinm.github.io/rytmo/sparkle/release_notes/release_notes_1.0.6.html</sparkle:releaseNotesLink>
-            <enclosure url="https://qyinm.github.io/rytmo/sparkle/rytmo-1.0.6-15.zip" length="20970927" type="application/octet-stream" sparkle:edSignature="oQayj7Wo+6hKGaQe5hir1XmsVyYDqm3hXgbsc8ZUAsn9hzjfTyKRa1lPKdUqlhtssikjs3gwMc0jLCNqoVLfDw==" />
+            <sparkle:releaseNotesLink>https://qyinm.github.io/rytmo/sparkle/release_notes/release_notes_1.0.7.html</sparkle:releaseNotesLink>
+            <enclosure url="https://qyinm.github.io/rytmo/sparkle/rytmo-1.0.7-16.zip" length="20972438" type="application/octet-stream" sparkle:edSignature="dSHi0gespJ7C4aPeg6lEyJwbus96itfo1/MgGIWpqluda4wg5Ze558lJT+E4rfAUZbXfp2rT1v+TJ32QURfzCQ==" />
         </item>
     </channel>
 </rss>
