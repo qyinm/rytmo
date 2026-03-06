@@ -22,6 +22,10 @@ struct TodoListView: View {
     
     var showHeader: Bool = true
     var compact: Bool = false
+
+    private var visibleTodos: [TodoItem] {
+        todos.filter { !$0.isCompleted }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -31,7 +35,7 @@ struct TodoListView: View {
                         .font(.system(size: compact ? 14 : 18, weight: .bold))
                         .foregroundColor(.primary)
                     
-                    Text("\(todos.filter { !$0.isCompleted }.count)")
+                    Text("\(visibleTodos.count)")
                         .font(.system(size: compact ? 10 : 12, weight: .bold))
                         .padding(.horizontal, compact ? 6 : 8)
                         .padding(.vertical, 2)
@@ -44,12 +48,12 @@ struct TodoListView: View {
             }
             
             // Todo List
-            if todos.isEmpty {
+            if visibleTodos.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "checklist")
                         .font(.system(size: compact ? 24 : 32))
                         .foregroundColor(.secondary.opacity(0.3))
-                    Text("No tasks")
+                    Text("No open tasks")
                         .font(.system(size: compact ? 12 : 14))
                         .foregroundColor(.secondary)
                 }
@@ -57,10 +61,10 @@ struct TodoListView: View {
                 .padding(.vertical, compact ? 20 : 40)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(todos) { todo in
+                    ForEach(visibleTodos) { todo in
                         TodoRowView(todo: todo, compact: compact)
                         
-                        if todo.id != todos.last?.id {
+                        if todo.id != visibleTodos.last?.id {
                             Divider()
                                 .opacity(0.5)
                         }

@@ -301,14 +301,11 @@ struct NotchExpandedView: View {
             todos.filter { !$0.isCompleted }.count
         }
         
-        /// Sorted todos: incomplete first, then completed (preserving orderIndex within each group)
+        /// Active todos only, preserving orderIndex.
         private var sortedTodos: [TodoItem] {
-            todos.sorted {
-                if $0.isCompleted != $1.isCompleted {
-                    return !$0.isCompleted
-                }
-                return $0.orderIndex < $1.orderIndex
-            }
+            todos
+                .filter { !$0.isCompleted }
+                .sorted { $0.orderIndex < $1.orderIndex }
         }
 
         var body: some View {
@@ -459,8 +456,7 @@ struct NotchExpandedView: View {
                 HStack(spacing: 10) {
                     Button(action: {
                         withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
-                            todo.isCompleted.toggle()
-                            todo.completedAt = todo.isCompleted ? Date() : nil
+                            todo.toggleCompletion()
                         }
                     }) {
                         ZStack {

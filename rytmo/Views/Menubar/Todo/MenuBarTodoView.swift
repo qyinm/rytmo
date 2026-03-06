@@ -20,6 +20,10 @@ struct MenuBarTodoView: View {
     private var incompleteTodosCount: Int {
         todos.filter { !$0.isCompleted }.count
     }
+
+    private var activeTodos: [TodoItem] {
+        todos.filter { !$0.isCompleted }
+    }
     
     private var completionRate: Double {
         guard !todos.isEmpty else { return 0 }
@@ -135,7 +139,7 @@ struct MenuBarTodoView: View {
                     // Task List - Fixed Height ScrollView
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
-                            if todos.isEmpty {
+                            if activeTodos.isEmpty {
                                 // Minimal Empty State
                                 VStack(spacing: 14) {
                                     ZStack {
@@ -162,23 +166,18 @@ struct MenuBarTodoView: View {
                                 .padding(.vertical, 40)
                             } else {
                                 LazyVStack(spacing: 0) {
-                                    ForEach(Array(todos.prefix(12).enumerated()), id: \.element.id) { index, todo in
+                                    ForEach(Array(activeTodos.prefix(12).enumerated()), id: \.element.id) { index, todo in
                                         MinimalTodoRow(
                                             todo: todo,
                                             onToggle: {
-                                                todo.isCompleted.toggle()
-                                                if todo.isCompleted {
-                                                    todo.completedAt = Date()
-                                                } else {
-                                                    todo.completedAt = nil
-                                                }
+                                                todo.toggleCompletion()
                                             },
                                             onDelete: {
                                                 modelContext.delete(todo)
                                             }
                                         )
                                         
-                                        if index < min(todos.count, 12) - 1 {
+                                        if index < min(activeTodos.count, 12) - 1 {
                                             Rectangle()
                                                 .fill(Color.black.opacity(0.04))
                                                 .frame(height: 0.5)
@@ -192,7 +191,7 @@ struct MenuBarTodoView: View {
                     .frame(height: 220)
                     
                     // Bottom Bar
-                    if todos.count > 12 {
+                    if activeTodos.count > 12 {
                         VStack(spacing: 0) {
                             Rectangle()
                                 .fill(Color.black.opacity(0.06))
@@ -206,7 +205,7 @@ struct MenuBarTodoView: View {
                                     HStack(spacing: 6) {
                                         Text("View all")
                                             .font(.system(size: 11, weight: .medium))
-                                        Text("\(todos.count)")
+                                        Text("\(activeTodos.count)")
                                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                                             .padding(.horizontal, 5)
                                             .padding(.vertical, 2)
