@@ -10,7 +10,7 @@ import SwiftData
 import AmplitudeUnified
 import FirebaseCore
 import GoogleSignIn
-import UserNotifications
+@preconcurrency import UserNotifications
 
 @main
 struct rytmoApp: App {
@@ -81,33 +81,17 @@ struct rytmoApp: App {
     // MARK: - Body
 
     var body: some Scene {
-        // 1) Default Window Group (Dashboard)
-        WindowGroup(id: "main") {
-            ContentView()
-                .environmentObject(timerManager)
-                .environmentObject(settings)
-                .environmentObject(musicPlayer)
-                .environmentObject(authManager)
-                .tint(Color.primary.opacity(0.7))
-                .onOpenURL { url in
-                    // Handle Google Sign-In URL
-                    GIDSignIn.sharedInstance.handle(url)
-                }
-                .onAppear {
-                    musicPlayer.setModelContext(modelContainer.mainContext)
-                    musicPlayer.startBackgroundPlayerIfNeeded()
-                    timerManager.setModelContext(modelContainer.mainContext)
-                    updateManager.startUpdaterIfNeeded()
-                    
-                    // Setup Notch Window
-                    appDelegate.setupNotchWindow(
-                        timerManager: timerManager,
-                        settings: settings,
-                        musicPlayer: musicPlayer,
-                        authManager: authManager,
-                        modelContainer: modelContainer
-                    )
-                }
+        // 1) Main Dashboard Window (singleton)
+        Window("Rytmo", id: "main") {
+            MainDashboardSceneView(
+                timerManager: timerManager,
+                settings: settings,
+                musicPlayer: musicPlayer,
+                authManager: authManager,
+                updateManager: updateManager,
+                modelContainer: modelContainer,
+                appDelegate: appDelegate
+            )
         }
         // Window Size Settings
         .defaultSize(width: UIConstants.MainWindow.idealWidth,
@@ -115,6 +99,12 @@ struct rytmoApp: App {
         .modelContainer(modelContainer)
         // Sparkle, Add Update Menu
         .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("Show Dashboard") {
+                    appDelegate.showMainWindow()
+                }
+                .keyboardShortcut("n")
+            }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates") {
                     updateManager.checkForUpdates()
@@ -160,44 +150,107 @@ struct rytmoApp: App {
                         .font(.system(.body, design: .monospaced))
                 }
             }
-            // Add ReopenHandler here to always receive events
-            .background(ReopenHandler())
+            // Dock reopen is handled via MainWindowOpenerBridge registration on the main window
         }
         .menuBarExtraStyle(.window)
         */
     }
 }
 
-// MARK: - Reopen Handler
+// MARK: - Main Dashboard Scene
 
-struct ReopenHandler: View {
+struct MainDashboardSceneView: View {
+    let timerManager: PomodoroTimerManager
+    let settings: PomodoroSettings
+    let musicPlayer: MusicPlayerManager
+    let authManager: AuthManager
+    let updateManager: UpdateManager
+    let modelContainer: ModelContainer
+    let appDelegate: AppDelegate
+
     @Environment(\.openWindow) private var openWindow
     
     var body: some View {
-        EmptyView()
-            .onReceive(NotificationCenter.default.publisher(for: .reopenMainWindow)) { _ in
-                openWindow(id: "main")
+        ContentView()
+            .environmentObject(timerManager)
+            .environmentObject(settings)
+            .environmentObject(musicPlayer)
+            .environmentObject(authManager)
+            .tint(Color.primary.opacity(0.7))
+            .background(
+                MainWindowAccessor { window in
+                    appDelegate.registerMainWindow(window)
+                }
+            )
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
+            }
+            .onAppear {
+                appDelegate.registerMainWindowOpener {
+                    openWindow(id: "main")
+                }
+
+                musicPlayer.setModelContext(modelContainer.mainContext)
+                musicPlayer.startBackgroundPlayerIfNeeded()
+                timerManager.setModelContext(modelContainer.mainContext)
+                updateManager.startUpdaterIfNeeded()
+                
+                appDelegate.setupNotchWindow(
+                    timerManager: timerManager,
+                    settings: settings,
+                    musicPlayer: musicPlayer,
+                    authManager: authManager,
+                    modelContainer: modelContainer
+                )
             }
     }
 }
 
-// MARK: - Notification Extension
+private struct MainWindowAccessor: NSViewRepresentable {
+    let onResolve: (NSWindow) -> Void
 
-extension Notification.Name {
-    static let reopenMainWindow = Notification.Name("reopenMainWindow")
+    func makeNSView(context: Context) -> MainWindowTrackingView {
+        let view = MainWindowTrackingView()
+        view.onResolve = onResolve
+        return view
+    }
+
+    func updateNSView(_ nsView: MainWindowTrackingView, context: Context) {
+        nsView.onResolve = onResolve
+        DispatchQueue.main.async {
+            if let window = nsView.window {
+                onResolve(window)
+            }
+        }
+    }
+}
+
+private final class MainWindowTrackingView: NSView {
+    var onResolve: ((NSWindow) -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        if let window {
+            onResolve?(window)
+        }
+    }
 }
 
 // MARK: - App Delegate
 
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
-    
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("rytmo.mainWindow")
+
     private var notchViewModel: NotchViewModel?
     private var timerManagerRef: PomodoroTimerManager?
     private var settingsRef: PomodoroSettings?
     private var musicPlayerRef: MusicPlayerManager?
     private var authManagerRef: AuthManager?
     private var modelContainerRef: ModelContainer?
+    private var mainWindowController: NSWindowController?
+    private var openMainWindowAction: (() -> Void)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Firebase initialization moved to App's init, so removed
@@ -222,6 +275,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         authManager: AuthManager,
         modelContainer: ModelContainer
     ) {
+        guard notchViewModel == nil else { return }
+        
         self.timerManagerRef = timerManager
         self.settingsRef = settings
         self.musicPlayerRef = musicPlayer
@@ -241,33 +296,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         NotchWindowManager.shared.setup(with: notchContent)
     }
+    
+    func registerMainWindowOpener(_ action: @escaping () -> Void) {
+        openMainWindowAction = action
+    }
+    
+    func registerMainWindow(_ window: NSWindow) {
+        window.identifier = Self.mainWindowIdentifier
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        
+        if mainWindowController?.window !== window {
+            mainWindowController = NSWindowController(window: window)
+        }
+    }
+    
+    func showMainWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        
+        if let mainWindow = mainWindowController?.window {
+            mainWindowController?.showWindow(self)
+            mainWindow.makeKeyAndOrderFront(self)
+            return
+        }
+        
+        openMainWindowAction?()
+    }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         // Always bring app to front
         NSApp.activate(ignoringOtherApps: true)
-
-        // Check if we have any relevant windows to show (excluding background/hidden windows)
-        // The background player window has isExcludedFromWindowsMenu = true
-        // Also filter out windows that cannot become key (like Status Bar windows) to avoid warnings
-        let validWindows = sender.windows.filter { 
-            !$0.isExcludedFromWindowsMenu && 
-            $0.isVisible && 
-            $0.canBecomeKey 
+        
+        let visibleUserWindows = sender.windows.filter {
+            !$0.isExcludedFromWindowsMenu &&
+            !($0 is NSPanel) &&
+            $0.isVisible
         }
         
-        if validWindows.isEmpty {
-            // No valid windows found. We need to open a new one.
-            // Since we can't directly open a SwiftUI WindowGroup from AppDelegate,
-            // and the system might think the app is already open due to the background window,
-            // we post a notification that the MenuBarExtra (which is always alive) will listen to.
-            NotificationCenter.default.post(name: .reopenMainWindow, object: nil)
+        if visibleUserWindows.isEmpty {
+            showMainWindow()
             return true
-        } else {
-            for window in validWindows {
-                window.makeKeyAndOrderFront(self)
-            }
-            return false // We handled it
         }
+        
+        for window in visibleUserWindows {
+            window.makeKeyAndOrderFront(self)
+        }
+        return false
+    }
+    
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard sender.identifier == Self.mainWindowIdentifier else { return true }
+        sender.orderOut(nil)
+        return false
     }
 
     private func setupGoogleSignIn() {

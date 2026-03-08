@@ -64,6 +64,7 @@ class NotchWindowManager: NSObject, ObservableObject {
         panel.isMovableByWindowBackground = false
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
+        panel.isExcludedFromWindowsMenu = true
         
         let hostingView = NSHostingView(rootView: content)
         panel.contentView = hostingView
