@@ -29,8 +29,8 @@ class CalendarManager: ObservableObject {
     let eventStore = EKEventStore()
     let googleManager = GoogleCalendarManager.shared
     
-    @Published var mergedEvents: [CalendarEventProtocol] = []
-    @Published var systemEvents: [CalendarEventProtocol] = []
+    private var mergedEvents: [CalendarEventProtocol] = []
+    private var systemEvents: [CalendarEventProtocol] = []
     @Published var isAuthorized: Bool = false
     
     @Published var currentReferenceDate: Date = Date()
@@ -51,6 +51,7 @@ class CalendarManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var systemFetchTask: Task<Void, Never>?
     private var aggregateDebounceTask: Task<Void, Never>?
+    private var suppressSystemStoreRefreshUntil: Date?
     
     private init() {
         setupObservers()
@@ -63,6 +64,9 @@ class CalendarManager: ObservableObject {
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 Task { @MainActor in
+                    if self.shouldSuppressSystemStoreRefresh() {
+                        return
+                    }
                     self.fetchSystemEvents(date: self.currentReferenceDate)
                 }
             }
@@ -70,11 +74,6 @@ class CalendarManager: ObservableObject {
             
         // Trigger aggregation when any source changes
         googleManager.$events
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.aggregateEvents() }
-            .store(in: &cancellables)
-            
-        $systemEvents
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.aggregateEvents() }
             .store(in: &cancellables)
@@ -155,9 +154,28 @@ class CalendarManager: ObservableObject {
             }.value
             
             if !Task.isCancelled {
+                guard !self.matchesCurrentSystemEvents(events) else { return }
                 self.systemEvents = events
+                self.aggregateEvents()
             }
         }
+    }
+
+    private func shouldSuppressSystemStoreRefresh(now: Date = Date()) -> Bool {
+        guard let suppressedUntil = suppressSystemStoreRefreshUntil else {
+            return false
+        }
+
+        if suppressedUntil > now {
+            return true
+        }
+
+        suppressSystemStoreRefreshUntil = nil
+        return false
+    }
+
+    private func suppressUpcomingSystemStoreRefresh(for interval: TimeInterval = 1.0) {
+        suppressSystemStoreRefreshUntil = Date().addingTimeInterval(interval)
     }
     
     private func aggregateEvents() {
@@ -344,6 +362,45 @@ class CalendarManager: ObservableObject {
         
         self.calendarGroups = groups
     }
+
+    private func matchesCurrentSystemEvents(_ events: [CalendarEventProtocol]) -> Bool {
+        guard systemEvents.count == events.count else { return false }
+        return zip(systemEvents, events).allSatisfy { lhs, rhs in
+            lhs.eventIdentifier == rhs.eventIdentifier &&
+            lhs.eventTitle == rhs.eventTitle &&
+            lhs.eventStartDate == rhs.eventStartDate &&
+            lhs.eventEndDate == rhs.eventEndDate &&
+            lhs.isAllDay == rhs.isAllDay &&
+            lhs.eventLocation == rhs.eventLocation &&
+            lhs.eventNotes == rhs.eventNotes &&
+            lhs.calendarId == rhs.calendarId
+        }
+    }
+
+    private func removeSystemEventFromCache(eventId: String) {
+        let filteredEvents = systemEvents.filter { $0.eventIdentifier != eventId }
+        guard filteredEvents.count != systemEvents.count else { return }
+        systemEvents = filteredEvents
+        aggregateEventsImmediate()
+    }
+
+    private func upsertSystemEventInCache(
+        _ event: CalendarEventProtocol,
+        replacing originalEventId: String? = nil
+    ) {
+        let idsToReplace = Set([originalEventId, event.eventIdentifier].compactMap { $0 })
+        systemEvents.removeAll { idsToReplace.contains($0.eventIdentifier) }
+        systemEvents.append(event)
+        systemEvents.sort {
+            let lhsStart = $0.eventStartDate ?? .distantPast
+            let rhsStart = $1.eventStartDate ?? .distantPast
+            if lhsStart != rhsStart {
+                return lhsStart < rhsStart
+            }
+            return $0.eventIdentifier < $1.eventIdentifier
+        }
+        aggregateEventsImmediate()
+    }
     
     // MARK: - Create Event
     
@@ -367,7 +424,8 @@ class CalendarManager: ObservableObject {
     ) async throws {
         switch calendarInfo.type {
         case .system:
-            try await createSystemEvent(
+            suppressUpcomingSystemStoreRefresh()
+            let createdEvent = try await createSystemEvent(
                 title: title,
                 startDate: startDate,
                 endDate: endDate,
@@ -376,6 +434,7 @@ class CalendarManager: ObservableObject {
                 location: location,
                 notes: notes
             )
+            upsertSystemEventInCache(createdEvent)
         case .google:
             try await googleManager.createEvent(
                 calendarId: calendarInfo.id,
@@ -387,9 +446,6 @@ class CalendarManager: ObservableObject {
                 notes: notes
             )
         }
-        
-        // Refresh events after creation
-        refresh(date: startDate)
     }
     
     /// Creates an event in the System (Apple) Calendar using EventKit
@@ -401,7 +457,7 @@ class CalendarManager: ObservableObject {
         calendarId: String,
         location: String?,
         notes: String?
-    ) async throws {
+    ) async throws -> SystemCalendarEvent {
         guard isAuthorized else {
             throw CalendarCreationError.notAuthorized
         }
@@ -428,6 +484,7 @@ class CalendarManager: ObservableObject {
         do {
             try eventStore.save(event, span: .thisEvent)
             print("✅ System Calendar event created successfully: \(title)")
+            return SystemCalendarEvent(event: event)
         } catch {
             print("❌ Failed to create System Calendar event: \(error.localizedDescription)")
             throw CalendarCreationError.saveFailed(error.localizedDescription)
@@ -449,7 +506,8 @@ class CalendarManager: ObservableObject {
     ) async throws {
         switch event.sourceName {
         case "System":
-            try await updateSystemEvent(
+            suppressUpcomingSystemStoreRefresh()
+            let updatedEvent = try await updateSystemEvent(
                 eventId: event.eventIdentifier,
                 title: title,
                 startDate: startDate,
@@ -459,6 +517,7 @@ class CalendarManager: ObservableObject {
                 location: location,
                 notes: notes
             )
+            upsertSystemEventInCache(updatedEvent, replacing: event.eventIdentifier)
         case "Google":
             // For Google, if calendar changed we need to move the event
             let targetCalendarId = calendarInfo.id
@@ -477,8 +536,6 @@ class CalendarManager: ObservableObject {
         default:
             throw CalendarCreationError.saveFailed("Unknown event source")
         }
-        
-        refresh(date: startDate)
     }
     
     private func updateSystemEvent(
@@ -490,7 +547,7 @@ class CalendarManager: ObservableObject {
         calendarId: String,
         location: String?,
         notes: String?
-    ) async throws {
+    ) async throws -> SystemCalendarEvent {
         guard isAuthorized else {
             throw CalendarCreationError.notAuthorized
         }
@@ -514,6 +571,7 @@ class CalendarManager: ObservableObject {
         do {
             try eventStore.save(event, span: .thisEvent)
             print("✅ System Calendar event updated: \(title)")
+            return SystemCalendarEvent(event: event)
         } catch {
             throw CalendarCreationError.saveFailed(error.localizedDescription)
         }
@@ -525,7 +583,9 @@ class CalendarManager: ObservableObject {
     func deleteEvent(event: CalendarEventProtocol) async throws {
         switch event.sourceName {
         case "System":
+            suppressUpcomingSystemStoreRefresh()
             try await deleteSystemEvent(eventId: event.eventIdentifier)
+            removeSystemEventFromCache(eventId: event.eventIdentifier)
         case "Google":
             guard let calendarId = event.calendarId else {
                 throw CalendarCreationError.calendarNotFound
@@ -537,8 +597,6 @@ class CalendarManager: ObservableObject {
         default:
             throw CalendarCreationError.saveFailed("Unknown event source")
         }
-        
-        refresh(date: currentReferenceDate)
     }
     
     private func deleteSystemEvent(eventId: String) async throws {

@@ -488,6 +488,39 @@ class GoogleCalendarManager: ObservableObject {
         
         return allEvents
     }
+
+    private func removeCachedEvent(eventId: String) {
+        let filteredEvents = events.filter { $0.eventIdentifier != eventId }
+        guard filteredEvents.count != events.count else { return }
+        events = filteredEvents
+        saveEventsToCache(filteredEvents)
+    }
+
+    private func upsertCachedEvent(
+        _ event: GoogleCalendarEvent,
+        replacing originalEventId: String? = nil
+    ) {
+        let idsToReplace = Set([originalEventId, event.eventIdentifier].compactMap { $0 })
+        var filteredEvents = events.filter { !idsToReplace.contains($0.eventIdentifier) }
+        filteredEvents.append(event)
+        filteredEvents.sort {
+            let lhsStart = $0.eventStartDate ?? .distantPast
+            let rhsStart = $1.eventStartDate ?? .distantPast
+            if lhsStart != rhsStart {
+                return lhsStart < rhsStart
+            }
+            return $0.eventIdentifier < $1.eventIdentifier
+        }
+        events = filteredEvents
+        saveEventsToCache(filteredEvents)
+    }
+
+    private func decorateEvent(_ event: GoogleCalendarEvent, calendarId: String) -> GoogleCalendarEvent {
+        var decoratedEvent = event
+        decoratedEvent.storedCalendarId = calendarId
+        decoratedEvent.storedCalendarColorHex = availableCalendars.first(where: { $0.id == calendarId })?.hexColorString ?? "#4285F4"
+        return decoratedEvent
+    }
     
     // MARK: - Create Event
     
@@ -567,8 +600,8 @@ class GoogleCalendarManager: ObservableObject {
         switch httpResponse.statusCode {
         case 200, 201:
             print("✅ Google Calendar event created successfully")
-            // Refresh events to show the new event
-            fetchEvents(date: startDate)
+            let createdEvent = try JSONDecoder().decode(GoogleCalendarEvent.self, from: data)
+            upsertCachedEvent(decorateEvent(createdEvent, calendarId: calendarId))
         case 401:
             self.isAuthorized = false
             throw GoogleCalendarError.unauthorized
@@ -648,7 +681,11 @@ class GoogleCalendarManager: ObservableObject {
         switch httpResponse.statusCode {
         case 200:
             print("✅ Google Calendar event updated successfully")
-            fetchEvents(date: startDate)
+            let updatedEvent = try JSONDecoder().decode(GoogleCalendarEvent.self, from: data)
+            upsertCachedEvent(
+                decorateEvent(updatedEvent, calendarId: calendarId),
+                replacing: eventId
+            )
         case 401:
             self.isAuthorized = false
             throw GoogleCalendarError.unauthorized
@@ -692,7 +729,7 @@ class GoogleCalendarManager: ObservableObject {
         switch httpResponse.statusCode {
         case 204, 200:
             print("✅ Google Calendar event deleted successfully")
-            fetchEvents(date: Date())
+            removeCachedEvent(eventId: eventId)
         case 401:
             self.isAuthorized = false
             throw GoogleCalendarError.unauthorized
