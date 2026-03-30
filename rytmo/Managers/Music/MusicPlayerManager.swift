@@ -115,6 +115,20 @@ class MusicPlayerManager: ObservableObject {
     private var backgroundWindow: NSWindow?
     private var hasSetupBackgroundPlayer = false
     private var volumeBeforeMute: Double?
+    private static let videoIdRegexes: [NSRegularExpression] = [
+        try! NSRegularExpression(
+            pattern: #"(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})"#,
+            options: []
+        ),
+        try! NSRegularExpression(
+            pattern: #"^([a-zA-Z0-9_-]{11})$"#,
+            options: []
+        )
+    ]
+    private static let playlistIdRegex = try! NSRegularExpression(
+        pattern: #"(?:list=)([a-zA-Z0-9_-]+)"#,
+        options: []
+    )
 
     // MARK: - Initialization
 
@@ -248,19 +262,8 @@ class MusicPlayerManager: ObservableObject {
     // MARK: - YouTube URL Parsing
 
     static func extractVideoId(from urlString: String) -> String? {
-        // Pattern 1: youtube.com/watch?v=ID
-        // Pattern 2: youtu.be/ID
-        // Pattern 3: youtube.com/embed/ID
-        // Pattern 4: youtube.com/v/ID
-
-        let patterns = [
-            #"(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})"#,
-            #"^([a-zA-Z0-9_-]{11})$"# // Direct video ID
-        ]
-
-        for pattern in patterns {
-            if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-               let match = regex.firstMatch(in: urlString, options: [], range: NSRange(urlString.startIndex..., in: urlString)),
+        for regex in videoIdRegexes {
+            if let match = regex.firstMatch(in: urlString, options: [], range: NSRange(urlString.startIndex..., in: urlString)),
                let range = Range(match.range(at: 1), in: urlString) {
                 return String(urlString[range])
             }
@@ -270,11 +273,7 @@ class MusicPlayerManager: ObservableObject {
     }
 
     static func extractPlaylistId(from urlString: String) -> String? {
-        // Pattern: list=ID
-        let pattern = #"(?:list=)([a-zA-Z0-9_-]+)"#
-        
-        if let regex = try? NSRegularExpression(pattern: pattern, options: []),
-           let match = regex.firstMatch(in: urlString, options: [], range: NSRange(urlString.startIndex..., in: urlString)),
+        if let match = playlistIdRegex.firstMatch(in: urlString, options: [], range: NSRange(urlString.startIndex..., in: urlString)),
            let range = Range(match.range(at: 1), in: urlString) {
             return String(urlString[range])
         }

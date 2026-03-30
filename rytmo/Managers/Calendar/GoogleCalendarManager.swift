@@ -19,6 +19,28 @@ private enum GoogleCalendarAPI {
     static let cancelledErrorCode = -5
 }
 
+private enum GoogleCalendarDateParser {
+    private static let lock = NSLock()
+    private static let isoFormatter = ISO8601DateFormatter()
+    private static let allDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    static func parse(dateTime: String?, date: String?) -> Date? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let dateTime {
+            return isoFormatter.date(from: dateTime)
+        }
+        if let date {
+            return allDayFormatter.date(from: date)
+        }
+        return nil
+    }
+}
+
 @MainActor
 class GoogleCalendarManager: ObservableObject {
     static let shared = GoogleCalendarManager()
@@ -45,6 +67,12 @@ class GoogleCalendarManager: ObservableObject {
     private let syncInterval: TimeInterval = 300
     /// Maximum number of events to cache (prevents memory issues for busy users)
     private let maxCachedEvents = 5000
+    private static let eventDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+    private static let eventISOFormatter = ISO8601DateFormatter()
     
     private init() {
         loadCalendarsFromCache()
@@ -398,9 +426,8 @@ class GoogleCalendarManager: ObservableObject {
             return
         }
         
-        let isoFormatter = ISO8601DateFormatter()
-        let timeMin = isoFormatter.string(from: startDate)
-        let timeMax = isoFormatter.string(from: endDate)
+        let timeMin = Self.eventISOFormatter.string(from: startDate)
+        let timeMax = Self.eventISOFormatter.string(from: endDate)
         
         let calendarsToFetch = availableCalendars.isEmpty ? [CalendarInfo(id: "primary", title: "Primary", color: .blue, sourceTitle: "", type: .google)] : availableCalendars
         
@@ -424,11 +451,52 @@ class GoogleCalendarManager: ObservableObject {
             return results
         }
         
-        self.events = allEvents
-        self.saveEventsToCache(allEvents)
+        let normalizedEvents = normalizeEvents(allEvents)
+        if !matchesCurrentEvents(normalizedEvents) {
+            self.events = normalizedEvents
+            self.saveEventsToCache(normalizedEvents)
+        }
         self.isLoading = false
         self.error = nil
-        print("✅ Fetched \(allEvents.count) Google events for 6 months from \(calendarsToFetch.count) calendars")
+        print("✅ Fetched \(normalizedEvents.count) Google events for 6 months from \(calendarsToFetch.count) calendars")
+    }
+
+    private func normalizeEvents(_ events: [GoogleCalendarEvent]) -> [GoogleCalendarEvent] {
+        var seenKeys = Set<String>()
+        var deduped: [GoogleCalendarEvent] = []
+        deduped.reserveCapacity(events.count)
+
+        for event in events {
+            let key = "\(event.calendarId ?? ""):\(event.eventIdentifier)"
+            if seenKeys.insert(key).inserted {
+                deduped.append(event)
+            }
+        }
+
+        deduped.sort {
+            let lhsStart = $0.eventStartDate ?? .distantPast
+            let rhsStart = $1.eventStartDate ?? .distantPast
+            if lhsStart != rhsStart {
+                return lhsStart < rhsStart
+            }
+            return $0.eventIdentifier < $1.eventIdentifier
+        }
+
+        return deduped
+    }
+
+    private func matchesCurrentEvents(_ candidate: [GoogleCalendarEvent]) -> Bool {
+        guard events.count == candidate.count else { return false }
+        return zip(events, candidate).allSatisfy { lhs, rhs in
+            lhs.eventIdentifier == rhs.eventIdentifier &&
+            lhs.eventTitle == rhs.eventTitle &&
+            lhs.eventStartDate == rhs.eventStartDate &&
+            lhs.eventEndDate == rhs.eventEndDate &&
+            lhs.isAllDay == rhs.isAllDay &&
+            lhs.eventLocation == rhs.eventLocation &&
+            lhs.eventNotes == rhs.eventNotes &&
+            lhs.calendarId == rhs.calendarId
+        }
     }
     
     private func fetchEventsForCalendar(cal: CalendarInfo, accessToken: String, timeMin: String, timeMax: String) async -> [GoogleCalendarEvent] {
@@ -559,22 +627,18 @@ class GoogleCalendarManager: ObservableObject {
         }
         
         // Build request body
-        let isoFormatter = ISO8601DateFormatter()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
         var eventBody: [String: Any] = [
             "summary": title
         ]
-        
+
         if isAllDay {
-            eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
+            eventBody["start"] = ["date": Self.eventDateFormatter.string(from: startDate)]
             // Google Calendar API uses exclusive end date for all-day events
             let exclusiveEndDate = Calendar.current.date(byAdding: .day, value: 1, to: endDate)!
-            eventBody["end"] = ["date": dateFormatter.string(from: exclusiveEndDate)]
+            eventBody["end"] = ["date": Self.eventDateFormatter.string(from: exclusiveEndDate)]
         } else {
-            eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
-            eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]
+            eventBody["start"] = ["dateTime": Self.eventISOFormatter.string(from: startDate)]
+            eventBody["end"] = ["dateTime": Self.eventISOFormatter.string(from: endDate)]
         }
         
         if let location = location, !location.isEmpty {
@@ -642,20 +706,16 @@ class GoogleCalendarManager: ObservableObject {
             throw GoogleCalendarError.invalidURL
         }
         
-        let isoFormatter = ISO8601DateFormatter()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
         var eventBody: [String: Any] = ["summary": title]
-        
+
         if isAllDay {
-            eventBody["start"] = ["date": dateFormatter.string(from: startDate)]
+            eventBody["start"] = ["date": Self.eventDateFormatter.string(from: startDate)]
             // Google Calendar API uses exclusive end date for all-day events
             let exclusiveEndDate = Calendar.current.date(byAdding: .day, value: 1, to: endDate)!
-            eventBody["end"] = ["date": dateFormatter.string(from: exclusiveEndDate)]
+            eventBody["end"] = ["date": Self.eventDateFormatter.string(from: exclusiveEndDate)]
         } else {
-            eventBody["start"] = ["dateTime": isoFormatter.string(from: startDate)]
-            eventBody["end"] = ["dateTime": isoFormatter.string(from: endDate)]
+            eventBody["start"] = ["dateTime": Self.eventISOFormatter.string(from: startDate)]
+            eventBody["end"] = ["dateTime": Self.eventISOFormatter.string(from: endDate)]
         }
         
         if let location = location, !location.isEmpty {
@@ -864,18 +924,34 @@ struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
 struct GoogleCalendarTime: Codable {
     let dateTime: String?
     let date: String?
+    private let parsedDateValue: Date?
+
+    init(dateTime: String?, date: String?) {
+        self.dateTime = dateTime
+        self.date = date
+        self.parsedDateValue = GoogleCalendarDateParser.parse(dateTime: dateTime, date: date)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let dateTime = try container.decodeIfPresent(String.self, forKey: .dateTime)
+        let date = try container.decodeIfPresent(String.self, forKey: .date)
+        self.init(dateTime: dateTime, date: date)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(dateTime, forKey: .dateTime)
+        try container.encodeIfPresent(date, forKey: .date)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case dateTime
+        case date
+    }
     
     var dateValue: Date? {
-        let formatter = ISO8601DateFormatter()
-        if let dateTime = dateTime {
-            return formatter.date(from: dateTime)
-        } else if let date = date {
-            // All-day event
-            let dayFormatter = DateFormatter()
-            dayFormatter.dateFormat = "yyyy-MM-dd"
-            return dayFormatter.date(from: date)
-        }
-        return nil
+        parsedDateValue
     }
 }
 

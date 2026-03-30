@@ -10,10 +10,12 @@ import AppKit
 import Combine
 
 /// Singleton manager for image caching
+@MainActor
 final class ImageCacheManager {
     static let shared = ImageCacheManager()
 
     private let cache = NSCache<NSURL, NSImage>()
+    private var inFlightTasks: [URL: Task<NSImage?, Never>] = [:]
 
     private init() {
         // Memory limit setting (approx. 50MB)
@@ -34,6 +36,40 @@ final class ImageCacheManager {
     /// Clear cache
     func clear() {
         cache.removeAllObjects()
+        inFlightTasks.values.forEach { $0.cancel() }
+        inFlightTasks.removeAll()
+    }
+
+    /// Load image with in-flight request deduplication.
+    func loadImage(url: URL) async -> NSImage? {
+        if let cached = get(url: url) {
+            return cached
+        }
+
+        if let existingTask = inFlightTasks[url] {
+            return await existingTask.value
+        }
+
+        let task = Task<NSImage?, Never> {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard !Task.isCancelled else { return nil }
+                return NSImage(data: data)
+            } catch {
+                print("Failed to load image: \(error.localizedDescription)")
+                return nil
+            }
+        }
+
+        inFlightTasks[url] = task
+        let downloaded = await task.value
+        inFlightTasks[url] = nil
+
+        if let downloaded {
+            set(downloaded, for: url)
+        }
+
+        return downloaded
     }
 }
 
@@ -44,10 +80,15 @@ final class ImageLoader: ObservableObject {
 
     private let url: URL
     private let cache = ImageCacheManager.shared
+    private var loadTask: Task<Void, Never>?
 
     init(url: URL) {
         self.url = url
         loadImage()
+    }
+
+    deinit {
+        loadTask?.cancel()
     }
 
     @MainActor
@@ -61,19 +102,12 @@ final class ImageLoader: ObservableObject {
         // Download if not in cache
         isLoading = true
 
-        Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-
-                if let downloadedImage = NSImage(data: data) {
-                    // Save to cache
-                    cache.set(downloadedImage, for: url)
-
-                    self.image = downloadedImage
-                }
-            } catch {
-                print("Failed to load image: \(error.localizedDescription)")
-            }
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            let downloadedImage = await cache.loadImage(url: url)
+            guard !Task.isCancelled else { return }
+            self.image = downloadedImage
             self.isLoading = false
         }
     }
