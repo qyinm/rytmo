@@ -267,23 +267,15 @@ struct DashboardView: View {
                     MusicPlayerBar()
                 }
                 .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        Button {
-                            toggleSidebar()
-                        } label: {
-                            Image(systemName: "sidebar.left")
+                    if selection != .home {
+                        ToolbarItem(placement: .principal) {
+                            Text(sectionTitle)
+                                .font(.headline)
                         }
-                        .help("Toggle sidebar")
-                        .accessibilityLabel("Toggle sidebar")
-                    }
 
-                    ToolbarItem(placement: .principal) {
-                        Text(sectionTitle)
-                            .font(.headline)
-                    }
-
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        toolbarPrimaryAction
+                        ToolbarItemGroup(placement: .primaryAction) {
+                            toolbarPrimaryAction
+                        }
                     }
                 }
             }
@@ -336,14 +328,7 @@ struct DashboardView: View {
             }
             .help("Browse playlists")
         case .home:
-            Button(timerManager.session.isRunning ? "Pause" : "Start") {
-                if timerManager.session.isRunning {
-                    timerManager.pause()
-                } else {
-                    timerManager.start()
-                }
-            }
-            .help(timerManager.session.isRunning ? "Pause focus timer" : "Start focus timer")
+            EmptyView()
         case .settings, .none:
             Button("Settings") {
                 openSettings()
