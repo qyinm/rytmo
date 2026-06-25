@@ -25,6 +25,8 @@ struct SidebarCalendarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Previous month")
+                    .help("Previous month")
                     
                     Button(action: { changeMonth(by: 1) }) {
                         Image(systemName: "chevron.right")
@@ -32,6 +34,8 @@ struct SidebarCalendarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Next month")
+                    .help("Next month")
                 }
             }
             .padding(.horizontal, 8)

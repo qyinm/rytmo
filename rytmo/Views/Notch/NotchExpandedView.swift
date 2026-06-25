@@ -363,6 +363,8 @@ struct NotchExpandedView: View {
                             .background(Circle().fill(Color.black))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Add task")
+                    .help("Add a new task")
 
                     if incompleteCount > 0 {
                         Text("\(incompleteCount)")
@@ -513,6 +515,8 @@ struct NotchExpandedView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(todo.isCompleted ? "Mark incomplete" : "Mark complete")
+                    .help(todo.isCompleted ? "Mark incomplete" : "Mark complete")
 
                     Text(todo.title)
                         .font(.system(size: 13, weight: .medium))

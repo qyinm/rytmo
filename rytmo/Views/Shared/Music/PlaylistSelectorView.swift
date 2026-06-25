@@ -101,6 +101,7 @@ struct PlaylistSelectorView: View {
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
+        .accessibilityLabel(isSelected ? "Selected playlist \(playlist.name)" : "Select playlist \(playlist.name)")
         .help(playlist.name)
         .contextMenu {
             Button(role: .destructive) {
@@ -130,6 +131,8 @@ struct PlaylistSelectorView: View {
         }
         .buttonStyle(.plain)
         .contentShape(Circle())
+        .accessibilityLabel("Add playlist")
+        .help("Add playlist")
         .popover(isPresented: $showingAddPlaylist) {
             addPlaylistPopover
         }

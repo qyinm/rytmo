@@ -479,6 +479,8 @@ private struct CustomCalendarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Previous month")
+                    .help("Previous month")
                     
                     Button(action: { changeMonth(by: 1) }) {
                         Image(systemName: "chevron.right")
@@ -486,6 +488,8 @@ private struct CustomCalendarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Next month")
+                    .help("Next month")
                 }
             }
             .padding(.horizontal, 8)

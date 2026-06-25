@@ -67,6 +67,8 @@ struct MenuBarSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+                .help("Back")
             }
             
             Text("Settings")
