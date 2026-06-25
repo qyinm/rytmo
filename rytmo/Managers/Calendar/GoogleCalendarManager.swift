@@ -325,7 +325,7 @@ class GoogleCalendarManager: ObservableObject {
     // MARK: - Disconnect
     
     /// Disconnect Google Calendar integration (without signing out of Google account)
-    func disconnect() {
+    func disconnect(clearCache shouldClearCache: Bool = true) {
         fetchGeneration += 1
         fetchTask?.cancel()
         fetchTask = nil
@@ -338,7 +338,9 @@ class GoogleCalendarManager: ObservableObject {
         events = []
         availableCalendars = []
         error = nil
-        clearCache()
+        if shouldClearCache {
+            clearCache()
+        }
         print("ℹ️ Google Calendar disconnected")
     }
 

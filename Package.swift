@@ -59,6 +59,15 @@ let package = Package(
                 .defaultIsolation(MainActor.self),
                 .enableUpcomingFeature("MemberImportVisibility")
             ]
+        ),
+        .testTarget(
+            name: "rytmoTests",
+            dependencies: ["rytmo"],
+            path: "Tests/rytmoTests",
+            swiftSettings: [
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("MemberImportVisibility")
+            ]
         )
     ],
     swiftLanguageModes: [.v6]
