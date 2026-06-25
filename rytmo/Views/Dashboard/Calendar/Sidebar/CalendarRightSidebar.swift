@@ -1,5 +1,4 @@
 import SwiftUI
-import MapKit
 import SwiftData
 
 private enum CalendarRightPanelMode: Equatable {
@@ -33,10 +32,6 @@ struct CalendarRightSidebar: View {
     @State private var showEndTimePicker: Bool = false
     @State private var showStartDatePicker: Bool = false
     @State private var showEndDatePicker: Bool = false
-
-    @StateObject private var locationSearchManager = LocationSearchManager()
-    @FocusState private var isLocationFocused: Bool
-    @State private var showLocationResults: Bool = false
 
     @State private var selectedCalendar: CalendarInfo = CalendarInfo(
         id: "",
@@ -561,71 +556,8 @@ struct CalendarRightSidebar: View {
         }
     }
 
-    @ViewBuilder
     private var locationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Location")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            ZStack(alignment: .topLeading) {
-                TextField("Add Location", text: $location)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.primary.opacity(0.05))
-                    )
-                    .focused($isLocationFocused)
-                    .onChange(of: location) { _, newValue in
-                        locationSearchManager.queryFragment = newValue
-                        showLocationResults = !newValue.isEmpty
-                    }
-
-                if isLocationFocused && showLocationResults && !locationSearchManager.results.isEmpty {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(locationSearchManager.results, id: \.self) { result in
-                                Button {
-                                    location = result.title
-                                    showLocationResults = false
-                                    isLocationFocused = false
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(result.title)
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.primary)
-                                        if !result.subtitle.isEmpty {
-                                            Text(result.subtitle)
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                    .padding(.horizontal, 12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    .frame(maxHeight: 200)
-                    .background(colorScheme == .dark ? Color(nsColor: .windowBackgroundColor) : Color.white)
-                    .cornerRadius(6)
-                    .shadow(radius: 4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
-                    )
-                    .offset(y: 35)
-                    .zIndex(10)
-                }
-            }
-            .zIndex(10)
-        }
-        .zIndex(10)
+        EventLocationField(location: $location)
     }
 
     @ViewBuilder

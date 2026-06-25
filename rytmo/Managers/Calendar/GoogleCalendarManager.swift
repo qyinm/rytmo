@@ -9,7 +9,6 @@ import EventKit
 
 private enum GoogleCalendarAPI {
     static let scope = "https://www.googleapis.com/auth/calendar"
-    static let baseURL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
     static let calendarListURL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
     static func eventsURL(calendarId: String) -> String {
         let encodedId = calendarId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? calendarId
@@ -17,28 +16,6 @@ private enum GoogleCalendarAPI {
     }
     static let signInErrorDomain = "com.google.GIDSignIn"
     static let cancelledErrorCode = -5
-}
-
-private enum GoogleCalendarDateParser {
-    private static let lock = NSLock()
-    private static let isoFormatter = ISO8601DateFormatter()
-    private static let allDayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-
-    static func parse(dateTime: String?, date: String?) -> Date? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let dateTime {
-            return isoFormatter.date(from: dateTime)
-        }
-        if let date {
-            return allDayFormatter.date(from: date)
-        }
-        return nil
-    }
 }
 
 @MainActor
@@ -960,160 +937,5 @@ enum GoogleCalendarError: LocalizedError {
         case .apiError(let statusCode, let message):
             return "API Error (\(statusCode)): \(message)"
         }
-    }
-}
-
-// MARK: - Models for Google Calendar API
-
-struct GoogleCalendarListResource: Codable {
-    let items: [GoogleCalendarListItem]?
-}
-
-struct GoogleCalendarListItem: Codable {
-    let id: String
-    let summary: String?
-    let backgroundColor: String?
-}
-
-struct GoogleCalendarListResponse: Codable {
-    let items: [GoogleCalendarEvent]?
-}
-
-struct GoogleCalendarPaginatedResponse: Codable {
-    let items: [GoogleCalendarEvent]?
-    let nextPageToken: String?
-}
-
-struct GoogleCalendarEvent: Codable, CalendarEventProtocol {
-    let id: String
-    let summary: String?
-    let start: GoogleCalendarTime?
-    let end: GoogleCalendarTime?
-    let htmlLink: String?
-    let colorId: String?
-    let location: String?
-    let description: String?
-    
-    // Calendar Info is set after decoding and persisted
-    var storedCalendarId: String?
-    var storedCalendarColorHex: String?
-    
-    // Legacy property for runtime backward compatibility if needed, but we rely on hex now
-    var storedCalendarColor: Color? {
-        if let hex = storedCalendarColorHex {
-            return Color(hex: hex)
-        }
-        return nil
-    }
-    
-    enum CodingKeys: String, CodingKey {
-        case id, summary, start, end, htmlLink, colorId, location, description
-        case storedCalendarId, storedCalendarColorHex
-    }
-    
-    var eventIdentifier: String { id }
-    var eventTitle: String? { summary }
-    var eventStartDate: Date? { start?.dateValue }
-    
-    // For all-day events, Google returns exclusive end date (next day)
-    // We convert it to inclusive end date (same day) for app display
-    var eventEndDate: Date? {
-        guard let date = end?.dateValue else { return nil }
-        
-        if isAllDay {
-            return Calendar.current.date(byAdding: .day, value: -1, to: date)
-        }
-        
-        return date
-    }
-    
-    var eventColor: Color {
-        if let colorId = colorId {
-            switch colorId {
-            case "1": return Color(hex: "#7986cb") // Lavender
-            case "2": return Color(hex: "#33b679") // Sage
-            case "3": return Color(hex: "#8e24aa") // Grape
-            case "4": return Color(hex: "#e67c73") // Flamingo
-            case "5": return Color(hex: "#f6c026") // Banana
-            case "6": return Color(hex: "#f5511d") // Tangerine
-            case "7": return Color(hex: "#039be5") // Peacock
-            case "8": return Color(hex: "#616161") // Graphite
-            case "9": return Color(hex: "#3f51b5") // Blueberry
-            case "10": return Color(hex: "#0b8043") // Basil
-            case "11": return Color(hex: "#d60000") // Tomato
-            default: break
-            }
-        }
-        
-        return storedCalendarColor ?? .blue
-    }
-    
-    var sourceName: String { "Google" }
-    
-    // Additional properties for edit/delete
-    var isAllDay: Bool { start?.date != nil }
-    var eventLocation: String? { location }
-    var eventNotes: String? { description }
-    var calendarId: String? { storedCalendarId }
-}
-
-struct GoogleCalendarTime: Codable {
-    let dateTime: String?
-    let date: String?
-    private let parsedDateValue: Date?
-
-    init(dateTime: String?, date: String?) {
-        self.dateTime = dateTime
-        self.date = date
-        self.parsedDateValue = GoogleCalendarDateParser.parse(dateTime: dateTime, date: date)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let dateTime = try container.decodeIfPresent(String.self, forKey: .dateTime)
-        let date = try container.decodeIfPresent(String.self, forKey: .date)
-        self.init(dateTime: dateTime, date: date)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(dateTime, forKey: .dateTime)
-        try container.encodeIfPresent(date, forKey: .date)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case dateTime
-        case date
-    }
-    
-    var dateValue: Date? {
-        parsedDateValue
-    }
-}
-
-// MARK: - Cacheable Calendar Info
-
-struct CacheableCalendarInfo: Codable, Sendable {
-    let id: String
-    let title: String
-    let hexColorString: String?
-    let sourceTitle: String
-    
-    init(from info: CalendarInfo) {
-        self.id = info.id
-        self.title = info.title
-        self.hexColorString = info.hexColorString
-        self.sourceTitle = info.sourceTitle
-    }
-    
-    func toCalendarInfo() -> CalendarInfo {
-        CalendarInfo(
-            id: id,
-            title: title,
-            color: Color(hex: hexColorString ?? "#4285F4"),
-            hexColorString: hexColorString,
-            sourceTitle: sourceTitle,
-            type: .google
-        )
     }
 }
