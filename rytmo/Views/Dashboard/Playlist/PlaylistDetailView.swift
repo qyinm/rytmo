@@ -226,14 +226,6 @@ struct PlaylistDetailView: View {
                     .onHover { isHovering in
                         hoveredTrackId = isHovering ? track.id : nil
                     }
-                    // Context Menu for individual track actions
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            musicPlayer.deleteTrack(track)
-                        } label: {
-                            Label("Delete Song", systemImage: "trash")
-                        }
-                    }
                     // For macOS standard list reorder
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
@@ -307,6 +299,8 @@ private struct TrackRow: View {
     let isPlaying: Bool
     let onPlay: () -> Void
     let onDelete: () -> Void
+
+    @State private var showDeleteConfirm = false
     
     var body: some View {
         HStack(spacing: 0) {
@@ -319,6 +313,8 @@ private struct TrackRow: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(isPlaying ? "Pause track" : "Play track")
+                    .help(isPlaying ? "Pause track" : "Play track")
                 } else {
                     Text("\(index)")
                         .font(.system(size: 14))
@@ -361,25 +357,37 @@ private struct TrackRow: View {
             
             Spacer()
             
-            // Delete Action (Visual Button + Context Menu support via parent)
-            if isHovered {
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .background(Color.black.opacity(0.05))
-                        .clipShape(Circle())
+            Menu {
+                Button("Delete Song", role: .destructive) {
+                    showDeleteConfirm = true
                 }
-                .buttonStyle(.plain)
-                .frame(width: 40)
-            } else {
-                Spacer().frame(width: 40)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
             }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Track actions")
+            .help("Track actions")
         }
         .padding(.horizontal, 32)
         .padding(.vertical, 8)
         .background(isHovered ? Color.primary.opacity(0.05) : Color.clear)
         .contentShape(Rectangle())
+        .contextMenu {
+            Button("Delete Song", role: .destructive) {
+                showDeleteConfirm = true
+            }
+        }
+        .alert("Delete Song?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("This removes \"\(track.title)\" from the playlist.")
+        }
     }
 }

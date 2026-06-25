@@ -75,6 +75,8 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(musicPlayer.isShuffle ? "Shuffle on" : "Shuffle off")
+                    .help(musicPlayer.isShuffle ? "Turn shuffle off" : "Turn shuffle on")
 
                     Button(action: { musicPlayer.playPreviousTrack() }) {
                         Image(systemName: "backward.fill")
@@ -82,6 +84,8 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel("Previous track")
+                    .help("Previous track")
                     
                     Button(action: { musicPlayer.togglePlayPause() }) {
                         Image(systemName: musicPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
@@ -89,6 +93,8 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(musicPlayer.isPlaying ? "Pause" : "Play")
+                    .help(musicPlayer.isPlaying ? "Pause playback" : "Start playback")
                     
                     Button(action: { musicPlayer.playNextTrack() }) {
                         Image(systemName: "forward.fill")
@@ -96,6 +102,8 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel("Next track")
+                    .help("Next track")
                     
                     // Repeat
                     Button(action: {
@@ -107,6 +115,8 @@ struct MusicPlayerBar: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(repeatAccessibilityLabel)
+                    .help(repeatAccessibilityLabel)
                 }
                 
                 // Progress Bar
@@ -148,12 +158,14 @@ struct MusicPlayerBar: View {
                 
                 // Volume Control
                 HStack(spacing: 8) {
-                    Image(systemName: musicPlayer.volume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .onTapGesture {
-                            musicPlayer.toggleMute()
-                        }
+                    Button(action: { musicPlayer.toggleMute() }) {
+                        Image(systemName: musicPlayer.volume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(musicPlayer.volume == 0 ? "Unmute" : "Mute")
+                    .help(musicPlayer.volume == 0 ? "Unmute" : "Mute")
                     
                     Slider(
                         value: Binding(
@@ -179,6 +191,17 @@ struct MusicPlayerBar: View {
         guard let playlist = musicPlayer.selectedPlaylist else { return true }
         if playlist.youtubePlaylistId != nil { return false }
         return playlist.tracks.isEmpty
+    }
+
+    private var repeatAccessibilityLabel: String {
+        switch musicPlayer.repeatMode {
+        case .off:
+            return "Repeat off"
+        case .all:
+            return "Repeat all"
+        case .one:
+            return "Repeat one"
+        }
     }
 }
 

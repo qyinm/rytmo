@@ -99,6 +99,8 @@ struct DashboardTodoView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(showNoteInput ? "Hide notes" : "Add notes")
+                .help(showNoteInput ? "Hide task notes" : "Add task notes")
                 
                 // Date Picker Button
                 Button(action: { showDatePicker = true }) {
@@ -120,6 +122,8 @@ struct DashboardTodoView: View {
                     .foregroundColor(dueDate == nil ? .secondary : .primary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(dueDate == nil ? "Set due date" : "Change due date")
+                .help(dueDate == nil ? "Set a due date" : "Change due date")
                 .popover(isPresented: $showDatePicker, arrowEdge: .bottom) {
                     datePickerPopover
                 }
@@ -132,6 +136,8 @@ struct DashboardTodoView: View {
                             .foregroundColor(.primary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Add task")
+                    .help("Create task")
                     .transition(.scale.combined(with: .opacity))
                 }
             }
