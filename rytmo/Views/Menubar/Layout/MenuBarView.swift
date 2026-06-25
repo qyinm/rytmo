@@ -51,6 +51,7 @@ struct MenuBarView: View {
                 .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(help)
         .help(help)
     }
 

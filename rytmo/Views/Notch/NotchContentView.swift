@@ -36,31 +36,21 @@ struct NotchContentView: View {
     var body: some View {
         ZStack(alignment: .top) {
             VStack(spacing: 0) {
-                notchContent
-                    .frame(alignment: .top)
-                    .padding(.horizontal, vm.notchState == .open ? cornerRadiusInsets.opened.bottom : 0)
-                    .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
-                    .background(.black)
-                    .clipShape(currentNotchShape)
-                    .overlay(alignment: .top) {
-                        Rectangle()
-                            .fill(.black)
-                            .frame(height: 1)
-                            .padding(.horizontal, topCornerRadius)
+                Group {
+                    if vm.notchState == .closed {
+                        Button(action: doOpen) {
+                            notchChrome
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Open Rytmo notch")
+                        .help("Open Rytmo notch")
+                    } else {
+                        notchChrome
                     }
-                    .shadow(
-                        color: (vm.notchState == .open || isHovering) ? .black.opacity(0.7) : .clear,
-                        radius: 6
-                    )
-                    .frame(height: vm.notchState == .open ? vm.notchSize.height : vm.effectiveClosedNotchHeight)
-                    .animation(animationSpring, value: vm.notchState)
-                    .contentShape(Rectangle())
-                    .onHover { hovering in
-                        handleHover(hovering)
-                    }
-                    .onTapGesture {
-                        doOpen()
-                    }
+                }
+                .onHover { hovering in
+                    handleHover(hovering)
+                }
             }
         }
         .padding(.bottom, 8)
@@ -69,6 +59,28 @@ struct NotchContentView: View {
         .environmentObject(vm)
     }
     
+    private var notchChrome: some View {
+        notchContent
+            .frame(alignment: .top)
+            .padding(.horizontal, vm.notchState == .open ? cornerRadiusInsets.opened.bottom : 0)
+            .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
+            .background(.black)
+            .clipShape(currentNotchShape)
+            .overlay(alignment: .top) {
+                Rectangle()
+                    .fill(.black)
+                    .frame(height: 1)
+                    .padding(.horizontal, topCornerRadius)
+            }
+            .shadow(
+                color: (vm.notchState == .open || isHovering) ? .black.opacity(0.7) : .clear,
+                radius: 6
+            )
+            .frame(height: vm.notchState == .open ? vm.notchSize.height : vm.effectiveClosedNotchHeight)
+            .animation(animationSpring, value: vm.notchState)
+            .contentShape(Rectangle())
+    }
+
     @ViewBuilder
     private var notchContent: some View {
         if vm.notchState == .open {

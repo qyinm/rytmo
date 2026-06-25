@@ -185,43 +185,63 @@ struct OptimizedMonthCell: View {
         return max(1, Int(availableForItems / itemHeight))
     }
     
+    private var eventCount: Int {
+        events.compactMap { $0 }.count
+    }
+
+    private var dayAccessibilityLabel: String {
+        CalendarAccessibility.dayLabel(for: info.date, eventCount: eventCount, todoCount: todos.count)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                    Text("\(info.dayNumber)")
-                    .font(.system(size: 12, weight: info.isToday ? .bold : .medium))
-                    .foregroundColor(info.isCurrentMonth ? (info.isToday ? .white : .primary) : .secondary.opacity(0.3))
-                    .padding(4)
-                    .background(info.isToday ? Color.blue : Color.clear)
-                    .clipShape(Circle())
-                Spacer()
+        ZStack(alignment: .topLeading) {
+            Button {
+                onDateSelected?(info.date)
+            } label: {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
             }
-            .padding(.top, 4)
-            .padding(.horizontal, 4)
-            
+            .buttonStyle(.plain)
+            .accessibilityLabel(dayAccessibilityLabel)
+            .help("Select day")
+
             VStack(alignment: .leading, spacing: 2) {
-                ForEach(0..<min(events.count, maxVisibleItems), id: \.self) { index in
-                    if let event = events[index] {
-                        SimpleEventBar(info: event, onTap: onEventSelected)
-                    } else {
-                        Color.clear.frame(height: 16)
+                HStack {
+                    Text("\(info.dayNumber)")
+                        .font(.system(size: 12, weight: info.isToday ? .bold : .medium))
+                        .foregroundColor(info.isCurrentMonth ? (info.isToday ? .white : .primary) : .secondary.opacity(0.3))
+                        .padding(4)
+                        .background(info.isToday ? Color.blue : Color.clear)
+                        .clipShape(Circle())
+                    Spacer()
+                }
+                .padding(.top, 4)
+                .padding(.horizontal, 4)
+                .allowsHitTesting(false)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(0..<min(events.count, maxVisibleItems), id: \.self) { index in
+                        if let event = events[index] {
+                            SimpleEventBar(info: event, onTap: onEventSelected)
+                        } else {
+                            Color.clear.frame(height: 16)
+                        }
+                    }
+
+                    let remainingSlots = max(0, maxVisibleItems - events.count)
+                    ForEach(todos.prefix(remainingSlots), id: \.id) { todo in
+                        SimpleTodoBar(title: todo.title)
                     }
                 }
-                
-                let remainingSlots = max(0, maxVisibleItems - events.count)
-                ForEach(todos.prefix(remainingSlots), id: \.id) { todo in
-                    SimpleTodoBar(title: todo.title)
-                }
+
+                Spacer(minLength: 0)
             }
-            
-            Spacer(minLength: 0)
         }
         .frame(height: cellHeight)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(colorScheme == .dark ? Color.black.opacity(0.2) : Color.white)
         .border(Color.primary.opacity(0.1), width: 0.5)
-        .contentShape(Rectangle())
-        .onTapGesture { onDateSelected?(info.date) }
     }
 }
 
@@ -240,32 +260,39 @@ struct SimpleEventBar: View {
     }
     
     var body: some View {
-        info.color.opacity(0.85)
-            .frame(height: 16)
-            .frame(maxWidth: .infinity)
-            .clipShape(UnevenRoundedRectangle(cornerRadii: cornerRadii))
-            .overlay(alignment: .leading) {
-                HStack(spacing: 4) {
-                    if info.showTitle {
-                        Text(info.title)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
+        Button {
+            onTap?(info.originalEvent)
+        } label: {
+            info.color.opacity(0.85)
+                .frame(height: 16)
+                .frame(maxWidth: .infinity)
+                .clipShape(UnevenRoundedRectangle(cornerRadii: cornerRadii))
+                .overlay(alignment: .leading) {
+                    HStack(spacing: 4) {
+                        if info.showTitle {
+                            Text(info.title)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                        if let time = info.timeString {
+                            Text(time)
+                                .font(.system(size: 9))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
                     }
-                    Spacer(minLength: 0)
-                    if let time = info.timeString {
-                        Text(time)
-                            .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
+                    .padding(.leading, info.continuesFromPrevious ? 2 : 4)
+                    .padding(.trailing, info.continuesToNext ? 2 : 4)
                 }
-                .padding(.leading, info.continuesFromPrevious ? 2 : 4)
-                .padding(.trailing, info.continuesToNext ? 2 : 4)
-            }
-            .padding(.leading, info.continuesFromPrevious ? 0 : 2)
-            .padding(.trailing, info.continuesToNext ? 0 : 2)
-            .contentShape(Rectangle())
-            .onTapGesture { onTap?(info.originalEvent) }
+                .padding(.leading, info.continuesFromPrevious ? 0 : 2)
+                .padding(.trailing, info.continuesToNext ? 0 : 2)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(CalendarAccessibility.eventLabel(for: info.originalEvent))
+        .help(onTap != nil ? "Select event" : "")
+        .disabled(onTap == nil)
     }
 }
 

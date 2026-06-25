@@ -27,24 +27,30 @@ struct TrackRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // LP/Thumbnail
-            lpThumbnail
+            Button(action: onTap) {
+                HStack(spacing: 12) {
+                    lpThumbnail
 
-            // Title
-            HStack(spacing: 6) {
-                Text(track.title)
-                    .font(.system(size: 13))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .foregroundColor(.primary)
-                
-                if isCurrentTrack && isPlaying {
-                    LiveWaveformView(isPlaying: true, color: .accentColor)
-                        .scaleEffect(0.7) // Adjusted small to fit track list
+                    HStack(spacing: 6) {
+                        Text(track.title)
+                            .font(.system(size: 13))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .foregroundColor(.primary)
+
+                        if isCurrentTrack && isPlaying {
+                            LiveWaveformView(isPlaying: true, color: .accentColor)
+                                .scaleEffect(0.7)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
                 }
+                .contentShape(Rectangle())
             }
-
-            Spacer()
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPlaying && isCurrentTrack ? "Pause \(track.title)" : "Play \(track.title)")
+            .help(isPlaying && isCurrentTrack ? "Pause track" : "Play track")
 
             HStack(spacing: 4) {
                 Button(action: onMoveUp) {
@@ -93,8 +99,6 @@ struct TrackRowView: View {
             RoundedRectangle(cornerRadius: 8)
                 .fill(isCurrentTrack ? Color.accentColor : Color.clear)
         )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onTap)
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering

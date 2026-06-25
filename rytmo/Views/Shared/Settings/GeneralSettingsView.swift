@@ -59,6 +59,7 @@ struct GeneralSettingsView: View {
                                                 .foregroundStyle(.secondary)
                                         }
                                         .buttonStyle(.plain)
+                                        .accessibilityLabel("Copy User ID")
                                         .help("Copy User ID")
                                     }
                                 }

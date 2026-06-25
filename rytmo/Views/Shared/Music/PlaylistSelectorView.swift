@@ -153,16 +153,21 @@ struct PlaylistSelectorView: View {
             // Color picker
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(32)), count: 4), spacing: 8) {
                 ForEach(colorOptions, id: \.self) { colorHex in
-                    Circle()
-                        .fill(Color(hex: colorHex))
-                        .frame(width: 28, height: 28)
-                        .overlay(
-                            Circle()
-                                .stroke(selectedColorHex == colorHex ? Color.white : Color.clear, lineWidth: 2)
-                        )
-                        .onTapGesture {
-                            selectedColorHex = colorHex
-                        }
+                    Button {
+                        selectedColorHex = colorHex
+                    } label: {
+                        Circle()
+                            .fill(Color(hex: colorHex))
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .stroke(selectedColorHex == colorHex ? Color.white : Color.clear, lineWidth: 2)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Select playlist color")
+                    .help("Select playlist color")
+                    .accessibilityAddTraits(selectedColorHex == colorHex ? .isSelected : [])
                 }
             }
 

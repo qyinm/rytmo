@@ -149,6 +149,8 @@ struct MenuBarMusicView: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Track list")
+                .help("Show track list")
                 
                 Spacer()
                 
@@ -159,12 +161,16 @@ struct MenuBarMusicView: View {
                             .font(.system(size: 20))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Previous track")
+                    .help("Previous track")
                     
                     Button(action: { handlePlayPause() }) {
                         Image(systemName: musicPlayer.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 32))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(musicPlayer.isPlaying ? "Pause" : "Play")
+                    .help(musicPlayer.isPlaying ? "Pause playback" : "Start playback")
                     .popover(isPresented: $showEmptyStateMessage, arrowEdge: .bottom) {
                         emptyStatePopover
                     }
@@ -174,6 +180,8 @@ struct MenuBarMusicView: View {
                             .font(.system(size: 20))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Next track")
+                    .help("Next track")
                 }
                 .foregroundColor(.primary)
                 
@@ -190,6 +198,8 @@ struct MenuBarMusicView: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Audio output")
+                .help("Select audio output")
             }
         }
     }

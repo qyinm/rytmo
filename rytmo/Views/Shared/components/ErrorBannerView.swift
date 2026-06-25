@@ -23,6 +23,8 @@ struct ErrorBannerView: View {
                     .foregroundColor(.white.opacity(0.6))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss error")
+            .help("Dismiss error")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

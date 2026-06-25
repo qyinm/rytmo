@@ -90,6 +90,8 @@ struct NotchCalendarGridView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Previous month")
+                .help("Previous month")
                 
                 Spacer()
                 
@@ -107,6 +109,8 @@ struct NotchCalendarGridView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Next month")
+                .help("Next month")
             }
             .padding(.horizontal, 8)
             .padding(.top, 10)
@@ -129,16 +133,24 @@ struct NotchCalendarGridView: View {
                     let startOfDay = CalendarUtils.calendar.startOfDay(for: date)
                     let hasEvents = !(calendarManager.optimizedData.eventsByDate[startOfDay]?.isEmpty ?? true)
                     
-                    DayCellView(
-                        date: date,
-                        isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
-                        isToday: CalendarUtils.calendar.isDateInToday(date),
-                        isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
-                        hasEvents: hasEvents
-                    )
-                    .onTapGesture {
+                    Button {
                         selectedDate = date
+                    } label: {
+                        DayCellView(
+                            date: date,
+                            isSelected: CalendarUtils.calendar.isDate(date, inSameDayAs: selectedDate),
+                            isToday: CalendarUtils.calendar.isDateInToday(date),
+                            isCurrentMonth: CalendarUtils.isDate(date, inSameMonthAs: displayedMonth),
+                            hasEvents: hasEvents
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(CalendarAccessibility.dayLabel(
+                        for: date,
+                        eventCount: hasEvents ? 1 : 0,
+                        todoCount: 0
+                    ))
+                    .help("Select day")
                 }
             }
             .padding(.horizontal, 4)
@@ -212,6 +224,8 @@ struct NotchEventsAndTodosView: View {
                                     .foregroundColor(todo.isCompleted ? .green : .secondary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel(todo.isCompleted ? "Mark incomplete" : "Mark complete")
+                            .help(todo.isCompleted ? "Mark incomplete" : "Mark complete")
                             
                             Text(todo.title)
                                 .font(.system(size: 11, weight: .medium))

@@ -154,6 +154,7 @@ struct MenuBarTimerView: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(help)
         .help(help)
     }
 }

@@ -73,6 +73,8 @@ struct PlaylistDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .menuStyle(.borderlessButton)
+                        .accessibilityLabel("Playlist actions")
+                        .help("Playlist actions")
                     }
                     .padding(.top, 24)
                     .padding(.bottom, 16)
@@ -111,6 +113,8 @@ struct PlaylistDetailView: View {
                                 .shadow(radius: 2)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(isPlayingCurrentPlaylist ? "Pause playlist" : "Play playlist")
+                        .help(isPlayingCurrentPlaylist ? "Pause playlist" : "Play playlist")
                         
                         Button(action: {
                             showingAddSong = true

@@ -76,6 +76,8 @@ struct MusicControllerView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(musicPlayer.isShuffle ? "Shuffle on" : "Shuffle off")
+                    .help(musicPlayer.isShuffle ? "Turn shuffle off" : "Turn shuffle on")
 
                     // Previous
                     Button(action: { musicPlayer.playPreviousTrack() }) {
@@ -84,6 +86,8 @@ struct MusicControllerView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel("Previous track")
+                    .help("Previous track")
 
                     // Play/Pause
                     Button(action: { musicPlayer.togglePlayPause() }) {
@@ -92,6 +96,8 @@ struct MusicControllerView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(musicPlayer.isPlaying ? "Pause" : "Play")
+                    .help(musicPlayer.isPlaying ? "Pause playback" : "Start playback")
 
                     // Next
                     Button(action: { musicPlayer.playNextTrack() }) {
@@ -100,6 +106,8 @@ struct MusicControllerView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel("Next track")
+                    .help("Next track")
 
                     // Repeat
                     Button(action: {
@@ -111,6 +119,8 @@ struct MusicControllerView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(shouldDisableControls)
+                    .accessibilityLabel(menubarRepeatAccessibilityLabel)
+                    .help(menubarRepeatAccessibilityLabel)
                 }
                 
                 // Right: Volume Button
@@ -122,15 +132,19 @@ struct MusicControllerView: View {
                             .foregroundColor(.secondary)
                             .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Volume")
+                    .help("Adjust volume")
                     .buttonStyle(.plain)
                     .popover(isPresented: $isVolumePopoverPresented, arrowEdge: .bottom) {
                         HStack(spacing: 8) {
-                            Image(systemName: "speaker.fill")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .onTapGesture {
-                                    musicPlayer.toggleMute()
-                                }
+                            Button(action: { musicPlayer.toggleMute() }) {
+                                Image(systemName: "speaker.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(musicPlayer.volume == 0 ? "Unmute" : "Mute")
+                            .help(musicPlayer.volume == 0 ? "Unmute" : "Mute")
                             
                             Slider(
                                 value: Binding(
@@ -160,6 +174,17 @@ struct MusicControllerView: View {
         guard let playlist = musicPlayer.selectedPlaylist else { return true }
         if playlist.youtubePlaylistId != nil { return false }
         return playlist.tracks.isEmpty
+    }
+
+    private var menubarRepeatAccessibilityLabel: String {
+        switch musicPlayer.repeatMode {
+        case .off:
+            return "Repeat off"
+        case .all:
+            return "Repeat all"
+        case .one:
+            return "Repeat one"
+        }
     }
 }
 

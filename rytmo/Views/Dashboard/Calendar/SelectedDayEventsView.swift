@@ -141,18 +141,9 @@ struct SelectedDayEventsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(eventAccessibilityLabel(for: event))
+        .accessibilityLabel(CalendarAccessibility.eventLabel(for: event))
         .help(onEventSelected != nil ? "Edit event" : "")
         .disabled(onEventSelected == nil)
-    }
-
-    private func eventAccessibilityLabel(for event: CalendarEventProtocol) -> String {
-        let title = event.eventTitle ?? "Untitled event"
-        if let startDate = event.eventStartDate {
-            let time = startDate.formatted(date: .omitted, time: .shortened)
-            return "\(title), \(time), \(event.sourceName)"
-        }
-        return "\(title), \(event.sourceName)"
     }
 
     private func todoRow(_ todo: TodoItem) -> some View {

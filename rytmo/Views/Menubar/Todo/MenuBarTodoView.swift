@@ -114,6 +114,8 @@ struct MenuBarTodoView: View {
                                     .foregroundColor(.primary)
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("Add task")
+                            .help("Add task")
                         }
                     }
                     .padding(.horizontal, 12)

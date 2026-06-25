@@ -370,6 +370,8 @@ struct CompactSettingRow: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(value <= range.lowerBound)
+                .accessibilityLabel("Decrease \(title)")
+                .help("Decrease \(title)")
                 
                 Text("\(value)")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -392,6 +394,8 @@ struct CompactSettingRow: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(value >= range.upperBound)
+                .accessibilityLabel("Increase \(title)")
+                .help("Increase \(title)")
             }
         }
         .padding(.horizontal, 14)

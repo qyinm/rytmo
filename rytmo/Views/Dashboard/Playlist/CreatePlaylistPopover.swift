@@ -67,17 +67,22 @@ struct CreatePlaylistPopover: View {
                 
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(24)), count: 8), spacing: 8) {
                     ForEach(colorOptions, id: \.self) { colorHex in
-                        Circle()
-                            .fill(Color(hex: colorHex))
-                            .frame(width: 24, height: 24)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.primary.opacity(selectedColorHex == colorHex ? 0.5 : 0), lineWidth: 2)
-                                    .padding(-2)
-                            )
-                            .onTapGesture {
-                                selectedColorHex = colorHex
-                            }
+                        Button {
+                            selectedColorHex = colorHex
+                        } label: {
+                            Circle()
+                                .fill(Color(hex: colorHex))
+                                .frame(width: 24, height: 24)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.primary.opacity(selectedColorHex == colorHex ? 0.5 : 0), lineWidth: 2)
+                                        .padding(-2)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Select playlist color")
+                        .help("Select playlist color")
+                        .accessibilityAddTraits(selectedColorHex == colorHex ? .isSelected : [])
                     }
                 }
             }

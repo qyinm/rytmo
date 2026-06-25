@@ -392,22 +392,27 @@ struct NotchExpandedView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         if todos.isEmpty && !isAddingTask {
-                            VStack(spacing: 8) {
-                                Image(systemName: "plus.circle")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.black.opacity(0.2))
-                                Text("No tasks")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
-                            .onTapGesture {
+                            Button {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     isAddingTask = true
                                     isInputFocused = true
                                 }
+                            } label: {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.black.opacity(0.2))
+                                    Text("No tasks")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 40)
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Add task")
+                            .help("Add a new task")
                         } else {
                             ForEach(Array(sortedTodos.enumerated()), id: \.element.id) { index, todo in
                                 CompactTodoRow(todo: todo)
@@ -450,6 +455,8 @@ struct NotchExpandedView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Cancel adding task")
+                .help("Cancel adding task")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
