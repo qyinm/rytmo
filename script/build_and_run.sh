@@ -146,6 +146,24 @@ wait_for_process() {
   return 1
 }
 
+wait_for_stable_process() {
+  wait_for_process || return 1
+
+  local attempts=12
+
+  while (( attempts > 0 )); do
+    sleep 0.25
+
+    if ! /usr/bin/pgrep -x "$APP_NAME" >/dev/null; then
+      return 1
+    fi
+
+    attempts=$((attempts - 1))
+  done
+
+  return 0
+}
+
 build_app
 
 case "$MODE" in
@@ -165,7 +183,7 @@ case "$MODE" in
     ;;
   --verify|verify)
     open_app
-    wait_for_process
+    wait_for_stable_process
     if ! codesign --verify --strict --deep --verbose=2 "$APP_BUNDLE" >/dev/null 2>&1; then
       codesign --verify --strict --deep --verbose=4 "$APP_BUNDLE"
       exit 1

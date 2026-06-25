@@ -1,5 +1,6 @@
 //
 //  MenuBarView.swift
+//  Legacy menubar popover UI kept for shared music components; the MenuBarExtra entry point is disabled in rytmoApp.
 //  rytmo
 //
 //  Created by hippoo on 12/4/25.

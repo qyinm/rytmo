@@ -23,6 +23,7 @@ struct TrackRowView: View {
 
     @State private var rotationAngle: Double = 0
     @State private var isHovering: Bool = false
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -45,37 +46,45 @@ struct TrackRowView: View {
 
             Spacer()
 
-            // Reorder and delete buttons (visible on hover)
-            if isHovering {
-                HStack(spacing: 4) {
-                    // Move up button
-                    Button(action: onMoveUp) {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canMoveUp)
-                    .opacity(canMoveUp ? 1.0 : 0.3)
-
-                    // Move down button
-                    Button(action: onMoveDown) {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canMoveDown)
-                    .opacity(canMoveDown ? 1.0 : 0.3)
-
-                    // Delete button
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 12))
-                            .foregroundColor(.red.opacity(0.7))
-                    }
-                    .buttonStyle(.plain)
+            HStack(spacing: 4) {
+                Button(action: onMoveUp) {
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .frame(width: 24, height: 24)
                 }
+                .buttonStyle(.plain)
+                .disabled(!canMoveUp)
+                .opacity(canMoveUp ? (isHovering ? 1.0 : 0.55) : 0.3)
+                .accessibilityLabel("Move track up")
+                .help("Move track up")
+
+                Button(action: onMoveDown) {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .disabled(!canMoveDown)
+                .opacity(canMoveDown ? (isHovering ? 1.0 : 0.55) : 0.3)
+                .accessibilityLabel("Move track down")
+                .help("Move track down")
+
+                Menu {
+                    Button("Delete Track", role: .destructive) {
+                        showDeleteConfirm = true
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .accessibilityLabel("Track actions")
+                .help("Track actions")
             }
         }
         .padding(.vertical, 6)
@@ -90,6 +99,14 @@ struct TrackRowView: View {
             withAnimation(.easeInOut(duration: 0.15)) {
                 isHovering = hovering
             }
+        }
+        .alert("Delete Track?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("This removes \"\(track.title)\" from the playlist.")
         }
     }
 

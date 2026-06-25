@@ -81,9 +81,9 @@ struct TodoRowView: View {
     @Environment(\.modelContext) private var modelContext
     let todo: TodoItem
     var compact: Bool = false
-    
-    @State private var isHovering = false
-    
+
+    @State private var showDeleteConfirm = false
+
     var body: some View {
         HStack(spacing: 12) {
             Button(action: {
@@ -92,8 +92,11 @@ struct TodoRowView: View {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: compact ? 16 : 18))
                     .foregroundColor(todo.isCompleted ? .primary : .secondary)
+                    .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(todo.isCompleted ? "Mark incomplete" : "Mark complete")
+            .help(todo.isCompleted ? "Mark incomplete" : "Mark complete")
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(todo.title)
@@ -121,23 +124,32 @@ struct TodoRowView: View {
             }
             
             Spacer()
-            
-            if isHovering {
-                Button(action: {
-                    modelContext.delete(todo)
-                }) {
-                    Image(systemName: "trash")
-                        .font(.system(size: compact ? 12 : 14))
-                        .foregroundColor(.red.opacity(0.7))
+
+            Menu {
+                Button("Delete Task", role: .destructive) {
+                    showDeleteConfirm = true
                 }
-                .buttonStyle(.plain)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: compact ? 12 : 14))
+                    .foregroundColor(.secondary)
+                    .frame(width: 28, height: 28)
             }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Task actions")
+            .help("Task actions")
         }
         .padding(.vertical, compact ? 8 : 12)
         .padding(.horizontal, compact ? 8 : 12)
         .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovering = hovering
+        .alert("Delete Task?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                modelContext.delete(todo)
+            }
+        } message: {
+            Text("This removes \"\(todo.title)\" from your local task list.")
         }
     }
 
