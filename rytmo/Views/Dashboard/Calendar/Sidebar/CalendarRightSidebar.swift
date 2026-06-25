@@ -48,6 +48,11 @@ struct CalendarRightSidebar: View {
 
     private var isEditMode: Bool { panelMode == .edit }
 
+    private var canEditSelectedEvent: Bool {
+        guard isEditMode else { return false }
+        return calendarManager.canWriteEvents(for: selectedCalendar)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -126,7 +131,7 @@ struct CalendarRightSidebar: View {
                     .accessibilityLabel("Add event")
                     .help("Create a new event on the selected day")
                 }
-            } else if isEditMode {
+            } else if isEditMode, canEditSelectedEvent {
                 Menu {
                     Button(role: .destructive) {
                         showDeleteConfirm = true

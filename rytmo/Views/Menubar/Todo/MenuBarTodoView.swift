@@ -250,9 +250,10 @@ private struct MinimalTodoRow: View {
     let todo: TodoItem
     let onToggle: () -> Void
     let onDelete: () -> Void
-    
+
     @State private var isHovering = false
-    
+    @State private var showDeleteConfirm = false
+
     var body: some View {
         HStack(spacing: 12) {
             // Minimal Checkbox
@@ -279,7 +280,9 @@ private struct MinimalTodoRow: View {
                 }
             }
             .buttonStyle(.plain)
-            
+            .accessibilityLabel(todo.isCompleted ? "Mark incomplete" : "Mark complete")
+            .help(todo.isCompleted ? "Mark incomplete" : "Mark complete")
+
             // Task Text
             Text(todo.title)
                 .font(.system(size: 13, weight: .regular))
@@ -287,21 +290,21 @@ private struct MinimalTodoRow: View {
                 .strikethrough(todo.isCompleted)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // Delete Button
-            if isHovering {
-                Button(action: onDelete) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .frame(width: 18, height: 18)
-                        .background(
-                            Circle()
-                                .fill(Color.black.opacity(0.04))
-                        )
+
+            Menu {
+                Button("Delete Task", role: .destructive) {
+                    showDeleteConfirm = true
                 }
-                .buttonStyle(.plain)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
             }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Task actions")
+            .help("Task actions")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -312,6 +315,14 @@ private struct MinimalTodoRow: View {
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+        }
+        .alert("Delete Task?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                onDelete()
+            }
+        } message: {
+            Text("This removes \"\(todo.title)\" from your local task list.")
         }
     }
 }
