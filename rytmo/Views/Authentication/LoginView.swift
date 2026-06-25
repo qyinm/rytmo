@@ -136,9 +136,11 @@ struct LoginView: View {
                 .buttonStyle(.plain)
                 .disabled(authManager.isLoading)
 
-                Text("Anonymous login data is not saved")
+                Text("Tasks and focus sessions are saved locally on this Mac. Google sign-in adds calendar access on this device.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 340)
                     .padding(.top, 4)
             }
 

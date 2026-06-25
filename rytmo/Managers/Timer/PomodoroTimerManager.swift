@@ -93,35 +93,31 @@ class PomodoroTimerManager: ObservableObject {
         updateMenuBarTitle()
     }
 
-    /// Skip Timer (to next step)
+    /// Skip to the next session. Saves elapsed time (if ≥10s) and pauses on the next session.
     func skip() {
-        // Save partial session (time spent before skip)
         savePartialSession()
-        
-        // Event Tracking (Called before skip)
+
         AmplitudeManager.shared.trackTimerSkipped(
             sessionType: session.state.displayName,
             remainingTime: Int(session.remainingTime)
         )
 
-        // Stop current timer
         timer?.invalidate()
         timer = nil
 
-        // Switch to next state
         session.moveToNextState(settings: settings)
         session.endDate = nil
-
-        // Do not auto-start
         session.isRunning = false
+        currentSessionStartTime = nil
 
-        start()
+        updateMenuBarTitle()
     }
 
-    /// Reset Timer
+    /// Reset the current session without saving elapsed time.
     func reset() {
         timer?.invalidate()
         timer = nil
+        currentSessionStartTime = nil
         session.reset()
         updateMenuBarTitle()
     }

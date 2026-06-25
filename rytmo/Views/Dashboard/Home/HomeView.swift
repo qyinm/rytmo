@@ -7,126 +7,24 @@
 
 import SwiftUI
 import SwiftData
-import YouTubePlayerKit
 
 struct HomeView: View {
     @EnvironmentObject var timerManager: PomodoroTimerManager
-    @EnvironmentObject var musicPlayer: MusicPlayerManager
-    @State private var rightSidebarSelection: Int = 0 // 0: Library, 1: Tasks
     
     var body: some View {
         VStack(spacing: 0) {
-            // Main Content Area
-            HStack(spacing: 0) {
-                // Left: Dashboard Grid
-                VStack(spacing: 16) {
-                    HStack(alignment: .top, spacing: 16) {
-                        timerCard
-                        FocusStatsView()
-                            .frame(maxWidth: 300)
-                    }
-                    
-                    FocusRecordsView()
+            VStack(spacing: 16) {
+                HStack(alignment: .top, spacing: 16) {
+                    timerCard
+                    FocusStatsView()
+                        .frame(maxWidth: 300)
                 }
-                .padding(24)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .background(Color(nsColor: .windowBackgroundColor))
                 
-                // Right: Sidebar (Library & Tasks)
-                VStack(spacing: 0) {
-                    // Selection Header
-                    HStack(spacing: 0) {
-                        Button {
-                            rightSidebarSelection = 0
-                        } label: {
-                            VStack(spacing: 8) {
-                                Text("Library")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(rightSidebarSelection == 0 ? .primary : .secondary)
-                                
-                                Rectangle()
-                                    .fill(rightSidebarSelection == 0 ? Color.accentColor : Color.clear)
-                                    .frame(height: 2)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity)
-                        
-                        Button {
-                            rightSidebarSelection = 1
-                        } label: {
-                            VStack(spacing: 8) {
-                                Text("Tasks")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(rightSidebarSelection == 1 ? .primary : .secondary)
-                                
-                                Rectangle()
-                                    .fill(rightSidebarSelection == 1 ? Color.accentColor : Color.clear)
-                                    .frame(height: 2)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding(.top, 16)
-                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-                    
-                    Divider()
-                    
-                    if rightSidebarSelection == 0 {
-                        // Library Content
-                        VStack(spacing: 0) {
-                            // Playlist Selector Section (Fixed)
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Playlists")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    PlaylistSelectorView()
-                                        .padding(.horizontal)
-                                }
-                            }
-                            .padding(.vertical)
-                            
-                            Divider()
-                            
-                            // Track List Section (Scrollable)
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Tracks")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal)
-                                
-                                ScrollView {
-                                    TrackListView()
-                                        .padding(.horizontal)
-                                        .padding(.bottom)
-                                }
-                            }
-                            .padding(.top)
-                        }
-                    } else {
-                        // Tasks Content
-                        ScrollView {
-                            TodoListView(showHeader: false, compact: true)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    }
-                }
-                .frame(width: 320)
-                .background(Color(nsColor: .controlBackgroundColor).opacity(0.3))
-                .overlay(
-                    Rectangle()
-                        .fill(Color(nsColor: .separatorColor))
-                        .frame(width: 1),
-                    alignment: .leading
-                )
+                FocusRecordsView()
             }
-            
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Color(nsColor: .windowBackgroundColor))
         }
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -156,7 +54,8 @@ struct HomeView: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
-                    .help("Reset timer")
+                    .accessibilityLabel("Reset timer")
+                    .help("Discard the current session without saving")
                     .transition(.scale.combined(with: .opacity))
                 } else {
                     Color.clear.frame(width: 36, height: 36)
@@ -184,7 +83,9 @@ struct HomeView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                
+                .accessibilityLabel(timerManager.session.isRunning ? "Pause timer" : "Start timer")
+                .help(timerManager.session.isRunning ? "Pause the current session" : "Start or resume the focus timer")
+
                 // Skip Button
                 if timerManager.session.state != .idle {
                     Button(action: {
@@ -201,7 +102,8 @@ struct HomeView: View {
                             .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
-                    .help("Skip current session")
+                    .accessibilityLabel("Skip session")
+                    .help("Save elapsed time and move to the next session paused")
                     .transition(.scale.combined(with: .opacity))
                 } else {
                     Color.clear.frame(width: 36, height: 36)

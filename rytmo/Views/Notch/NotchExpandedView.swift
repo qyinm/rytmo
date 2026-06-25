@@ -1,3 +1,4 @@
+// Glance and fast-action surface. Reuses selected MenuBar music components for playback controls.
 import SwiftUI
 import SwiftData
 
@@ -8,9 +9,12 @@ struct NotchExpandedView: View {
     @EnvironmentObject var vm: NotchViewModel
     @EnvironmentObject var settings: PomodoroSettings
     
+    @Environment(\.openWindow) private var openWindow
+
     @State private var showingSettings: Bool = false
     @State private var selectedTab: Int = 0
     @State private var dismissedError: String? = nil
+    @State private var showLogoutConfirm: Bool = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -31,6 +35,15 @@ struct NotchExpandedView: View {
             Rectangle()
                 .fill(Color.black)
                 .frame(height: 1)
+        }
+        .alert("Log out?", isPresented: $showLogoutConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Log out", role: .destructive) {
+                authManager.signOut()
+                showingSettings = false
+            }
+        } message: {
+            Text("You will return to the login screen. Local tasks and focus sessions stay on this Mac.")
         }
     }
     
@@ -123,20 +136,26 @@ struct NotchExpandedView: View {
                         .foregroundColor(selectedTab == 0 ? .white : .secondary)
                 }
                 .buttonStyle(.plain)
-                
+                .accessibilityLabel("Home")
+                .help("Home")
+
                 Button(action: { selectedTab = 1 }) {
                     Image(systemName: "music.note")
                         .font(.system(size: 14))
                         .foregroundColor(selectedTab == 1 ? .white : .secondary)
                 }
                 .buttonStyle(.plain)
-                
+                .accessibilityLabel("Music")
+                .help("Music")
+
                 Button(action: { selectedTab = 2 }) {
                     Image(systemName: "calendar")
                         .font(.system(size: 14))
                         .foregroundColor(selectedTab == 2 ? .white : .secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Calendar")
+                .help("Calendar glance")
             }
             
             Spacer()
@@ -152,15 +171,19 @@ struct NotchExpandedView: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
-                
+                .accessibilityLabel("Settings")
+                .help("Quick settings")
+
                 Button(action: {
-                    authManager.signOut()
+                    showLogoutConfirm = true
                 }) {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Log out")
+                .help("Log out")
             }
         }
         .padding(.bottom, 8)
@@ -213,13 +236,13 @@ struct NotchExpandedView: View {
                 }
 
                 HStack(spacing: 12) {
-                    compactControlButton(icon: "arrow.counterclockwise", size: 22) {
+                    compactControlButton(icon: "arrow.counterclockwise", size: 22, label: "Reset timer", help: "Discard the current session without saving") {
                         withAnimation { timerManager.reset() }
                     }
 
                     compactPlayButton(size: 32)
 
-                    compactControlButton(icon: "forward.fill", size: 22) {
+                    compactControlButton(icon: "forward.fill", size: 22, label: "Skip session", help: "Save elapsed time and move to the next session paused") {
                         withAnimation { timerManager.skip() }
                     }
                 }
@@ -251,7 +274,13 @@ struct NotchExpandedView: View {
             }
         }
 
-        private func compactControlButton(icon: String, size: CGFloat, action: @escaping () -> Void) -> some View {
+        private func compactControlButton(
+            icon: String,
+            size: CGFloat,
+            label: String,
+            help: String,
+            action: @escaping () -> Void
+        ) -> some View {
             Button(action: action) {
                 Image(systemName: icon)
                     .font(.system(size: size * 0.4, weight: .semibold))
@@ -263,6 +292,8 @@ struct NotchExpandedView: View {
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(label)
+            .help(help)
         }
 
         private func compactPlayButton(size: CGFloat) -> some View {
@@ -286,6 +317,8 @@ struct NotchExpandedView: View {
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(timerManager.session.isRunning ? "Pause timer" : "Start timer")
+            .help(timerManager.session.isRunning ? "Pause the current session" : "Start or resume the focus timer")
         }
     }
 
@@ -680,7 +713,9 @@ struct NotchExpandedView: View {
                     .foregroundColor(.secondary)
             }
 
-            VStack(spacing: 0) {
+            Button {
+                showLogoutConfirm = true
+            } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 14))
@@ -696,6 +731,7 @@ struct NotchExpandedView: View {
                 .padding(.vertical, 12)
                 .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
@@ -708,9 +744,7 @@ struct NotchExpandedView: View {
     }
 
     private var settingsDashboardButton: some View {
-        Button(action: {
-            // Open dashboard
-        }) {
+        Button(action: openDashboard) {
             HStack {
                 Image(systemName: "square.grid.2x2")
                     .font(.system(size: 14))
@@ -736,6 +770,14 @@ struct NotchExpandedView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("See more in Dashboard")
+        .help("Open the full dashboard window")
+    }
+
+    private func openDashboard() {
+        NSApp.activate(ignoringOtherApps: true)
+        openWindow(id: "main")
+        NotificationCenter.default.post(name: .showDashboard, object: nil)
     }
 
     private var loginContent: some View {
@@ -749,10 +791,11 @@ struct NotchExpandedView: View {
             VStack(spacing: 8) {
                 Text("Welcome to Rytmo")
                     .font(.system(size: 20, weight: .bold))
-                Text("Login to sync your focus sessions and tasks")
+                Text("Sign in to connect Google Calendar. Tasks and focus sessions are saved locally on this Mac.")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320)
             }
 
             VStack(spacing: 12) {
