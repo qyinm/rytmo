@@ -548,13 +548,13 @@ class CalendarManager: ObservableObject {
             )
             upsertSystemEventInCache(updatedEvent, replacing: event.eventIdentifier)
         case "Google":
-            // For Google, if calendar changed we need to move the event
             let targetCalendarId = calendarInfo.id
             let sourceCalendarId = event.calendarId ?? targetCalendarId
             
             try await googleManager.updateEvent(
                 eventId: event.eventIdentifier,
                 calendarId: sourceCalendarId,
+                targetCalendarId: targetCalendarId,
                 title: title,
                 startDate: startDate,
                 endDate: endDate,

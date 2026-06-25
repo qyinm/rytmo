@@ -53,6 +53,34 @@ struct CalendarRightSidebar: View {
         return calendarManager.canWriteEvents(for: selectedCalendar)
     }
 
+    private var selectedCalendarCanWrite: Bool {
+        calendarManager.canWriteEvents(for: selectedCalendar)
+    }
+
+    private var writableCalendarGroups: [CalendarGroup] {
+        calendarManager.calendarGroups.compactMap { group in
+            let writableCalendars = group.calendars.filter { calendarManager.canWriteEvents(for: $0) }
+            guard !writableCalendars.isEmpty else { return nil }
+            return CalendarGroup(
+                id: group.id,
+                sourceTitle: group.sourceTitle,
+                calendars: writableCalendars
+            )
+        }
+    }
+
+    private var firstWritableCalendar: CalendarInfo? {
+        writableCalendarGroups.first?.calendars.first
+    }
+
+    private var shouldBlockFormForWriteAccess: Bool {
+        if isEditMode {
+            return !selectedCalendarCanWrite
+        }
+
+        return !calendarManager.canWriteAnyCalendar || firstWritableCalendar == nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -247,7 +275,7 @@ struct CalendarRightSidebar: View {
 
     private var formContent: some View {
         Group {
-            if !calendarManager.canWriteEvents(for: selectedCalendar) {
+            if shouldBlockFormForWriteAccess {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Write access required")
                         .font(.headline)
@@ -314,8 +342,14 @@ struct CalendarRightSidebar: View {
 
             CalendarSelectorView(
                 selectedCalendar: $selectedCalendar,
-                groups: calendarManager.calendarGroups
+                groups: writableCalendarGroups
             )
+
+            if !selectedCalendar.id.isEmpty && !selectedCalendarCanWrite {
+                Text("Select a writable calendar to save this event.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -360,7 +394,7 @@ struct CalendarRightSidebar: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(eventTitle.isEmpty || (!isEditMode && selectedCalendar.id.isEmpty) || isSaving)
+            .disabled(eventTitle.isEmpty || !selectedCalendarCanWrite || isSaving)
         }
         .frame(maxWidth: .infinity)
     }
@@ -414,11 +448,8 @@ struct CalendarRightSidebar: View {
             }
         } else {
             clearForm()
-            if selectedCalendar.id.isEmpty {
-                if let firstGroup = calendarManager.calendarGroups.first,
-                   let firstCal = firstGroup.calendars.first {
-                    selectedCalendar = firstCal
-                }
+            if !selectedCalendarCanWrite, let firstWritableCalendar {
+                selectedCalendar = firstWritableCalendar
             }
         }
     }

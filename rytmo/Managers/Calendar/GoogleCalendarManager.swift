@@ -702,6 +702,7 @@ class GoogleCalendarManager: ObservableObject {
     func updateEvent(
         eventId: String,
         calendarId: String,
+        targetCalendarId: String? = nil,
         title: String,
         startDate: Date,
         endDate: Date,
@@ -719,8 +720,22 @@ class GoogleCalendarManager: ObservableObject {
         }
 
         let accessToken = user.accessToken.tokenString
-        let encodedEventId = eventId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventId
-        let urlString = "\(GoogleCalendarAPI.eventsURL(calendarId: calendarId))/\(encodedEventId)"
+        let targetCalendarId = targetCalendarId ?? calendarId
+        let eventIdToUpdate: String
+
+        if targetCalendarId != calendarId {
+            eventIdToUpdate = try await moveEvent(
+                eventId: eventId,
+                from: calendarId,
+                to: targetCalendarId,
+                accessToken: accessToken
+            )
+        } else {
+            eventIdToUpdate = eventId
+        }
+
+        let encodedEventId = eventIdToUpdate.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventIdToUpdate
+        let urlString = "\(GoogleCalendarAPI.eventsURL(calendarId: targetCalendarId))/\(encodedEventId)"
 
         guard let url = URL(string: urlString) else {
             throw GoogleCalendarError.invalidURL
@@ -763,9 +778,57 @@ class GoogleCalendarManager: ObservableObject {
             print("✅ Google Calendar event updated successfully")
             let updatedEvent = try JSONDecoder().decode(GoogleCalendarEvent.self, from: data)
             upsertCachedEvent(
-                decorateEvent(updatedEvent, calendarId: calendarId),
+                decorateEvent(updatedEvent, calendarId: targetCalendarId),
                 replacing: eventId
             )
+        case 401:
+            self.isAuthorized = false
+            throw GoogleCalendarError.unauthorized
+        default:
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw GoogleCalendarError.apiError(statusCode: httpResponse.statusCode, message: errorMessage)
+        }
+    }
+
+    private func moveEvent(
+        eventId: String,
+        from sourceCalendarId: String,
+        to targetCalendarId: String,
+        accessToken: String
+    ) async throws -> String {
+        let encodedEventId = eventId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventId
+        let urlString = "\(GoogleCalendarAPI.eventsURL(calendarId: sourceCalendarId))/\(encodedEventId)/move"
+
+        guard var components = URLComponents(string: urlString) else {
+            throw GoogleCalendarError.invalidURL
+        }
+        components.queryItems = [
+            URLQueryItem(name: "destination", value: targetCalendarId)
+        ]
+
+        guard let url = components.url else {
+            throw GoogleCalendarError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw GoogleCalendarError.invalidResponse
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            print("✅ Google Calendar event moved successfully")
+            let movedEvent = try JSONDecoder().decode(GoogleCalendarEvent.self, from: data)
+            upsertCachedEvent(
+                decorateEvent(movedEvent, calendarId: targetCalendarId),
+                replacing: eventId
+            )
+            return movedEvent.eventIdentifier
         case 401:
             self.isAuthorized = false
             throw GoogleCalendarError.unauthorized
