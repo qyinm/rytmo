@@ -32,10 +32,8 @@ struct rytmoApp: App {
     // MARK: - Initialization
 
     init() {
-        // Firebase Crashlytics: Enable crash reporting on exceptions
         UserDefaults.standard.register(defaults: ["NSApplicationCrashOnExceptions": true])
 
-        // Initialize Firebase first (required before AuthManager initialization)
         FirebaseApp.configure()
         print("✅ Firebase initialization complete (App init)")
 
@@ -44,12 +42,11 @@ struct rytmoApp: App {
         _timerManager = StateObject(wrappedValue: PomodoroTimerManager(settings: settings))
         _authManager = StateObject(wrappedValue: AuthManager())
 
-        // SwiftData container setup with automatic lightweight migration
         do {
             let schema = Schema([
                 Playlist.self,
                 MusicTrack.self,
-                TodoItem.self,  // SwiftData will auto-migrate "content" -> "title" via @Attribute(originalName:)
+                TodoItem.self,
                 FocusSession.self
             ])
             let modelConfiguration = ModelConfiguration(
@@ -59,8 +56,6 @@ struct rytmoApp: App {
 
             print("📦 Initializing SwiftData ModelContainer with automatic migration...")
 
-            // SwiftData automatically handles lightweight migration
-            // when @Attribute(originalName:) is used
             modelContainer = try ModelContainer(
                 for: schema,
                 configurations: [modelConfiguration]
@@ -68,12 +63,10 @@ struct rytmoApp: App {
 
             print("✅ ModelContainer initialization complete")
         } catch {
-            // Detailed error logging before crash
             print("❌ FATAL: ModelContainer initialization failed")
             print("❌ Error: \(error.localizedDescription)")
             print("❌ Details: \(error)")
 
-            // This will crash the app, but with clear logs for debugging
             fatalError("Could not create ModelContainer: \(error)")
         }
     }
@@ -81,8 +74,7 @@ struct rytmoApp: App {
     // MARK: - Body
 
     var body: some Scene {
-        // 1) Main Dashboard Window (singleton)
-        Window("Rytmo", id: "main") {
+        WindowGroup("Rytmo", id: "main") {
             MainDashboardSceneView(
                 timerManager: timerManager,
                 settings: settings,
@@ -94,18 +86,72 @@ struct rytmoApp: App {
             )
         }
         .windowStyle(.hiddenTitleBar)
-        // Window Size Settings
+        .defaultLaunchBehavior(.presented)
         .defaultSize(width: UIConstants.MainWindow.idealWidth,
                      height: UIConstants.MainWindow.idealHeight)
         .modelContainer(modelContainer)
-        // Sparkle, Add Update Menu
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Show Dashboard") {
+                Button("New Task") {
                     appDelegate.showMainWindow()
+                    NotificationCenter.default.post(name: .dashboardNavigate, object: DashboardNavigationTarget.tasks)
+                    NotificationCenter.default.post(name: .focusNewTask, object: nil)
                 }
                 .keyboardShortcut("n")
+
+                Button("New Event") {
+                    appDelegate.showMainWindow()
+                    NotificationCenter.default.post(name: .dashboardNavigate, object: DashboardNavigationTarget.calendar)
+                    NotificationCenter.default.post(name: .createNewEvent, object: nil)
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
             }
+
+            CommandMenu("Timer") {
+                Button(timerManager.session.isRunning ? "Pause Timer" : "Start Timer") {
+                    if timerManager.session.isRunning {
+                        timerManager.pause()
+                    } else {
+                        timerManager.start()
+                    }
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+
+                Button("Skip Session") {
+                    timerManager.skip()
+                }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+
+                Button("Reset Timer") {
+                    timerManager.reset()
+                }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            }
+
+            CommandMenu("Playback") {
+                Button("Toggle Play/Pause") {
+                    musicPlayer.togglePlayPause()
+                }
+                .keyboardShortcut("k")
+
+                Button("Next Track") {
+                    musicPlayer.playNextTrack()
+                }
+                .keyboardShortcut("]", modifiers: .command)
+
+                Button("Previous Track") {
+                    musicPlayer.playPreviousTrack()
+                }
+                .keyboardShortcut("[", modifiers: .command)
+            }
+
+            CommandGroup(after: .sidebar) {
+                Button("Toggle Sidebar") {
+                    NotificationCenter.default.post(name: .toggleSidebar, object: nil)
+                }
+                .keyboardShortcut("s", modifiers: [.command, .option])
+            }
+
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates") {
                     updateManager.checkForUpdates()
@@ -113,48 +159,12 @@ struct rytmoApp: App {
             }
         }
 
-        /*
-        // 2) MenuBar Extra (Popover UI - Includes Settings)
-        // Disabled in favor of Notch UI (Migration to Dynamic Island experience)
-        MenuBarExtra {
-            MenuBarView()
-                .environmentObject(timerManager)
-                .environmentObject(settings)
-                .environmentObject(musicPlayer)
+        Settings {
+            DashboardSettingsView()
                 .environmentObject(authManager)
-                .tint(Color.primary.opacity(0.7))
+                .environmentObject(settings)
                 .modelContainer(modelContainer)
-                .onAppear {
-                    musicPlayer.setModelContext(modelContainer.mainContext)
-                    timerManager.setModelContext(modelContainer.mainContext)
-                }
-        } label: {
-            // Menubar Label (Icon + Timer)
-            HStack(spacing: 4) {
-                // Display different icons depending on timer status
-                Group {
-                    switch timerManager.session.state {
-                    case .shortBreak, .longBreak:
-                        Image(systemName: "cup.and.heat.waves")
-                            .resizable()
-                            .scaledToFit()
-                    default:
-                        Image("MenuBarIcon")
-                            .resizable()
-                            .scaledToFit()
-                    }
-                }
-                .frame(width: 16, height: 16)
-
-                if !timerManager.menuBarTitle.isEmpty {
-                    Text(timerManager.menuBarTitle)
-                        .font(.system(.body, design: .monospaced))
-                }
-            }
-            // Dock reopen is handled via MainWindowOpenerBridge registration on the main window
         }
-        .menuBarExtraStyle(.window)
-        */
     }
 }
 
@@ -170,7 +180,8 @@ struct MainDashboardSceneView: View {
     let appDelegate: AppDelegate
 
     @Environment(\.openWindow) private var openWindow
-    
+    @Environment(\.openSettings) private var openSettings
+
     var body: some View {
         ContentView()
             .environmentObject(timerManager)
@@ -195,7 +206,7 @@ struct MainDashboardSceneView: View {
                 musicPlayer.startBackgroundPlayerIfNeeded()
                 timerManager.setModelContext(modelContainer.mainContext)
                 updateManager.startUpdaterIfNeeded()
-                
+
                 appDelegate.setupNotchWindow(
                     timerManager: timerManager,
                     settings: settings,
@@ -203,6 +214,9 @@ struct MainDashboardSceneView: View {
                     authManager: authManager,
                     modelContainer: modelContainer
                 )
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                openSettings()
             }
     }
 }
@@ -254,21 +268,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var openMainWindowAction: (() -> Void)?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Firebase initialization moved to App's init, so removed
-
-        // Amplitude initialization
         setupAmplitude()
-
-        // Google Sign-In initialization
         setupGoogleSignIn()
-
-        // UserNotifications Permission Request
         setupNotifications()
 
-        // Bring window to front on app launch
+        NotificationCenter.default.addObserver(
+            forName: .showDashboard,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.showMainWindow()
+            }
+        }
+
         NSApp.activate(ignoringOtherApps: true)
     }
-    
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func setupNotchWindow(
         timerManager: PomodoroTimerManager,
         settings: PomodoroSettings,
@@ -277,16 +297,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         modelContainer: ModelContainer
     ) {
         guard notchViewModel == nil else { return }
-        
+
         self.timerManagerRef = timerManager
         self.settingsRef = settings
         self.musicPlayerRef = musicPlayer
         self.authManagerRef = authManager
         self.modelContainerRef = modelContainer
-        
+
         let vm = NotchViewModel()
         self.notchViewModel = vm
-        
+
         let notchContent = NotchContentView(timerManager: timerManager)
             .environmentObject(vm)
             .environmentObject(timerManager)
@@ -294,57 +314,56 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             .environmentObject(musicPlayer)
             .environmentObject(authManager)
             .modelContainer(modelContainer)
-        
+
         NotchWindowManager.shared.setup(with: notchContent)
     }
-    
+
     func registerMainWindowOpener(_ action: @escaping () -> Void) {
         openMainWindowAction = action
     }
-    
+
     func registerMainWindow(_ window: NSWindow) {
         window.identifier = Self.mainWindowIdentifier
         window.isReleasedWhenClosed = false
         window.delegate = self
-        
+
         if mainWindowController?.window !== window {
             mainWindowController = NSWindowController(window: window)
         }
     }
-    
+
     func showMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        
+
         if let mainWindow = mainWindowController?.window {
             mainWindowController?.showWindow(self)
             mainWindow.makeKeyAndOrderFront(self)
             return
         }
-        
+
         openMainWindowAction?()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        // Always bring app to front
         NSApp.activate(ignoringOtherApps: true)
-        
+
         let visibleUserWindows = sender.windows.filter {
             !$0.isExcludedFromWindowsMenu &&
             !($0 is NSPanel) &&
             $0.isVisible
         }
-        
+
         if visibleUserWindows.isEmpty {
             showMainWindow()
             return true
         }
-        
+
         for window in visibleUserWindows {
             window.makeKeyAndOrderFront(self)
         }
         return false
     }
-    
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard sender.identifier == Self.mainWindowIdentifier else { return true }
         sender.orderOut(nil)
@@ -352,8 +371,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func setupGoogleSignIn() {
-        // Google Sign-In settings handled in AuthManager
-        // Only Client ID verification performed here
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             print("⚠️ Firebase Client ID not found.")
             return
@@ -371,11 +388,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private func setupNotifications() {
         let center = UNUserNotificationCenter.current()
 
-        // Check current permission status first
         center.getNotificationSettings { settings in
             switch settings.authorizationStatus {
             case .notDetermined:
-                // Permission not yet requested - Request permission
                 center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
                     if let error = error {
                         print("⚠️ Notification permission request failed: \(error.localizedDescription)")

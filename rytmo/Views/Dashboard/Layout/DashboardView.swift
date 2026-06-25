@@ -16,12 +16,31 @@ enum DashboardSelection: Hashable {
 struct DashboardView: View {
     @EnvironmentObject var authManager: AuthManager
     @EnvironmentObject var musicPlayer: MusicPlayerManager
+    @EnvironmentObject var timerManager: PomodoroTimerManager
+    @Environment(\.openSettings) private var openSettings
     @Query(sort: \Playlist.orderIndex) private var playlists: [Playlist]
-    
+
     @State private var selection: DashboardSelection? = .home
     @State private var isPlaylistExpanded: Bool = true
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    
+
+    private var sectionTitle: String {
+        switch selection {
+        case .home, .none:
+            return "Home"
+        case .calendar, .calendarSettings:
+            return "Calendar"
+        case .tasks:
+            return "Tasks"
+        case .allPlaylists:
+            return "Playlists"
+        case .playlist(let playlist):
+            return playlist.name
+        case .settings:
+            return "Settings"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -247,11 +266,100 @@ struct DashboardView: View {
                     
                     MusicPlayerBar()
                 }
+                .toolbar {
+                    ToolbarItem(placement: .navigation) {
+                        Button {
+                            toggleSidebar()
+                        } label: {
+                            Image(systemName: "sidebar.left")
+                        }
+                        .help("Toggle sidebar")
+                        .accessibilityLabel("Toggle sidebar")
+                    }
+
+                    ToolbarItem(placement: .principal) {
+                        Text(sectionTitle)
+                            .font(.headline)
+                    }
+
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        toolbarPrimaryAction
+                    }
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("switchToCalendarSettings"))) { _ in
             selection = .settings
             UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .dashboardNavigate)) { notification in
+            guard let target = notification.object as? DashboardNavigationTarget else { return }
+            switch target {
+            case .home: selection = .home
+            case .calendar: selection = .calendar
+            case .tasks: selection = .tasks
+            case .playlists: selection = .allPlaylists
+            case .settings: selection = .settings
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleSidebar)) { _ in
+            toggleSidebar()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+            selection = .settings
+            openSettings()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .createNewEvent)) { _ in
+            selection = .calendar
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .createNewTask)) { _ in
+            selection = .tasks
+        }
+    }
+
+    @ViewBuilder
+    private var toolbarPrimaryAction: some View {
+        switch selection {
+        case .calendar, .calendarSettings:
+            Button("Add Event") {
+                NotificationCenter.default.post(name: .createNewEvent, object: nil)
+            }
+            .help("Create a new calendar event")
+        case .tasks:
+            Button("New Task") {
+                NotificationCenter.default.post(name: .focusNewTask, object: nil)
+            }
+            .help("Create a new task")
+        case .allPlaylists, .playlist:
+            Button("Playlists") {
+                selection = .allPlaylists
+            }
+            .help("Browse playlists")
+        case .home:
+            Button(timerManager.session.isRunning ? "Pause" : "Start") {
+                if timerManager.session.isRunning {
+                    timerManager.pause()
+                } else {
+                    timerManager.start()
+                }
+            }
+            .help(timerManager.session.isRunning ? "Pause focus timer" : "Start focus timer")
+        case .settings, .none:
+            Button("Settings") {
+                openSettings()
+            }
+            .help("Open app settings")
+        }
+    }
+
+    private func toggleSidebar() {
+        withAnimation {
+            switch columnVisibility {
+            case .all:
+                columnVisibility = .detailOnly
+            default:
+                columnVisibility = .all
+            }
         }
     }
 }

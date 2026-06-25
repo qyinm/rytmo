@@ -56,6 +56,9 @@ struct DashboardTodoView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+        .onReceive(NotificationCenter.default.publisher(for: .focusNewTask)) { _ in
+            focusedField = true
+        }
     }
 
     // MARK: - Quick Add Bar
