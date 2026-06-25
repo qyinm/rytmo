@@ -107,7 +107,7 @@ struct CalendarRightSidebar: View {
         .onChange(of: selectedEvent?.eventIdentifier) { _, _ in
             syncPanelModeWithSelection()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .createNewEvent)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .beginCreateEvent)) { _ in
             beginCreateEvent()
         }
         .alert(isEditMode ? "Failed to Update Event" : "Failed to Create Event", isPresented: $showError) {
@@ -230,8 +230,7 @@ struct CalendarRightSidebar: View {
                 message: "Connect Apple or Google Calendar in Settings to see and manage events.",
                 actionTitle: "Open Settings"
             ) {
-                NotificationCenter.default.post(name: .openSettings, object: nil)
-                UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+                openCalendarSettings()
             }
         } else if calendarManager.showGoogle && !googleCalendarManager.isAuthorized && calendarManager.showSystem && !calendarManager.isAuthorized {
             readOnlyBanner(
@@ -239,8 +238,7 @@ struct CalendarRightSidebar: View {
                 message: "Grant calendar permissions in Settings to view and manage events.",
                 actionTitle: "Open Settings"
             ) {
-                NotificationCenter.default.post(name: .openSettings, object: nil)
-                UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+                openCalendarSettings()
             }
         }
     }
@@ -412,13 +410,17 @@ struct CalendarRightSidebar: View {
 
     private func beginCreateEvent() {
         guard calendarManager.canWriteAnyCalendar else {
-            NotificationCenter.default.post(name: .openSettings, object: nil)
-            UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+            openCalendarSettings()
             return
         }
         selectedEvent = nil
         panelMode = .create
         setupForm()
+    }
+
+    private func openCalendarSettings() {
+        UserDefaults.standard.set(2, forKey: "lastSettingsTab")
+        NotificationCenter.default.post(name: .openSettings, object: nil)
     }
 
     private func returnToSummary() {

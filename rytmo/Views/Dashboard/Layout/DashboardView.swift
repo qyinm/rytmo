@@ -273,10 +273,10 @@ struct DashboardView: View {
             openSettings()
         }
         .onReceive(NotificationCenter.default.publisher(for: .createNewEvent)) { _ in
-            selection = .calendar
+            beginCreateEvent()
         }
         .onReceive(NotificationCenter.default.publisher(for: .createNewTask)) { _ in
-            selection = .tasks
+            beginCreateTask()
         }
     }
 
@@ -288,6 +288,20 @@ struct DashboardView: View {
             default:
                 columnVisibility = .all
             }
+        }
+    }
+
+    private func beginCreateEvent() {
+        selection = .calendar
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .beginCreateEvent, object: nil)
+        }
+    }
+
+    private func beginCreateTask() {
+        selection = .tasks
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .focusNewTask, object: nil)
         }
     }
 }

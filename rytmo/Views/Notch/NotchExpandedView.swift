@@ -787,7 +787,6 @@ struct NotchExpandedView: View {
 
     private func openDashboard() {
         NSApp.activate(ignoringOtherApps: true)
-        openWindow(id: "main")
         NotificationCenter.default.post(name: .showDashboard, object: nil)
     }
 

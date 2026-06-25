@@ -94,15 +94,17 @@ struct rytmoApp: App {
             CommandGroup(replacing: .newItem) {
                 Button("New Task") {
                     appDelegate.showMainWindow()
-                    NotificationCenter.default.post(name: .dashboardNavigate, object: DashboardNavigationTarget.tasks)
-                    NotificationCenter.default.post(name: .focusNewTask, object: nil)
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: .createNewTask, object: nil)
+                    }
                 }
                 .keyboardShortcut("n")
 
                 Button("New Event") {
                     appDelegate.showMainWindow()
-                    NotificationCenter.default.post(name: .dashboardNavigate, object: DashboardNavigationTarget.calendar)
-                    NotificationCenter.default.post(name: .createNewEvent, object: nil)
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: .createNewEvent, object: nil)
+                    }
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             }

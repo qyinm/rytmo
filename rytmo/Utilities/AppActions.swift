@@ -14,6 +14,7 @@ extension Notification.Name {
     static let timerReset = Notification.Name("rytmo.timerReset")
     static let createNewTask = Notification.Name("rytmo.createNewTask")
     static let createNewEvent = Notification.Name("rytmo.createNewEvent")
+    static let beginCreateEvent = Notification.Name("rytmo.beginCreateEvent")
     static let togglePlayback = Notification.Name("rytmo.togglePlayback")
     static let toggleSidebar = Notification.Name("rytmo.toggleSidebar")
     static let focusNewTask = Notification.Name("rytmo.focusNewTask")
