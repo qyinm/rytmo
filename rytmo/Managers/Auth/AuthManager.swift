@@ -29,7 +29,7 @@ class AuthManager: ObservableObject {
 
     // MARK: - Private Properties
 
-    private var authStateHandler: AuthStateDidChangeListenerHandle?
+    nonisolated(unsafe) private var authStateHandler: AuthStateDidChangeListenerHandle?
 
     // MARK: - Initialization
 
@@ -74,7 +74,7 @@ class AuthManager: ObservableObject {
     func checkCurrentUser() {
         currentUser = Auth.auth().currentUser
 
-        if let user = currentUser {
+        if currentUser != nil {
             print("✅ Automatic login successful")
         } else {
             print("ℹ️ No logged-in user")

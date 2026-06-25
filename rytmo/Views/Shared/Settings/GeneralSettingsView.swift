@@ -239,8 +239,9 @@ struct GeneralSettingsView: View {
 
     private func checkNotificationAuthStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let authorizationStatus = settings.authorizationStatus
             DispatchQueue.main.async {
-                self.notificationAuthStatus = settings.authorizationStatus
+                self.notificationAuthStatus = authorizationStatus
             }
         }
     }

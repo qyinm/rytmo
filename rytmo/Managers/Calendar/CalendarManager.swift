@@ -146,12 +146,9 @@ class CalendarManager: ObservableObject {
             let start = monthDays.first ?? monthRange.start
             let end = calendar.date(byAdding: .day, value: 1, to: monthDays.last ?? monthRange.end) ?? monthRange.end
             
-            let events = await Task.detached(priority: .userInitiated) { [weak self] () -> [CalendarEventProtocol] in
-                guard let self = self else { return [] }
-                let calendars = self.eventStore.calendars(for: .event)
-                let predicate = self.eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
-                return self.eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }
-            }.value
+            let calendars = self.eventStore.calendars(for: .event)
+            let predicate = self.eventStore.predicateForEvents(withStart: start, end: end, calendars: calendars)
+            let events = self.eventStore.events(matching: predicate).map { SystemCalendarEvent(event: $0) }
             
             if !Task.isCancelled {
                 guard !self.matchesCurrentSystemEvents(events) else { return }

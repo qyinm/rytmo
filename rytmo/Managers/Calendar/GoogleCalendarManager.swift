@@ -159,10 +159,10 @@ class GoogleCalendarManager: ObservableObject {
     
     private func saveCalendarsToCache(_ calendars: [CalendarInfo]) {
         guard let url = getCacheURL(fileName: calendarsCacheFileName) else { return }
+        let cacheable = calendars.map { CacheableCalendarInfo(from: $0) }
         
-        Task.detached(priority: .background) {
+        Task.detached(priority: .background) { [cacheable] in
             do {
-                let cacheable = calendars.map { CacheableCalendarInfo(from: $0) }
                 let data = try JSONEncoder().encode(cacheable)
                 try data.write(to: url)
             } catch {
@@ -957,7 +957,7 @@ struct GoogleCalendarTime: Codable {
 
 // MARK: - Cacheable Calendar Info
 
-struct CacheableCalendarInfo: Codable {
+struct CacheableCalendarInfo: Codable, Sendable {
     let id: String
     let title: String
     let hexColorString: String?

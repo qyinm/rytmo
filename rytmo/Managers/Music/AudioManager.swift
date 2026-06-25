@@ -95,16 +95,18 @@ class AudioManager: ObservableObject {
     }
     
     private func getDeviceName(_ id: AudioDeviceID) -> String? {
-        var name: CFString?
+        var name = "" as CFString
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyDeviceNameCFString,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        var propsize = UInt32(MemoryLayout<CFString?>.size)
-        let status = AudioObjectGetPropertyData(id, &address, 0, nil, &propsize, &name)
+        var propsize = UInt32(MemoryLayout<CFString>.size)
+        let status = withUnsafeMutablePointer(to: &name) { namePointer in
+            AudioObjectGetPropertyData(id, &address, 0, nil, &propsize, namePointer)
+        }
         guard status == noErr else { return nil }
-        return name as String?
+        return name as String
     }
     
     private func isOutputDevice(_ id: AudioDeviceID) -> Bool {
@@ -170,7 +172,7 @@ class AudioManager: ObservableObject {
     }
 }
 
-private func audioObjectPropertyListener(
+nonisolated private func audioObjectPropertyListener(
     id: AudioObjectID,
     nAddresses: UInt32,
     addresses: UnsafePointer<AudioObjectPropertyAddress>,
@@ -178,7 +180,8 @@ private func audioObjectPropertyListener(
 ) -> OSStatus {
     guard let clientData = clientData else { return noErr }
     let manager = Unmanaged<AudioManager>.fromOpaque(clientData).takeUnretainedValue()
-    manager.refreshDevices()
+    Task { @MainActor in
+        manager.refreshDevices()
+    }
     return noErr
 }
-
