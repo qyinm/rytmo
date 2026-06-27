@@ -4,12 +4,12 @@
         <title>Pace</title>
         <item>
             <title>1.0.8</title>
-            <pubDate>Sun, 08 Mar 2026 13:45:04 +0900</pubDate>
+            <pubDate>Sun, 28 Jun 2026 00:49:54 +0900</pubDate>
             <sparkle:version>17</sparkle:version>
             <sparkle:shortVersionString>1.0.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.6</sparkle:minimumSystemVersion>
             <sparkle:releaseNotesLink>https://qyinm.github.io/pace/sparkle/release_notes/release_notes_1.0.8.html</sparkle:releaseNotesLink>
-            <enclosure url="https://qyinm.github.io/pace/sparkle/Pace-1.0.8-17.zip" length="20985905" type="application/octet-stream" sparkle:edSignature="Dvjssmbv6oaeH8b/VHaiezZIMxLMWuobt0L/j/0na2baDddyVfdd/3p7Vi6vM4iX1qZf/hrY4oZQ/yk4m6DPCg==" />
+            <enclosure url="https://qyinm.github.io/pace/sparkle/Pace-1.0.8-17.zip" length="21328901" type="application/octet-stream" sparkle:edSignature="geOOMS6blmP4WkQ2Mud60LkdJVlvc1VEysjVshE1vvYDd39C97nrtgIgpOOddbkREyUR+nPUcuRPKgCzI5sjCA==" />
         </item>
     </channel>
 </rss>

@@ -13,6 +13,11 @@ DMG_NAME="Pace.dmg"
 SKIP_DMG=0
 SIGN_UPDATE_BIN="${SPARKLE_SIGN_UPDATE_BIN:-}"
 LOCAL_SIGN_UPDATE_BIN="${APP_REPO_DIR}/sparkle/tools/sign_update"
+UNSIGNED_ARCHIVE=0
+POST_SIGN_IDENTITY=""
+POST_SIGN_TEAM_ID=""
+POST_SIGN_BUNDLE_ID=""
+POST_SIGN_ENTITLEMENTS=""
 LEGACY_FEED_SYNC=0
 LEGACY_UPDATE_DIR="${APP_REPO_DIR}/../Pace-update"
 LEGACY_BASE_DOWNLOAD_URL="https://qyinm.github.io/pace-update"
@@ -48,6 +53,14 @@ Options:
   --scheme <name>          Xcode scheme (default: Pace)
   --project <path>         Xcode project path (default: Pace.xcodeproj)
   --configuration <name>   Build configuration (default: Release)
+  --unsigned-archive       Archive without Xcode code signing
+  --post-sign-identity <id>
+                           Re-sign exported app after archive with Developer ID
+  --post-sign-team-id <id> Team ID for entitlements substitution
+  --post-sign-bundle-id <id>
+                           Bundle ID override for entitlements substitution
+  --post-sign-entitlements <path>
+                           Entitlements plist used for post-signing
   --dmg-name <name>        Output DMG name (default: Pace.dmg)
   --skip-dmg               Skip DMG creation
   --github-release         Create or update GitHub release via gh CLI
@@ -69,6 +82,7 @@ Notes:
 - Release notes file defaults to release_notes/release_notes_<shortVersion>.html.
 - If release notes file does not exist, a placeholder file is created.
 - sign_update is resolved in this order: --sign-update-bin, SPARKLE_SIGN_UPDATE_BIN env, ./sparkle/tools/sign_update, PATH(sign_update).
+- --unsigned-archive is intended for local release fallback when Xcode archive signing is blocked; combine it with --post-sign-identity to produce a distributable app bundle.
 - Legacy feed sync is optional and disabled by default.
 EOF
 }
@@ -109,6 +123,26 @@ while [[ $# -gt 0 ]]; do
       ;;
     --configuration)
       CONFIGURATION="$2"
+      shift 2
+      ;;
+    --unsigned-archive)
+      UNSIGNED_ARCHIVE=1
+      shift
+      ;;
+    --post-sign-identity)
+      POST_SIGN_IDENTITY="$2"
+      shift 2
+      ;;
+    --post-sign-team-id)
+      POST_SIGN_TEAM_ID="$2"
+      shift 2
+      ;;
+    --post-sign-bundle-id)
+      POST_SIGN_BUNDLE_ID="$2"
+      shift 2
+      ;;
+    --post-sign-entitlements)
+      POST_SIGN_ENTITLEMENTS="$2"
       shift 2
       ;;
     --dmg-name)
@@ -182,6 +216,9 @@ if [[ "$GITHUB_RELEASE" -eq 1 ]]; then
   require_command gh
   require_command git
 fi
+if [[ "$POST_SIGN_IDENTITY" != "" ]]; then
+  require_command codesign
+fi
 
 if [[ -z "$SIGN_UPDATE_BIN" ]]; then
   if [[ -x "$LOCAL_SIGN_UPDATE_BIN" ]]; then
@@ -228,6 +265,25 @@ if [[ ! "$APPCAST_RETAIN_COUNT" =~ ^[0-9]+$ ]] || [[ "$APPCAST_RETAIN_COUNT" -lt
   exit 1
 fi
 
+if [[ "$UNSIGNED_ARCHIVE" -eq 0 && "$POST_SIGN_IDENTITY" != "" ]]; then
+  echo "--post-sign-identity is only supported with --unsigned-archive" >&2
+  exit 1
+fi
+
+if [[ "$UNSIGNED_ARCHIVE" -eq 1 && "$POST_SIGN_IDENTITY" == "" ]]; then
+  echo "--unsigned-archive requires --post-sign-identity to produce a distributable app" >&2
+  exit 1
+fi
+
+if [[ "$POST_SIGN_ENTITLEMENTS" == "" ]]; then
+  POST_SIGN_ENTITLEMENTS="${APP_REPO_DIR}/Pace/Pace.entitlements"
+fi
+
+if [[ "$POST_SIGN_IDENTITY" != "" && ! -f "$POST_SIGN_ENTITLEMENTS" ]]; then
+  echo "Post-sign entitlements file not found: $POST_SIGN_ENTITLEMENTS" >&2
+  exit 1
+fi
+
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pace-release-XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -236,13 +292,20 @@ EXPORT_DIR="${TMP_DIR}/export"
 
 echo "Using sign_update binary: ${SIGN_UPDATE_BIN}"
 echo "[1/5] Archiving app..."
-xcodebuild \
-  -project "$PROJECT_PATH" \
-  -scheme "$SCHEME" \
-  -configuration "$CONFIGURATION" \
-  -destination "generic/platform=macOS" \
-  -archivePath "$ARCHIVE_PATH" \
+XCODEBUILD_ARGS=(
+  -project "$PROJECT_PATH"
+  -scheme "$SCHEME"
+  -configuration "$CONFIGURATION"
+  -destination "generic/platform=macOS"
+  -archivePath "$ARCHIVE_PATH"
   archive
+)
+
+if [[ "$UNSIGNED_ARCHIVE" -eq 1 ]]; then
+  XCODEBUILD_ARGS+=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
+fi
+
+xcodebuild "${XCODEBUILD_ARGS[@]}"
 
 APP_PATHS=("$ARCHIVE_PATH"/Products/Applications/*.app)
 if [[ ${#APP_PATHS[@]} -ne 1 || ! -d "${APP_PATHS[0]}" ]]; then
@@ -267,6 +330,41 @@ fi
 SHORT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_INFO_PLIST")"
 BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_INFO_PLIST")"
 MIN_SYSTEM_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP_INFO_PLIST" 2>/dev/null || true)"
+RESOLVED_BUNDLE_ID="${POST_SIGN_BUNDLE_ID:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO_PLIST")}"
+
+if [[ "$POST_SIGN_IDENTITY" != "" ]]; then
+  if [[ "$POST_SIGN_TEAM_ID" == "" ]]; then
+    POST_SIGN_TEAM_ID="$(echo "$POST_SIGN_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+  fi
+
+  if [[ "$POST_SIGN_TEAM_ID" == "" ]]; then
+    echo "Unable to infer team ID from post-sign identity. Pass --post-sign-team-id explicitly." >&2
+    exit 1
+  fi
+
+  RESOLVED_ENTITLEMENTS_PATH="${TMP_DIR}/post-sign.entitlements"
+  python3 - "$POST_SIGN_ENTITLEMENTS" "$RESOLVED_ENTITLEMENTS_PATH" "$POST_SIGN_TEAM_ID" "$RESOLVED_BUNDLE_ID" <<'PY'
+from pathlib import Path
+import sys
+
+src = Path(sys.argv[1]).read_text()
+team_id = sys.argv[3]
+bundle_id = sys.argv[4]
+result = src.replace("$(AppIdentifierPrefix)", f"{team_id}.")
+result = result.replace("$(PRODUCT_BUNDLE_IDENTIFIER)", bundle_id)
+Path(sys.argv[2]).write_text(result)
+PY
+
+  echo "[2b/5] Re-signing exported app with ${POST_SIGN_IDENTITY}..."
+  codesign \
+    --force \
+    --deep \
+    --options runtime \
+    --sign "$POST_SIGN_IDENTITY" \
+    --entitlements "$RESOLVED_ENTITLEMENTS_PATH" \
+    "$EXPORTED_APP_PATH"
+  codesign --verify --deep --strict --verbose=2 "$EXPORTED_APP_PATH"
+fi
 
 ARCHIVE_BASE_NAME="${APP_NAME%.app}-${SHORT_VERSION}-${BUILD_VERSION}"
 ZIP_NAME="${ARCHIVE_BASE_NAME}.zip"
