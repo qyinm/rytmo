@@ -8,8 +8,23 @@ struct NotchExpandedView: View {
     @EnvironmentObject var musicPlayer: MusicPlayerManager
     @EnvironmentObject var vm: NotchViewModel
     @EnvironmentObject var settings: PomodoroSettings
+    @ObservedObject private var calendarManager = CalendarManager.shared
+    @Query(
+        filter: #Predicate<FocusSession> { $0.typeString == "FOCUS" },
+        sort: \FocusSession.startTime,
+        order: .reverse
+    ) private var focusSessions: [FocusSession]
+    @Query(
+        filter: #Predicate<TodoItem> { !$0.isCompleted },
+        sort: \TodoItem.orderIndex
+    ) private var todos: [TodoItem]
     
     @Environment(\.openWindow) private var openWindow
+
+    private let recommendationEngine = NextSessionRecommendationEngine()
+    private let homeContentMaxWidth: CGFloat = 560
+    private let homeCardSize: CGFloat = 180
+    private let homeCardSpacing: CGFloat = 16
 
     @State private var showingSettings: Bool = false
     @State private var selectedTab: Int = 0
@@ -89,17 +104,64 @@ struct NotchExpandedView: View {
     
     private var homeTabView: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 24) {
+            if canShowNextSessionRecommendation {
+                TimelineView(.periodic(from: Date(), by: 60)) { context in
+                    if let recommendation = nextSessionRecommendation(at: context.date) {
+                        NextSessionRecommendationCard(recommendation: recommendation) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                timerManager.start()
+                            }
+                        }
+                        .frame(maxWidth: homeContentMaxWidth)
+                    }
+                }
+                .onAppear {
+                    calendarManager.checkPermission()
+                }
+            }
+
+            HStack(spacing: homeCardSpacing) {
                 CompactTimerView()
-                    .aspectRatio(1, contentMode: .fit)
-                    .frame(maxWidth: 240)
+                    .frame(width: homeCardSize, height: homeCardSize)
 
                 CompactTodoView()
-                    .aspectRatio(1, contentMode: .fit)
-                    .frame(maxWidth: 240)
+                    .frame(width: homeCardSize, height: homeCardSize)
             }
-            .padding(.horizontal, 8)
+            .frame(width: homeCardSize * 2 + homeCardSpacing)
         }
+        .frame(maxWidth: homeContentMaxWidth)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var canShowNextSessionRecommendation: Bool {
+        timerManager.session.state == .idle && !timerManager.session.isRunning
+    }
+
+    private func nextSessionRecommendation(at now: Date) -> NextSessionRecommendation? {
+        guard canShowNextSessionRecommendation else { return nil }
+
+        let focusDuration = settings.focusDurationInSeconds()
+        let lookaheadEnd = now.addingTimeInterval(max(focusDuration + 60 * 60, 2 * 60 * 60))
+        let upcomingEvents = calendarManager.upcomingRecommendationEvents(from: now, through: lookaheadEnd)
+        let recentSessions = focusSessions.prefix(12).map {
+            NextSessionFocusSessionSnapshot(
+                startTime: $0.startTime,
+                durationSeconds: $0.durationSeconds,
+                sessionType: $0.sessionType
+            )
+        }
+        let activeTodos = todos.map { NextSessionTodoSnapshot(dueDate: $0.dueDate) }
+
+        return recommendationEngine.recommend(
+            from: NextSessionRecommendationInput(
+                now: now,
+                allowsRecommendation: true,
+                focusDuration: focusDuration,
+                upcomingEvents: upcomingEvents,
+                recentSessions: Array(recentSessions),
+                activeTodos: activeTodos
+            )
+        )
     }
     
     private var musicTabView: some View {

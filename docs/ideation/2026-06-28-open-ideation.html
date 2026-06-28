@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideation: Pace Surprise-Me Directions</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --panel: #ffffff;
+      --ink: #1f2328;
+      --muted: #68707c;
+      --line: #d9d7cf;
+      --soft: #eef2f5;
+      --accent: #0b7285;
+      --accent-soft: #dff3f6;
+      --accent-text: #064b58;
+      --green: #2f7d32;
+      --green-soft: #e5f3e7;
+      --amber: #946200;
+      --amber-soft: #fff1cf;
+      --blue: #2457a6;
+      --blue-soft: #e7eefb;
+      --violet: #6152a5;
+      --violet-soft: #eeebfb;
+      --shadow: 0 12px 32px rgba(31, 35, 40, 0.08);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 42px 24px 64px;
+    }
+    header {
+      padding: 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 34px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 42px 0 14px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+    p {
+      max-width: 72ch;
+      margin: 0 0 14px;
+    }
+    strong { color: inherit; }
+    code {
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: #f1f0ea;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .92em;
+    }
+    a { color: var(--accent-text); }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--soft);
+      color: #3d4652;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0 0;
+    }
+    .stat {
+      padding: 14px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: var(--accent-text);
+    }
+    .stat b {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .section-card,
+    .idea,
+    .table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+    .section-card {
+      padding: 22px;
+      margin-top: 14px;
+    }
+    .jump-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 16px;
+      margin: 0 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fffdf8;
+      list-style: none;
+    }
+    .jump-list a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: var(--soft);
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 650;
+    }
+    .idea {
+      margin: 18px 0;
+      overflow: hidden;
+    }
+    .idea-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fffdf8;
+    }
+    .rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      margin-right: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      vertical-align: middle;
+    }
+    .idea-body { padding: 20px 22px 22px; }
+    .idea-grid {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 18px;
+      align-items: start;
+    }
+    .field {
+      margin-top: 14px;
+      padding: 13px 14px;
+      border-radius: 8px;
+      background: var(--soft);
+    }
+    .field-label {
+      display: block;
+      margin-bottom: 4px;
+      color: #3d4652;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .metric {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 750;
+    }
+    .conf-high { background: var(--green-soft); color: #245c26; }
+    .conf-med { background: var(--amber-soft); color: var(--amber); }
+    .cx-med { background: var(--blue-soft); color: var(--blue); }
+    .cx-high { background: var(--violet-soft); color: var(--violet); }
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfaf6;
+      padding: 10px;
+    }
+    .diagram svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .diagram-title {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f0ea;
+      font-size: 12px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .table-wrap {
+      overflow: hidden;
+      margin-top: 14px;
+    }
+    footer {
+      margin-top: 36px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 820px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .jump-list { grid-template-columns: 1fr; }
+      .idea-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 28px; }
+      .page { padding: 24px 14px 44px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <p class="eyebrow">CE Ideation</p>
+      <h1>Ideation: Pace Surprise-Me Directions</h1>
+      <p>Pace has enough pieces to stop being described as a Pomodoro timer with music. The strongest directions treat it as a private Mac-native rhythm layer: it compiles calendar, tasks, music, focus state, and recovery into a live workday surface.</p>
+      <div class="meta">
+        <span class="pill">Date: <time datetime="2026-06-28">2026-06-28</time></span>
+        <span class="pill">Topic: open-ideation</span>
+        <span class="pill">Mode: repo-grounded</span>
+        <span class="pill">Focus: surprise me</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>7</b>ranked ideas</div>
+        <div class="stat"><b>14</b>merged candidates</div>
+        <div class="stat"><b>34</b>raw frame ideas</div>
+        <div class="stat"><b>7</b>cuts after critique</div>
+      </div>
+    </header>
+
+    <section id="grounding-context">
+      <h2>Grounding Context</h2>
+      <div class="section-card">
+        <p><strong>Codebase Context.</strong> Pace is a native macOS Swift 6 / SwiftUI app with Pomodoro timer, YouTube music, SwiftData tasks/playlists/focus sessions, calendar integrations, Firebase/GoogleSignIn auth, Amplitude, Sparkle updates, custom notch/glance UI, dashboard, and a Next.js landing page.</p>
+        <p>The repo shows a product identity gap: the README still frames Pace as a menu bar Pomodoro + YouTube app, while the code and changelog show calendar, tasks, dashboard, notch UI, focus stats, settings, and update infrastructure.</p>
+        <p>The heaviest local complexity is in two areas. Calendar has EventKit + Google Calendar, scope upgrades, token refresh, caches, periodic sync, disconnect cleanup, and a 5000-event cap. Release has Sparkle ZIP/appcast/DMG generation, GitHub release support, unsigned archive fallback, post-signing, and recent rename fallout.</p>
+        <p><strong>Past learnings.</strong> The repo already learned that Xcode archive creation and distributable app signing should be separated, and that product renames drift across app targets, packages, entitlements, release artifacts, landing page constants, repo/domain state, and Sparkle URLs unless coordinated.</p>
+        <p><strong>External context.</strong> Endel, Brain.fm, Portal, Rize, Tiimo, vashTimer, RISE, and current macOS agent benchmarks point toward adaptive sound, passive time intelligence, neuro-inclusive planning, accessible timekeeping, and agent-readable native UI as live opportunity spaces.</p>
+      </div>
+    </section>
+
+    <section id="topic-axes">
+      <h2>Topic Axes</h2>
+      <div class="section-card">
+        <p>Decomposition skipped — surprise-me mode.</p>
+      </div>
+    </section>
+
+    <section id="ranked-ideas">
+      <h2>Ranked Ideas</h2>
+      <ul class="jump-list" aria-label="Ranked idea jump list">
+        <li><a href="#idea-1">1. Pace Compiler / Autopace Workday</a></li>
+        <li><a href="#idea-2">2. Focus Session Ledger / Focus Graph</a></li>
+        <li><a href="#idea-3">3. No Dashboard: The Notch Is the Product</a></li>
+        <li><a href="#idea-4">4. Adaptive Sound / Cognitive Gearbox</a></li>
+        <li><a href="#idea-5">5. Rhythm Debt / Work Readiness</a></li>
+        <li><a href="#idea-6">6. Agent-Readable Pace</a></li>
+        <li><a href="#idea-7">7. Release Cockpit / Rename-Safe Shipping</a></li>
+      </ul>
+
+      <article class="idea" id="idea-1">
+        <div class="idea-head"><h3><span class="rank">1</span>Idea 1. Pace Compiler / Autopace Workday</h3></div>
+        <div class="idea-body idea-grid">
+          <div>
+            <p><strong>Description:</strong> Turn messy inputs — tasks, calendar constraints, focus history, music preference, skips, and interruptions — into an executable day rhythm. The timer becomes the runtime, not the product: Pace proposes warm-up blocks, deep-work peaks, shallow-work lanes, cooldowns, recovery windows, and music intensity shifts as the day changes.</p>
+            <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> Pace already has timers, tasks, calendar, music, persisted focus sessions, skip behavior, and a 24-hour timeline promise. <strong>external:</strong> Tiimo supports visual planning and executive-function scaffolding; RISE maps adaptive music intensity to activity phases.</p></div>
+            <div class="field"><span class="field-label">Rationale</span><p>This is the best product-thesis candidate because it explains why all the existing subsystems belong together. It shifts Pace from “start a timer” to “let the Mac help decide what kind of time you should be in next.”</p></div>
+            <div class="field"><span class="field-label">Downsides</span><p>High product and UX risk: bad recommendations would feel presumptuous. It needs a strong fallback where users can override, correct, or keep manual timer behavior.</p></div>
+            <div class="metrics"><span class="metric conf-high">Confidence 86%</span><span class="metric cx-high">Complexity High</span></div>
+          </div>
+          <figure class="diagram">
+            <p class="diagram-title">Compiler shape</p>
+            <svg viewBox="0 0 260 230" role="img" aria-label="Inputs compile into a day rhythm">
+              <defs>
+                <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0b7285"/></marker>
+              </defs>
+              <rect x="18" y="18" width="84" height="30" rx="7" fill="#e7eefb" stroke="#8aa5d6"/>
+              <text x="60" y="38" text-anchor="middle" font-size="12" fill="#2457a6">Calendar</text>
+              <rect x="18" y="62" width="84" height="30" rx="7" fill="#e5f3e7" stroke="#8ab98d"/>
+              <text x="60" y="82" text-anchor="middle" font-size="12" fill="#245c26">Tasks</text>
+              <rect x="18" y="106" width="84" height="30" rx="7" fill="#fff1cf" stroke="#d9b861"/>
+              <text x="60" y="126" text-anchor="middle" font-size="12" fill="#775000">Music</text>
+              <rect x="18" y="150" width="84" height="30" rx="7" fill="#eeebfb" stroke="#aaa1dd"/>
+              <text x="60" y="170" text-anchor="middle" font-size="12" fill="#6152a5">History</text>
+              <rect x="134" y="78" width="98" height="54" rx="10" fill="#dff3f6" stroke="#0b7285" stroke-width="2"/>
+              <text x="183" y="101" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Pace</text>
+              <text x="183" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Compiler</text>
+              <path d="M102 33 C118 45 124 64 134 83" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow)"/>
+              <path d="M102 77 C116 80 124 88 134 95" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow)"/>
+              <path d="M102 121 C116 118 124 112 134 108" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow)"/>
+              <path d="M102 165 C120 152 126 134 134 126" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow)"/>
+              <path d="M183 132 L183 186" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow)"/>
+              <rect x="124" y="188" width="118" height="28" rx="7" fill="#ffffff" stroke="#0b7285"/>
+              <text x="183" y="207" text-anchor="middle" font-size="12" fill="#064b58">Executable rhythm</text>
+            </svg>
+          </figure>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-2">
+        <div class="idea-head"><h3><span class="rank">2</span>Idea 2. Focus Session Ledger / Focus Graph</h3></div>
+        <div class="idea-body idea-grid">
+          <div>
+            <p><strong>Description:</strong> Build a canonical local semantic model for Pace: planned intent, actual start/end, skipped segments, interruption reason, music context, linked task, linked calendar event, and current focus state. This becomes the shared source for dashboard history, notch decisions, passive receipts, analytics, agent-readable state, and privacy controls.</p>
+            <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> TimerManager already persists focus sessions and skip behavior; Pace has tasks, calendar, music, focus stats, and notch UI. <strong>external:</strong> Rize shows private passive time intelligence can work without screenshots or keylogging.</p></div>
+            <div class="field"><span class="field-label">Rationale</span><p>This is the strongest foundation move. Without a ledger/graph, every smart feature will create its own partial truth about what the user is doing.</p></div>
+            <div class="field"><span class="field-label">Downsides</span><p>It is mostly invisible until paired with a user-facing surface. Scope can balloon if the graph tries to model everything before proving one workflow.</p></div>
+            <div class="metrics"><span class="metric conf-high">Confidence 90%</span><span class="metric cx-med">Complexity Medium</span></div>
+          </div>
+          <figure class="diagram">
+            <p class="diagram-title">Source of truth</p>
+            <svg viewBox="0 0 260 220" role="img" aria-label="Focus graph fans out to product surfaces">
+              <defs><marker id="arrow2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#0b7285"/></marker></defs>
+              <circle cx="130" cy="104" r="48" fill="#dff3f6" stroke="#0b7285" stroke-width="2"/>
+              <text x="130" y="99" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Focus</text>
+              <text x="130" y="116" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Graph</text>
+              <g fill="#fff" stroke="#c9c7bf">
+                <rect x="12" y="24" width="76" height="30" rx="7"/><rect x="172" y="24" width="76" height="30" rx="7"/>
+                <rect x="12" y="166" width="76" height="30" rx="7"/><rect x="172" y="166" width="76" height="30" rx="7"/>
+              </g>
+              <g font-size="12" fill="#1f2328" text-anchor="middle">
+                <text x="50" y="44">Notch</text><text x="210" y="44">Stats</text><text x="50" y="186">Agents</text><text x="210" y="186">Audio</text>
+              </g>
+              <path d="M96 72 L72 55" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow2)"/>
+              <path d="M164 72 L188 55" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow2)"/>
+              <path d="M96 136 L72 166" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow2)"/>
+              <path d="M164 136 L188 166" fill="none" stroke="#0b7285" stroke-width="2" marker-end="url(#arrow2)"/>
+            </svg>
+          </figure>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-3">
+        <div class="idea-head"><h3><span class="rank">3</span>Idea 3. No Dashboard: The Notch Is the Product</h3></div>
+        <div class="idea-body">
+          <p><strong>Description:</strong> Flip the center of gravity: the daily product is never a dashboard. The custom notch/glance surface becomes the command center for the current task, next calendar conflict, timer state, and music intensity; the dashboard becomes archive, configuration, and history.</p>
+          <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> Pace already has custom notch/glance UI, dashboard navigation, timer, calendar, tasks, music, and focus sessions. <strong>external:</strong> Portal shows productivity software can be sold as presence and environment rather than tracking panels.</p></div>
+          <div class="field"><span class="field-label">Rationale</span><p>This sharpens the native Mac advantage. Pace can be lighter than the work it supports instead of becoming another productivity hub the user has to manage.</p></div>
+          <div class="field"><span class="field-label">Downsides</span><p>The notch surface has limited space and high interaction risk. It needs ruthless prioritization and accessibility work so it does not become a cramped novelty.</p></div>
+          <div class="metrics"><span class="metric conf-med">Confidence 80%</span><span class="metric cx-med">Complexity Medium</span></div>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-4">
+        <div class="idea-head"><h3><span class="rank">4</span>Idea 4. Adaptive Sound / Cognitive Gearbox</h3></div>
+        <div class="idea-body">
+          <p><strong>Description:</strong> Treat YouTube/music as the focus control surface, not entertainment. Pace maps warm-up, ramp, deep work, urgent push, cooldown, and recovery modes to sound and pacing, using calendar pressure, task type, time of day, and skip patterns.</p>
+          <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> Pace already combines YouTube music, playlists/tracks, timer state, focus sessions, calendar, and tasks. <strong>external:</strong> Endel adapts soundscapes to context; Brain.fm and Focus@Will position functional music around attention; RISE adapts music intensity to activity phases.</p></div>
+          <div class="field"><span class="field-label">Rationale</span><p>This makes “Focus with Rhythm” literal. Music becomes what helps the user shift gears, not a playlist embedded beside a timer.</p></div>
+          <div class="field"><span class="field-label">Downsides</span><p>Credibility matters: focus-audio claims can sound pseudoscientific. YouTube control granularity may limit how adaptive the first version can be.</p></div>
+          <div class="metrics"><span class="metric conf-med">Confidence 78%</span><span class="metric cx-high">Complexity High</span></div>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-5">
+        <div class="idea-head"><h3><span class="rank">5</span>Idea 5. Rhythm Debt / Work Readiness</h3></div>
+        <div class="idea-body">
+          <p><strong>Description:</strong> Replace vanity productivity stats with a humane readiness model. Pace tracks mismatches between planned intensity, actual attention, recovery, meeting load, skipped sessions, and late-day overload, then tells the user when they are borrowing focus from tomorrow.</p>
+          <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> TimerManager persists completed and skipped focus sessions; calendar load and focus stats already exist as raw material. <strong>external:</strong> Endel’s circadian/ultradian adaptation and Tiimo’s neuro-inclusive framing both support time-quality over output-count thinking.</p></div>
+          <div class="field"><span class="field-label">Rationale</span><p>The metric fits the brand: rhythm, not hustle. It also gives skips and failed sessions positive diagnostic value instead of hiding them as bad outcomes.</p></div>
+          <div class="field"><span class="field-label">Downsides</span><p>It can become hand-wavy if not anchored in transparent inputs. The app must avoid moralizing user behavior.</p></div>
+          <div class="metrics"><span class="metric conf-med">Confidence 76%</span><span class="metric cx-med">Complexity Medium</span></div>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-6">
+        <div class="idea-head"><h3><span class="rank">6</span>Idea 6. Agent-Readable Pace</h3></div>
+        <div class="idea-body">
+          <p><strong>Description:</strong> Design Pace as a native Mac app that humans and local agents can both understand. The notch, timer, tasks, calendar state, focus sessions, and settings expose accessibility labels, deterministic commands, inspectable state, and semantic actions such as “current focus,” “next session,” and “protect this block.”</p>
+          <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> Pace is a native SwiftUI macOS app with custom notch/glance UI and productivity state worth exposing. <strong>external:</strong> MacArena, MacAgentBench, and Screen2AX point toward agent-readable and accessibility-rich macOS UI as a strategic frontier.</p></div>
+          <div class="field"><span class="field-label">Rationale</span><p>This links accessibility, QA, automation, and product differentiation. If local agents increasingly operate Macs, Pace can become a focus boundary they can respect without screen scraping.</p></div>
+          <div class="field"><span class="field-label">Downsides</span><p>The value is partly future-facing. It needs near-term wins through accessibility, keyboard control, and testability to justify itself before agent workflows mature.</p></div>
+          <div class="metrics"><span class="metric conf-high">Confidence 82%</span><span class="metric cx-med">Complexity Medium</span></div>
+        </div>
+      </article>
+
+      <article class="idea" id="idea-7">
+        <div class="idea-head"><h3><span class="rank">7</span>Idea 7. Release Cockpit / Rename-Safe Shipping</h3></div>
+        <div class="idea-body idea-grid">
+          <div>
+            <p><strong>Description:</strong> Build a preflight cockpit for native distribution and product identity. It verifies signing, Sparkle appcast, DMG/ZIP assets, GitHub release assets, landing-page download constants, version names, rollback readiness, and narrative drift before distribution.</p>
+            <div class="field"><span class="field-label">Basis</span><p><strong>direct:</strong> The repo already has Sparkle zip/appcast/DMG generation, GitHub release support, unsigned archive fallback, post-signing, and docs capturing release-signing and rename drift failures.</p></div>
+            <div class="field"><span class="field-label">Rationale</span><p>This is developer-facing, but it compounds. Every future product bet is easier if shipping is boring, auditable, and rename-safe.</p></div>
+            <div class="field"><span class="field-label">Downsides</span><p>It does not improve the end-user experience directly. It should stay small and diagnostic before becoming a large internal platform.</p></div>
+            <div class="metrics"><span class="metric conf-high">Confidence 88%</span><span class="metric cx-med">Complexity Medium</span></div>
+          </div>
+          <figure class="diagram">
+            <p class="diagram-title">Preflight checks</p>
+            <svg viewBox="0 0 260 200" role="img" aria-label="Release cockpit checks multiple surfaces">
+              <rect x="78" y="72" width="104" height="50" rx="10" fill="#dff3f6" stroke="#0b7285" stroke-width="2"/>
+              <text x="130" y="93" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Release</text>
+              <text x="130" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="#064b58">Cockpit</text>
+              <g fill="#fff" stroke="#c9c7bf">
+                <rect x="10" y="18" width="72" height="28" rx="7"/><rect x="94" y="18" width="72" height="28" rx="7"/><rect x="178" y="18" width="72" height="28" rx="7"/>
+                <rect x="10" y="154" width="72" height="28" rx="7"/><rect x="94" y="154" width="72" height="28" rx="7"/><rect x="178" y="154" width="72" height="28" rx="7"/>
+              </g>
+              <g font-size="11" fill="#1f2328" text-anchor="middle">
+                <text x="46" y="36">Signing</text><text x="130" y="36">Appcast</text><text x="214" y="36">DMG/ZIP</text>
+                <text x="46" y="172">Landing CTA</text><text x="130" y="172">GitHub</text><text x="214" y="172">Narrative</text>
+              </g>
+              <g stroke="#0b7285" stroke-width="2" fill="none">
+                <path d="M70 46 L96 72"/><path d="M130 46 L130 72"/><path d="M190 46 L164 72"/>
+                <path d="M70 154 L96 122"/><path d="M130 154 L130 122"/><path d="M190 154 L164 122"/>
+              </g>
+            </svg>
+          </figure>
+        </div>
+      </article>
+    </section>
+
+    <section id="rejection-summary">
+      <h2>Rejection Summary</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Idea</th><th>Reason Rejected</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Focus Receipts / Forgiving Timer</td><td>Strong, but best retained as a mode inside Pace Compiler and Focus Session Ledger rather than a separate top-level survivor.</td></tr>
+            <tr><td>2</td><td>Calendar Triage / Consent Boundary</td><td>Sound, but folded into Pace Compiler and Rhythm Debt; on its own it risks becoming another calendar feature rather than the product thesis.</td></tr>
+            <tr><td>3</td><td>Anti-Todo List</td><td>Sound, but best treated as the task-side policy inside Autopace Workday.</td></tr>
+            <tr><td>4</td><td>Local-First Trust Boundary</td><td>Important, but more a principle that constrains Focus Graph, passive detection, and Agent-Readable Pace than a standalone first move.</td></tr>
+            <tr><td>5</td><td>Rename-Safe Identity Manifest / Narrative Drift Check</td><td>Sound, but merged into Release Cockpit because both address the same release/identity invariant surface.</td></tr>
+            <tr><td>6</td><td>Calendar Detox Mode</td><td>Verifier marked weak as a narrower diagnostics slice of Calendar Triage and Local-First Trust unless sharpened around diagnostics.</td></tr>
+            <tr><td>7</td><td>Focus Session Autopsy</td><td>Verifier marked weak as a reporting variant covered by Ledger, Rhythm Debt, and Adaptive Sound.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="composition-signal">
+      Composed 2026-06-28T00:00:00+09:00 by ce-ideate from user prompt <code>surprise me</code>.
+    </footer>
+  </main>
+</body>
+</html>

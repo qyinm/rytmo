@@ -121,9 +121,12 @@ struct HomeView: View {
 }
 
 #Preview {
+    let settings = PomodoroSettings()
+
     HomeView()
-        .environmentObject(PomodoroTimerManager(settings: PomodoroSettings()))
+        .environmentObject(PomodoroTimerManager(settings: settings))
+        .environmentObject(settings)
         .environmentObject(MusicPlayerManager())
-        .modelContainer(for: FocusSession.self, inMemory: true)
+        .modelContainer(for: [FocusSession.self, TodoItem.self], inMemory: true)
         .frame(width: 1000, height: 700)
 }

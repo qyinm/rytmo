@@ -40,6 +40,17 @@ class CalendarManager: ObservableObject {
     var currentMonthDays: [Date] { optimizedData.days }
     var eventSlots: [Date: [CalendarEventProtocol?]] { optimizedData.eventSlots }
     var eventsByDate: [Date: [CalendarEventProtocol]] { optimizedData.eventsByDate }
+
+    func upcomingRecommendationEvents(
+        from startDate: Date = Date(),
+        through endDate: Date
+    ) -> [NextSessionCalendarEvent] {
+        CalendarRecommendationEventFilter.upcomingEvents(
+            fromSorted: mergedEvents,
+            startDate: startDate,
+            endDate: endDate
+        )
+    }
     
     @Published var calendarGroups: [CalendarGroup] = []
     
